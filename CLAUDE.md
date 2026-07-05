@@ -64,6 +64,13 @@ test/             # Spiegelt lib/game/ — Logik hat Vorrang bei Testabdeckung
 - Vor dem ersten Ad-Request: UMP-Consent-Flow (DSGVO) durchlaufen.
 - In Debug-Builds ausschließlich AdMob-Test-Ad-Unit-IDs verwenden.
 
+## Umgebung (Cloud-Sessions)
+
+Flutter ist in frischen Cloud-Umgebungen NICHT vorinstalliert. Falls `flutter`
+fehlt: zuerst `scripts/setup.sh` ausführen (wird in Phase 0 erstellt und als
+SessionStart-Hook registriert). Ohne lauffähiges `flutter test` keine
+Logik-Änderungen committen.
+
 ## Befehle
 
 ```bash

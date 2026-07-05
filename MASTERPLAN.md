@@ -129,6 +129,21 @@ der Runde wird es ehrlich-schwer. Dieses Tuning wird per Analytics iteriert
 
 ## 5. Phasenplan
 
+**Legende:** Punkte ohne Markierung erledigt Claude selbstständig.
+Punkte mit **👤 DU** kann nur der Mensch erledigen (Accounts, Zahlungen, Store-Konsolen) —
+Claude bereitet dafür alles vor und schreibt Schritt-für-Schritt-Anleitungen.
+Claude arbeitet die Phasen strikt der Reihe nach ab und überspringt 👤-Punkte,
+bis der Mensch sie als erledigt markiert.
+
+### Phase 0 — Projekt-Bootstrap (einmalig)
+- [ ] Setup-Skript `scripts/setup.sh` erstellen, das Flutter SDK (stable) in der
+      Cloud-Umgebung installiert und `flutter pub get` ausführt — als SessionStart-Hook
+      registrieren, damit jede Claude-Session testfähig ist
+- [ ] Flutter-Projekt anlegen (`flutter create`, Org-Platzhalter `com.CHANGEME.gridpop`),
+      Verzeichnisstruktur aus `CLAUDE.md`, strikte Lints (`flutter_lints`)
+- [ ] CI-Workflow (GitHub Actions): `flutter analyze` + `flutter test` bei jedem Push
+- [ ] 👤 DU: Finalen App-Namen und Bundle-ID/Org festlegen (Claude macht ASO-Namensvorschläge)
+
 ### Phase 1 — MVP (Woche 1–2)
 - [ ] Flutter-Projekt, Game-Engine: Board, Teile, Drag & Drop, Clear-Logik
 - [ ] Scoring + Game Over + Highscore (lokal)
@@ -142,19 +157,30 @@ der Runde wird es ehrlich-schwer. Dieses Tuning wird per Analytics iteriert
 - [ ] Onboarding (3 geführte Züge, kein Text-Tutorial)
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)
-- [ ] AdMob-Integration (Interstitial + Rewarded) mit Frequency Capping
-- [ ] IAP (Werbefrei + Münzen), Restore Purchases
-- [ ] Firebase Analytics-Events (Funnel: install → runde 1 → runde 3 → D1)
-- [ ] Store-Listings: Icon, Screenshots, ASO-Texte (DE + EN), Datenschutzerklärung
+- [ ] 👤 DU: Accounts anlegen — Apple Developer (99 €/Jahr), Google Play Console (25 €),
+      AdMob, Firebase (Claude liefert eine Klick-für-Klick-Anleitung als `docs/SETUP-ACCOUNTS.md`)
+- [ ] AdMob-Integration (Interstitial + Rewarded) mit Frequency Capping —
+      Entwicklung ausschließlich mit Googles offiziellen Test-Ad-Unit-IDs
+- [ ] 👤 DU: Echte Ad-Unit-IDs in AdMob anlegen und in die Config eintragen
+- [ ] IAP-Code (Werbefrei + Münzen), Restore Purchases
+- [ ] 👤 DU: IAP-Produkte in App Store Connect / Play Console anlegen (IDs liefert Claude)
+- [ ] Firebase Analytics-Events (Funnel: install → runde 1 → runde 3 → D1);
+      👤 DU: Firebase-Config-Dateien (`google-services.json`, `GoogleService-Info.plist`) einchecken
+- [ ] Store-Listing-Material: Icon, Screenshots, ASO-Texte (DE + EN), Datenschutzerklärungs-Text
 - [ ] App-Review-Anforderungen: DSGVO/UMP-Consent-Dialog (AdMob UMP SDK), COPPA-Einstufung
+- [ ] 👤 DU: Datenschutzerklärung unter eigener URL hosten (kostenlos z. B. GitHub Pages),
+      Privacy Labels / Datensicherheits-Formulare in beiden Konsolen ausfüllen (Vorlage von Claude)
 
 ### Phase 4 — Soft Launch (Woche 7–8)
-- [ ] Release nur Play Store, 1–2 kleine Märkte (z. B. Niederlande/Skandinavien)
+- [ ] Release-Build (`flutter build appbundle`) inkl. Signing-Anleitung
+- [ ] 👤 DU: Signing-Key erzeugen (Anleitung von Claude), App in Play Console hochladen,
+      Soft Launch in 1–2 kleinen Märkten (z. B. Niederlande/Skandinavien) freischalten
 - [ ] KPIs messen (siehe unten), Fairness-Tuning & Ad-Frequenz iterieren
 - [ ] Crashfrei-Rate > 99,5 %
 
 ### Phase 5 — Global Launch & Growth (ab Woche 9)
-- [ ] iOS + Android weltweit
+- [ ] iOS-Build (`flutter build ipa`); 👤 DU: Upload via App Store Connect, Review einreichen
+- [ ] 👤 DU: Beide Stores weltweit freischalten
 - [ ] ASO-Iteration (Keywords, Screenshot-A/B im Play Store)
 - [ ] Organik pushen: TikTok/Shorts mit „satisfying"-Clips (Combo-Fieber ist genau dafür gebaut)
 - [ ] Erst wenn LTV > CPI messbar: kleine Paid-UA-Tests
@@ -186,5 +212,79 @@ Werden die Minimalziele verfehlt → erst Game Feel/Fairness tunen, nicht mehr A
 
 ## 7. Nächster Schritt
 
-Phase 1 starten: Flutter-Projekt aufsetzen und die komplette Spiellogik
-test-getrieben bauen. Die Entwicklungs-Konventionen stehen in `CLAUDE.md`.
+Phase 0 starten: Setup-Skript + Flutter-Projekt aufsetzen, danach Phase 1
+(Spiellogik test-getrieben bauen). Die Entwicklungs-Konventionen stehen in `CLAUDE.md`.
+
+---
+
+## Anhang A — Spiel-Spezifikation (verbindlich, keine freien Design-Entscheidungen)
+
+### A.1 Teile-Set (Spawning-Gewichte)
+
+| Teil | Formen | Basis-Gewicht |
+|---|---|---|
+| Einzelblock | 1×1 | 4 |
+| Linien | 1×2, 1×3, 1×4, 1×5 (je horizontal + vertikal) | je 6 / 6 / 5 / 3 |
+| Quadrate | 2×2, 3×3 | 6 / 3 |
+| Rechtecke | 2×3, 3×2 | je 4 |
+| L klein (4 Rotationen) | 3 Zellen im Winkel | je 5 |
+| L groß (4 Rotationen) | 3×3-L (5 Zellen) | je 3 |
+| S/Z (je 2 Rotationen) | 4 Zellen | je 3 |
+| T (4 Rotationen) | 4 Zellen | je 4 |
+
+Teile werden **nicht** vom Spieler rotiert (genre-üblich) — Rotationen sind eigene Teile.
+
+### A.2 Generator-Regeln (Fairness)
+
+1. Es spawnen immer 3 Teile gleichzeitig; neue erst, wenn alle 3 platziert sind.
+2. **Rettungsregel:** Passt keines der 3 gewürfelten Teile aufs Board, wird das letzte
+   durch das größte noch platzierbare Teil ersetzt. Existiert gar keins → Game Over ist legitim.
+3. **Frühphase** (Züge 1–10 einer Runde): Gewichte von Teilen, die aktuell platzierbar
+   sind, ×1,5. Danach reine Basis-Gewichte.
+4. Der Generator ist vollständig durch `Random(seed)` bestimmt (Daily Challenge, Tests).
+
+### A.3 Münz-Ökonomie (Startwerte, per Analytics tunen)
+
+| Posten | Wert |
+|---|---|
+| Startguthaben | 100 Münzen |
+| Revive (Board-Mitte 4×4 wird geleert, 1× pro Runde) | Rewarded Ad ODER 200 Münzen |
+| Undo (letzter Zug) | 50 Münzen |
+| Teil-Tausch (3 neue Teile) | 75 Münzen |
+| Lucky Block (Wunsch-Teil) | Rewarded Ad, 1× pro Runde |
+| Mission abgeschlossen | 20–50 Münzen |
+| Daily Challenge geschafft | 50 Münzen (+10 pro Streak-Tag, max. +100) |
+| Theme freischalten | 500–1000 Münzen |
+
+### A.4 Screens (MVP)
+
+1. **Home:** Play, Daily Challenge (mit Streak-Anzeige), Highscore, Themes, Settings-Zahnrad
+2. **Game:** 8×8-Board, 3 Teile-Slots unten, Score oben, Combo-/Fieber-Meter, Pause
+3. **Game Over:** Score, Bestwert, Revive-Angebot (einmalig), „Nochmal", Home
+4. **Settings:** Sound, Musik, Haptik, Werbefrei-Kauf, Käufe wiederherstellen, Datenschutz/Impressum
+
+### A.5 Technische Festlegungen
+
+- Dart-Klassen: `Board` (immutable, `place()` gibt neues Board + `ClearResult` zurück),
+  `Piece` (Liste von Zell-Offsets), `PieceGenerator`, `ScoreKeeper`, `DailyChallenge`
+- Persistenz-Keys: `highscore`, `coins`, `streak`, `lastDailyDate`, `adFree`,
+  `activeTheme`, `settings.*` — zentral in `lib/services/storage.dart`
+- AdMob-Test-IDs im Debug-Build hart verdrahtet; echte IDs via `lib/monetization/ad_config.dart`
+- IAP-Produkt-IDs: `gridpop_remove_ads`, `gridpop_coins_s`, `gridpop_coins_m`, `gridpop_coins_l`
+
+## Anhang B — Was nur DU erledigen kannst (Übersicht)
+
+Claude kann programmieren, testen, Texte/Anleitungen/Assets erstellen — aber **nicht**:
+Accounts anlegen, Zahlungen tätigen, Verträge akzeptieren, Apps in den Konsolen hochladen.
+Diese Punkte (alle im Phasenplan mit 👤 markiert):
+
+1. Apple Developer Program beitreten (99 €/Jahr) + Google Play Console (25 €)
+2. AdMob-Konto + App + Ad-Units anlegen; UMP-Consent-Meldung in AdMob konfigurieren
+3. Firebase-Projekt anlegen, Config-Dateien herunterladen und ins Repo geben
+4. IAP-Produkte in beiden Store-Konsolen anlegen (IDs aus Anhang A.5)
+5. Datenschutzerklärung hosten; Privacy-/Datensicherheits-Formulare ausfüllen
+6. Signing-Key erzeugen und sicher verwahren; Builds hochladen und Releases freischalten
+7. Steuer-/Bankdaten in beiden Konsolen hinterlegen (sonst kein Payout!)
+
+Für jeden dieser Punkte legt Claude in Phase 3 eine Klick-für-Klick-Anleitung
+unter `docs/` ab.
