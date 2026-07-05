@@ -136,19 +136,21 @@ Claude arbeitet die Phasen strikt der Reihe nach ab und überspringt 👤-Punkte
 bis der Mensch sie als erledigt markiert.
 
 ### Phase 0 — Projekt-Bootstrap (einmalig)
-- [ ] Setup-Skript `scripts/setup.sh` erstellen, das Flutter SDK (stable) in der
-      Cloud-Umgebung installiert und `flutter pub get` ausführt — als SessionStart-Hook
-      registrieren, damit jede Claude-Session testfähig ist
-- [ ] Flutter-Projekt anlegen (`flutter create`, Org-Platzhalter `com.CHANGEME.gridpop`),
-      Verzeichnisstruktur aus `CLAUDE.md`, strikte Lints (`flutter_lints`)
-- [ ] CI-Workflow (GitHub Actions): `flutter analyze` + `flutter test` bei jedem Push
+- [x] Setup-Skript `scripts/setup.sh` erstellen, das Flutter SDK (stable) in der
+      Cloud-Umgebung installiert und `flutter pub get` ausführt
+      (SessionStart-Hook-Registrierung: siehe `docs/DEV-ENVIRONMENT.md`, braucht
+      einmalige Nutzer-Freigabe)
+- [x] Flutter-Projekt anlegen (`flutter create`, Org-Platzhalter `com.gridpopgame`,
+      Projektname `gridpop`), Verzeichnisstruktur aus `CLAUDE.md`, strikte Lints
+- [x] CI-Workflow (GitHub Actions): `flutter analyze` + `flutter test` bei jedem Push
 - [ ] 👤 DU: Finalen App-Namen und Bundle-ID/Org festlegen (Claude macht ASO-Namensvorschläge)
 
 ### Phase 1 — MVP (Woche 1–2)
-- [ ] Flutter-Projekt, Game-Engine: Board, Teile, Drag & Drop, Clear-Logik
-- [ ] Scoring + Game Over + Highscore (lokal)
+- [x] Game-Engine (pure Dart): Board + Clear-Logik, Teile-Katalog, Generator, Scoring
+- [x] Unit-Tests für die komplette Spiellogik (Board, Piece, Generator, Scoring, Daily) — 46 Tests
+- [ ] Drag & Drop (UI-Anbindung der Engine)
+- [ ] Scoring-Anbindung + Game Over + Highscore (lokal, `shared_preferences`)
 - [ ] Basis-UI: Menü, Spiel, Game-Over-Screen
-- [ ] Unit-Tests für die komplette Spiellogik (Board, Generator, Scoring)
 
 ### Phase 2 — Game Feel & Retention (Woche 3–4)
 - [ ] Animationen, Partikel, Sounds, Haptik, Combo-Fieber
