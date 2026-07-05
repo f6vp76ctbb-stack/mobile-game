@@ -157,9 +157,15 @@ bis der Mensch sie als erledigt markiert.
 in Phase 3 wird daraus die Rewarded-Ad-„Revive".
 
 ### Phase 2 — Game Feel & Retention (Woche 3–4)
-- [ ] Animationen, Partikel, Sounds, Haptik, Combo-Fieber
-- [ ] Daily Challenge + Streak
-- [ ] Themes, Missionen, Münz-Ökonomie
+- [x] Haptik (`services/haptics.dart`, an Platzieren/Clear/Fieber/Game-Over gekoppelt)
+- [x] Combo-Fieber sichtbar: Fieber-Glow ums Board, Combo-Puls-Animation, Fieber-Bar
+- [x] Daily Challenge + Streak (`streak.dart`, seed-basiert, mit Münz-Belohnung) — getestet
+- [x] Missionen (`missions.dart`, 5 Karriere-Missionen, Fortschritt persistiert) — getestet
+- [x] Münz-Ökonomie: Belohnungen für Daily + Missionen, Münz-Anzeige, Persistenz
+- [x] Missions-Screen + Home-Screen mit Münzen und Daily-Karte
+- [ ] Partikel-Effekte beim Clearen (Reihen-Pop)
+- [ ] Sounds: CC0-Assets beschaffen + `audioplayers` an `SilentAudio`-Interface anbinden
+- [ ] Themes (Holz, Neon, Pastell) — Farbsystem in `theme.dart` swap-bar machen
 - [ ] Onboarding (3 geführte Züge, kein Text-Tutorial)
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)

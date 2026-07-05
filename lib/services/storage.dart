@@ -3,6 +3,8 @@
 /// Keys follow MASTERPLAN.md Anhang A.5.
 library;
 
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Storage {
@@ -16,6 +18,7 @@ class Storage {
   static const _kLastDailyDate = 'lastDailyDate';
   static const _kAdFree = 'adFree';
   static const _kActiveTheme = 'activeTheme';
+  static const _kMissionProgress = 'missionProgress';
 
   static const int startingCoins = 100;
 
@@ -38,6 +41,23 @@ class Storage {
 
   int get coins => _prefs.getInt(_kCoins) ?? startingCoins;
   Future<void> setCoins(int value) => _prefs.setInt(_kCoins, value);
+
+  /// Adds [delta] coins (never drops below zero) and returns the new balance.
+  Future<int> addCoins(int delta) async {
+    final next = (coins + delta).clamp(0, 1 << 31);
+    await setCoins(next);
+    return next;
+  }
+
+  Map<String, int> get missionProgress {
+    final raw = _prefs.getString(_kMissionProgress);
+    if (raw == null) return {};
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
+  }
+
+  Future<void> setMissionProgress(Map<String, int> progress) =>
+      _prefs.setString(_kMissionProgress, jsonEncode(progress));
 
   int get streak => _prefs.getInt(_kStreak) ?? 0;
   Future<void> setStreak(int value) => _prefs.setInt(_kStreak, value);

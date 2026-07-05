@@ -27,6 +27,7 @@ class GameScreen extends ConsumerWidget {
                   highscore: snap.highscore,
                   combo: snap.combo,
                   fever: snap.feverLevel,
+                  isDaily: snap.isDaily,
                 ),
                 Expanded(
                   child: LayoutBuilder(
@@ -39,7 +40,10 @@ class GameScreen extends ConsumerWidget {
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          BoardView(size: boardSize),
+                          _FeverGlow(
+                            fever: snap.feverLevel,
+                            child: BoardView(size: boardSize),
+                          ),
                           const SizedBox(height: gap),
                           TrayView(
                             boardCell: boardSize / 8,
@@ -60,18 +64,48 @@ class GameScreen extends ConsumerWidget {
   }
 }
 
+/// A soft glow around the board that intensifies with the fever meter.
+class _FeverGlow extends StatelessWidget {
+  const _FeverGlow({required this.fever, required this.child});
+
+  final double fever;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final f = fever.clamp(0.0, 1.0);
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          if (f > 0)
+            BoxShadow(
+              color: GridColors.fever.withValues(alpha: f * 0.6),
+              blurRadius: f * 34,
+              spreadRadius: f * 4,
+            ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header({
     required this.score,
     required this.highscore,
     required this.combo,
     required this.fever,
+    required this.isDaily,
   });
 
   final int score;
   final int highscore;
   final int combo;
   final double fever;
+  final bool isDaily;
 
   @override
   Widget build(BuildContext context) {
@@ -79,19 +113,23 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
       child: Column(
         children: [
+          if (isDaily)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 6),
+              child: Text(
+                'TÄGLICHE CHALLENGE',
+                style: TextStyle(
+                  color: GridColors.textMuted,
+                  fontSize: 12,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _stat('PUNKTE', '$score'),
-              if (combo > 1)
-                Text(
-                  'COMBO x$combo',
-                  style: const TextStyle(
-                    color: GridColors.fever,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
+              if (combo > 1) _ComboBadge(combo: combo),
               _stat('BEST', '$highscore', alignEnd: true),
             ],
           ),
@@ -120,6 +158,35 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Combo indicator that pulses each time the combo count changes.
+class _ComboBadge extends StatelessWidget {
+  const _ComboBadge({required this.combo});
+
+  final int combo;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(combo),
+      tween: Tween(begin: 1.35, end: 1.0),
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOut,
+      builder: (context, scale, child) => Transform.scale(
+        scale: scale,
+        child: child,
+      ),
+      child: Text(
+        'COMBO x$combo',
+        style: const TextStyle(
+          color: GridColors.fever,
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
+        ),
+      ),
     );
   }
 }
@@ -154,47 +221,83 @@ class _GameOverOverlay extends ConsumerWidget {
     return Container(
       color: Colors.black.withValues(alpha: 0.72),
       alignment: Alignment.center,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            'Game Over',
-            style: TextStyle(
-              color: GridColors.textPrimary,
-              fontSize: 34,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${snap.score} Punkte',
-            style: const TextStyle(color: GridColors.textPrimary, fontSize: 22),
-          ),
-          if (snap.isNewHighscore)
-            const Padding(
-              padding: EdgeInsets.only(top: 6),
-              child: Text(
-                'Neuer Rekord! 🎉',
-                style: TextStyle(color: GridColors.fever, fontSize: 16),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Game Over',
+              style: TextStyle(
+                color: GridColors.textPrimary,
+                fontSize: 34,
+                fontWeight: FontWeight.bold,
               ),
             ),
-          const SizedBox(height: 28),
-          // Revive is a placeholder until Rewarded Ads land in Phase 3.
-          FilledButton.tonal(
-            onPressed: controller.revive,
-            child: const Text('Weiterspielen (Board-Mitte leeren)'),
-          ),
-          const SizedBox(height: 12),
-          FilledButton(
-            onPressed: () => controller.newGame(),
-            child: const Text('Nochmal'),
-          ),
-          const SizedBox(height: 12),
-          TextButton(
-            onPressed: () => Navigator.of(context).maybePop(),
-            child: const Text('Hauptmenü'),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Text(
+              '${snap.score} Punkte',
+              style:
+                  const TextStyle(color: GridColors.textPrimary, fontSize: 22),
+            ),
+            if (snap.isNewHighscore)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  'Neuer Rekord! 🎉',
+                  style: TextStyle(color: GridColors.fever, fontSize: 16),
+                ),
+              ),
+            if (snap.isDaily && snap.streak > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '🔥 ${snap.streak} Tage Streak',
+                  style: const TextStyle(
+                    color: GridColors.fever,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            if (snap.coinsEarnedThisRun > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  '🪙 +${snap.coinsEarnedThisRun} Münzen',
+                  style: const TextStyle(
+                    color: GridColors.textPrimary,
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            for (final mission in snap.completedMissions)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '✓ $mission',
+                  style: const TextStyle(
+                    color: GridColors.placed,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 28),
+            // Revive is a placeholder until Rewarded Ads land in Phase 3.
+            FilledButton.tonal(
+              onPressed: controller.revive,
+              child: const Text('Weiterspielen (Board-Mitte leeren)'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () => controller.newGame(),
+              child: const Text('Nochmal'),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.of(context).maybePop(),
+              child: const Text('Hauptmenü'),
+            ),
+          ],
+        ),
       ),
     );
   }

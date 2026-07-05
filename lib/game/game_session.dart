@@ -31,6 +31,8 @@ class GameSession {
   Board _board;
   late List<Piece?> _tray; // 3 slots; null once placed
   int _placements = 0;
+  int _linesCleared = 0;
+  int _maxCombo = 0;
   bool _gameOver = false;
 
   Board get board => _board;
@@ -40,6 +42,18 @@ class GameSession {
   double get feverLevel => _scorer.feverLevel;
   int get placements => _placements;
   bool get isGameOver => _gameOver;
+
+  /// Per-run statistics (basis for missions and analytics).
+  int get linesCleared => _linesCleared;
+  int get maxCombo => _maxCombo;
+
+  /// A snapshot of the current run's stats.
+  GameStats get stats => GameStats(
+        score: score,
+        piecesPlaced: _placements,
+        linesCleared: _linesCleared,
+        maxCombo: _maxCombo,
+      );
 
   /// Whether the piece in [slot] can legally be placed at [origin].
   bool canPlace(int slot, Cell origin) {
@@ -67,6 +81,8 @@ class GameSession {
       clearedCells: result.clearedCells.length,
       isAllClear: result.isAllClear,
     );
+    _linesCleared += result.clearedLines;
+    if (event.combo > _maxCombo) _maxCombo = event.combo;
 
     if (_tray.every((p) => p == null)) {
       _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
@@ -93,4 +109,19 @@ class GameSession {
         .whereType<Piece>()
         .any((piece) => _board.hasAnyPlacement(piece));
   }
+}
+
+/// Immutable summary of one run, consumed by missions and analytics.
+class GameStats {
+  const GameStats({
+    required this.score,
+    required this.piecesPlaced,
+    required this.linesCleared,
+    required this.maxCombo,
+  });
+
+  final int score;
+  final int piecesPlaced;
+  final int linesCleared;
+  final int maxCombo;
 }

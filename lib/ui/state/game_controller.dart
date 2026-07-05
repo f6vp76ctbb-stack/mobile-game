@@ -7,14 +7,22 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/board.dart';
+import '../../game/daily.dart';
 import '../../game/game_session.dart';
+import '../../game/missions.dart';
 import '../../game/piece.dart';
+import '../../game/streak.dart';
+import '../../services/audio.dart';
+import '../../services/haptics.dart';
 import '../../services/storage.dart';
 
 /// Provided once at startup (overridden in main after async init).
 final storageProvider = Provider<Storage>(
   (ref) => throw UnimplementedError('storageProvider must be overridden'),
 );
+
+final hapticsProvider = Provider<Haptics>((ref) => Haptics());
+final audioProvider = Provider<AudioService>((ref) => SilentAudio());
 
 /// Immutable view of the current run for the widget tree.
 @immutable
@@ -28,6 +36,11 @@ class GameSnapshot {
     required this.gameOver,
     required this.highscore,
     required this.isNewHighscore,
+    required this.coins,
+    required this.coinsEarnedThisRun,
+    required this.completedMissions,
+    required this.isDaily,
+    required this.streak,
   });
 
   final Board board;
@@ -38,23 +51,42 @@ class GameSnapshot {
   final bool gameOver;
   final int highscore;
   final bool isNewHighscore;
+  final int coins;
+  final int coinsEarnedThisRun;
+  final List<String> completedMissions;
+  final bool isDaily;
+  final int streak;
 }
 
 final gameControllerProvider =
     StateNotifierProvider<GameController, GameSnapshot>((ref) {
-  return GameController(ref.read(storageProvider));
+  return GameController(
+    ref.read(storageProvider),
+    ref.read(hapticsProvider),
+    ref.read(audioProvider),
+  );
 });
 
 class GameController extends StateNotifier<GameSnapshot> {
-  GameController(this._storage, {int? seed})
-      : _session = GameSession.newGame(seed: seed ?? _randomSeed()),
+  GameController(this._storage, this._haptics, this._audio, {int? seed})
+      : _missions = MissionEngine(progress: _storage.missionProgress),
+        _session = GameSession.newGame(seed: seed ?? _randomSeed()),
         super(_initialSnapshot(_storage)) {
     _emit();
   }
 
   final Storage _storage;
+  final Haptics _haptics;
+  final AudioService _audio;
+  final MissionEngine _missions;
+
   GameSession _session;
   bool _isNewHighscore = false;
+  bool _isDaily = false;
+  bool _finalized = false;
+  int _coinsEarnedThisRun = 0;
+  int _streak = 0;
+  List<String> _completedMissions = const [];
 
   static int _randomSeed() => Random().nextInt(1 << 31);
 
@@ -69,27 +101,66 @@ class GameController extends StateNotifier<GameSnapshot> {
       gameOver: false,
       highscore: storage.highscore,
       isNewHighscore: false,
+      coins: storage.coins,
+      coinsEarnedThisRun: 0,
+      completedMissions: const [],
+      isDaily: false,
+      streak: storage.streak,
     );
   }
 
-  /// Starts a fresh endless run (or a specific [seed], e.g. the Daily seed).
+  /// Starts a fresh endless run.
   void newGame({int? seed}) {
     _session = GameSession.newGame(seed: seed ?? _randomSeed());
-    _isNewHighscore = false;
+    _resetRunState(daily: false);
     _emit();
   }
+
+  /// Starts today's Daily Challenge (same seed for everyone).
+  void startDaily({DateTime? now}) {
+    _session = GameSession.newGame(seed: DailyChallenge.seedForToday(now: now));
+    _resetRunState(daily: true);
+    _emit();
+  }
+
+  void _resetRunState({required bool daily}) {
+    _isNewHighscore = false;
+    _isDaily = daily;
+    _finalized = false;
+    _coinsEarnedThisRun = 0;
+    _completedMissions = const [];
+    _streak = _storage.streak;
+  }
+
+  /// Current mission progress for the missions screen.
+  List<MissionView> get missionViews => _missions.views;
+
+  bool canPlace(int slot, Cell origin) => _session.canPlace(slot, origin);
 
   /// Attempts to place tray[slot] at [origin]. No-op if illegal.
   void place(int slot, Cell origin) {
     final event = _session.place(slot, origin);
     if (event == null) return;
+
+    _haptics.place();
+    _audio.play(Sfx.place);
+    // combo > 0 means this move cleared at least one line (a no-clear move
+    // resets combo to 0 in the scorer).
+    if (event.combo > 0) {
+      if (event.feverBurst) {
+        _haptics.feverBurst();
+        _audio.play(Sfx.feverBurst);
+      } else {
+        _haptics.clear();
+        _audio.play(event.combo > 1 ? Sfx.combo : Sfx.clear);
+      }
+    }
+
     if (_session.isGameOver) {
-      _finishRun();
+      _finalizeRun();
     }
     _emit();
   }
-
-  bool canPlace(int slot, Cell origin) => _session.canPlace(slot, origin);
 
   /// Applies the "Revive" reward: clears the central 4x4 block.
   void revive() {
@@ -97,14 +168,46 @@ class GameController extends StateNotifier<GameSnapshot> {
     _emit();
   }
 
-  void _finishRun() {
-    // Fire-and-forget persistence; the UI reads the flag from the snapshot.
-    _storage.submitScore(_session.score).then((isRecord) {
-      if (isRecord && mounted) {
-        _isNewHighscore = true;
-        _emit();
+  /// Grants earned coins/missions/streak once, at the end of a run.
+  void _finalizeRun() {
+    _haptics.gameOver();
+    _audio.play(Sfx.gameOver);
+    if (_finalized) return;
+    _finalized = true;
+    _finalizeAsync();
+  }
+
+  Future<void> _finalizeAsync() async {
+    var earned = 0;
+
+    final completed = _missions.recordGame(_session.stats);
+    for (final m in completed) {
+      earned += m.reward;
+    }
+    _completedMissions = completed.map((m) => m.description).toList();
+    await _storage.setMissionProgress(_missions.progress);
+
+    if (_isDaily) {
+      final result = DailyStreak.onDailyCompleted(
+        lastDateKey: _storage.lastDailyDate,
+        currentStreak: _storage.streak,
+        today: DateTime.now(),
+      );
+      if (!result.alreadyPlayedToday) {
+        earned += result.coinsAwarded;
+        await _storage.setStreak(result.streak);
+        await _storage.setLastDailyDate(
+          DailyChallenge.dateKey(DateTime.now()),
+        );
       }
-    });
+      _streak = result.streak;
+    }
+
+    if (earned > 0) await _storage.addCoins(earned);
+    _coinsEarnedThisRun = earned;
+    _isNewHighscore = await _storage.submitScore(_session.score);
+
+    if (mounted) _emit();
   }
 
   void _emit() {
@@ -117,6 +220,11 @@ class GameController extends StateNotifier<GameSnapshot> {
       gameOver: _session.isGameOver,
       highscore: max(_storage.highscore, _session.score),
       isNewHighscore: _isNewHighscore,
+      coins: _storage.coins,
+      coinsEarnedThisRun: _coinsEarnedThisRun,
+      completedMissions: _completedMissions,
+      isDaily: _isDaily,
+      streak: _streak,
     );
   }
 }
