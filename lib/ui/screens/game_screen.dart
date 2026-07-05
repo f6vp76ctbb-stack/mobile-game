@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/game_controller.dart';
+import '../state/theme_controller.dart';
 import '../theme.dart';
 import '../widgets/board_view.dart';
 import '../widgets/tray_view.dart';
@@ -15,8 +16,10 @@ class GameScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final snap = ref.watch(gameControllerProvider);
+    final theme = ref.watch(activeThemeProvider);
 
     return Scaffold(
+      backgroundColor: theme.background,
       body: SafeArea(
         child: Stack(
           children: [
@@ -28,23 +31,30 @@ class GameScreen extends ConsumerWidget {
                   combo: snap.combo,
                   fever: snap.feverLevel,
                   isDaily: snap.isDaily,
+                  feverColor: theme.fever,
                 ),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       const trayHeight = 96.0;
                       const gap = 16.0;
+                      final hintReserve = snap.onboardingHint != null ? 52.0 : 0.0;
                       final maxBoard = constraints.maxWidth - 24;
-                      final boardSize = maxBoard
-                          .clamp(0.0, constraints.maxHeight - trayHeight - gap);
+                      final boardSize = maxBoard.clamp(
+                        0.0,
+                        constraints.maxHeight - trayHeight - gap - hintReserve,
+                      );
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _FeverGlow(
                             fever: snap.feverLevel,
+                            color: theme.fever,
                             child: BoardView(size: boardSize),
                           ),
                           const SizedBox(height: gap),
+                          if (snap.onboardingHint != null)
+                            _CoachHint(text: snap.onboardingHint!),
                           TrayView(
                             boardCell: boardSize / 8,
                             height: trayHeight,
@@ -66,9 +76,14 @@ class GameScreen extends ConsumerWidget {
 
 /// A soft glow around the board that intensifies with the fever meter.
 class _FeverGlow extends StatelessWidget {
-  const _FeverGlow({required this.fever, required this.child});
+  const _FeverGlow({
+    required this.fever,
+    required this.color,
+    required this.child,
+  });
 
   final double fever;
+  final Color color;
   final Widget child;
 
   @override
@@ -81,13 +96,47 @@ class _FeverGlow extends StatelessWidget {
         boxShadow: [
           if (f > 0)
             BoxShadow(
-              color: GridColors.fever.withValues(alpha: f * 0.6),
+              color: color.withValues(alpha: f * 0.6),
               blurRadius: f * 34,
               spreadRadius: f * 4,
             ),
         ],
       ),
       child: child,
+    );
+  }
+}
+
+/// A small pulsing coach banner used during the first-run guided moves.
+class _CoachHint extends StatelessWidget {
+  const _CoachHint({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(text),
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, t, child) => Opacity(opacity: t, child: child),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: GridColors.boardBackground,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: GridColors.gridLine),
+        ),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: GridColors.textPrimary,
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -99,6 +148,7 @@ class _Header extends StatelessWidget {
     required this.combo,
     required this.fever,
     required this.isDaily,
+    required this.feverColor,
   });
 
   final int score;
@@ -106,6 +156,7 @@ class _Header extends StatelessWidget {
   final int combo;
   final double fever;
   final bool isDaily;
+  final Color feverColor;
 
   @override
   Widget build(BuildContext context) {
@@ -129,12 +180,12 @@ class _Header extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               _stat('PUNKTE', '$score'),
-              if (combo > 1) _ComboBadge(combo: combo),
+              if (combo > 1) _ComboBadge(combo: combo, color: feverColor),
               _stat('BEST', '$highscore', alignEnd: true),
             ],
           ),
           const SizedBox(height: 10),
-          _FeverBar(level: fever),
+          _FeverBar(level: fever, color: feverColor),
         ],
       ),
     );
@@ -164,9 +215,10 @@ class _Header extends StatelessWidget {
 
 /// Combo indicator that pulses each time the combo count changes.
 class _ComboBadge extends StatelessWidget {
-  const _ComboBadge({required this.combo});
+  const _ComboBadge({required this.combo, required this.color});
 
   final int combo;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -181,8 +233,8 @@ class _ComboBadge extends StatelessWidget {
       ),
       child: Text(
         'COMBO x$combo',
-        style: const TextStyle(
-          color: GridColors.fever,
+        style: TextStyle(
+          color: color,
           fontWeight: FontWeight.bold,
           fontSize: 16,
         ),
@@ -192,9 +244,10 @@ class _ComboBadge extends StatelessWidget {
 }
 
 class _FeverBar extends StatelessWidget {
-  const _FeverBar({required this.level});
+  const _FeverBar({required this.level, required this.color});
 
   final double level;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
@@ -204,7 +257,7 @@ class _FeverBar extends StatelessWidget {
         value: level.clamp(0.0, 1.0),
         minHeight: 8,
         backgroundColor: GridColors.emptyCell,
-        valueColor: const AlwaysStoppedAnimation(GridColors.fever),
+        valueColor: AlwaysStoppedAnimation(color),
       ),
     );
   }

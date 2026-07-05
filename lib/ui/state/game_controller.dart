@@ -41,6 +41,7 @@ class GameSnapshot {
     required this.completedMissions,
     required this.isDaily,
     required this.streak,
+    required this.onboardingHint,
   });
 
   final Board board;
@@ -56,6 +57,9 @@ class GameSnapshot {
   final List<String> completedMissions;
   final bool isDaily;
   final int streak;
+
+  /// Short coach hint for the first-run guided moves, or null when inactive.
+  final String? onboardingHint;
 }
 
 final gameControllerProvider =
@@ -87,6 +91,20 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _coinsEarnedThisRun = 0;
   int _streak = 0;
   List<String> _completedMissions = const [];
+  late bool _onboarding = !_storage.onboardingDone;
+  int _onboardingStep = 0;
+
+  static const _onboardingHints = <String>[
+    'Zieh einen Stein ins Gitter 👆',
+    'Fülle eine ganze Reihe oder Spalte',
+    'Volle Linien lösen sich auf — Punkte! ✨',
+  ];
+
+  String? get _onboardingHint {
+    if (!_onboarding || _isDaily) return null;
+    if (_onboardingStep >= _onboardingHints.length) return null;
+    return _onboardingHints[_onboardingStep];
+  }
 
   static int _randomSeed() => Random().nextInt(1 << 31);
 
@@ -106,6 +124,8 @@ class GameController extends StateNotifier<GameSnapshot> {
       completedMissions: const [],
       isDaily: false,
       streak: storage.streak,
+      onboardingHint:
+          storage.onboardingDone ? null : 'Zieh einen Stein ins Gitter 👆',
     );
   }
 
@@ -156,16 +176,36 @@ class GameController extends StateNotifier<GameSnapshot> {
       }
     }
 
+    _advanceOnboarding();
+
     if (_session.isGameOver) {
       _finalizeRun();
     }
     _emit();
   }
 
+  void _advanceOnboarding() {
+    if (!_onboarding || _isDaily) return;
+    _onboardingStep += 1;
+    if (_onboardingStep >= _onboardingHints.length) {
+      _onboarding = false;
+      _storage.setOnboardingDone(true);
+    }
+  }
+
   /// Applies the "Revive" reward: clears the central 4x4 block.
   void revive() {
     _session.reviveClearCenter();
     _emit();
+  }
+
+  /// Spends [cost] coins if affordable (e.g. unlocking a theme). Returns
+  /// whether the purchase went through, and refreshes the coin display.
+  Future<bool> trySpendCoins(int cost) async {
+    if (_storage.coins < cost) return false;
+    await _storage.addCoins(-cost);
+    _emit();
+    return true;
   }
 
   /// Grants earned coins/missions/streak once, at the end of a run.
@@ -225,6 +265,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       completedMissions: _completedMissions,
       isDaily: _isDaily,
       streak: _streak,
+      onboardingHint: _onboardingHint,
     );
   }
 }

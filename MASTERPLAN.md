@@ -163,10 +163,12 @@ in Phase 3 wird daraus die Rewarded-Ad-„Revive".
 - [x] Missionen (`missions.dart`, 5 Karriere-Missionen, Fortschritt persistiert) — getestet
 - [x] Münz-Ökonomie: Belohnungen für Daily + Missionen, Münz-Anzeige, Persistenz
 - [x] Missions-Screen + Home-Screen mit Münzen und Daily-Karte
+- [x] Themes (Classic/Neon/Ocean/Wood) — swap-bares Farbsystem, per Münzen freischaltbar,
+      Theme-Screen mit Vorschau; Board/Tray/Fieber ziehen die aktive Palette — getestet
+- [x] Onboarding: 3 geführte Züge mit kurzen, an Aktionen gekoppelten Coach-Hinweisen
+      (kein Text-Wand-Tutorial); nur beim allerersten Endless-Run — getestet
 - [ ] Partikel-Effekte beim Clearen (Reihen-Pop)
 - [ ] Sounds: CC0-Assets beschaffen + `audioplayers` an `SilentAudio`-Interface anbinden
-- [ ] Themes (Holz, Neon, Pastell) — Farbsystem in `theme.dart` swap-bar machen
-- [ ] Onboarding (3 geführte Züge, kein Text-Tutorial)
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)
 - [ ] 👤 DU: Accounts anlegen — Apple Developer (99 €/Jahr), Google Play Console (25 €),

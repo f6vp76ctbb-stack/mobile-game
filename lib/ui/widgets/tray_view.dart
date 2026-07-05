@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/piece.dart';
 import '../state/game_controller.dart';
-import '../theme.dart';
+import '../state/theme_controller.dart';
 import 'board_view.dart';
 import 'piece_view.dart';
 
@@ -24,6 +24,7 @@ class TrayView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tray = ref.watch(gameControllerProvider).tray;
+    final slotColors = ref.watch(activeThemeProvider).traySlots;
     // Tray pieces render a little smaller than board cells to leave padding.
     final trayCell = (height / 5).clamp(16.0, boardCell);
 
@@ -35,7 +36,7 @@ class TrayView extends ConsumerWidget {
           for (var slot = 0; slot < tray.length; slot++)
             Expanded(
               child: Center(
-                child: _slot(tray[slot], slot, trayCell),
+                child: _slot(tray[slot], slot, trayCell, slotColors),
               ),
             ),
         ],
@@ -43,9 +44,9 @@ class TrayView extends ConsumerWidget {
     );
   }
 
-  Widget _slot(Piece? piece, int slot, double trayCell) {
+  Widget _slot(Piece? piece, int slot, double trayCell, List<Color> colors) {
     if (piece == null) return const SizedBox.shrink();
-    final color = GridColors.traySlots[slot % GridColors.traySlots.length];
+    final color = colors[slot % colors.length];
 
     final feedbackW = piece.width * boardCell;
     final feedbackH = piece.height * boardCell;

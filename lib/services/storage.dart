@@ -18,7 +18,9 @@ class Storage {
   static const _kLastDailyDate = 'lastDailyDate';
   static const _kAdFree = 'adFree';
   static const _kActiveTheme = 'activeTheme';
+  static const _kUnlockedThemes = 'unlockedThemes';
   static const _kMissionProgress = 'missionProgress';
+  static const _kOnboardingDone = 'onboardingDone';
 
   static const int startingCoins = 100;
 
@@ -69,7 +71,20 @@ class Storage {
   bool get adFree => _prefs.getBool(_kAdFree) ?? false;
   Future<void> setAdFree(bool value) => _prefs.setBool(_kAdFree, value);
 
+  bool get onboardingDone => _prefs.getBool(_kOnboardingDone) ?? false;
+  Future<void> setOnboardingDone(bool value) =>
+      _prefs.setBool(_kOnboardingDone, value);
+
   String get activeTheme => _prefs.getString(_kActiveTheme) ?? 'classic';
   Future<void> setActiveTheme(String id) =>
       _prefs.setString(_kActiveTheme, id);
+
+  /// Theme ids the player owns. 'classic' is always included.
+  Set<String> get unlockedThemes {
+    final list = _prefs.getStringList(_kUnlockedThemes) ?? const [];
+    return {'classic', ...list};
+  }
+
+  Future<void> setUnlockedThemes(Set<String> ids) =>
+      _prefs.setStringList(_kUnlockedThemes, ids.toList());
 }

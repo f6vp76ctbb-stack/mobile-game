@@ -7,7 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/board.dart';
 import '../../game/piece.dart';
 import '../state/game_controller.dart';
-import '../theme.dart';
+import '../state/theme_controller.dart';
 
 /// How far above the finger the piece is anchored while dragging (in cells).
 const double kFingerLiftCells = 1.2;
@@ -72,6 +72,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
   @override
   Widget build(BuildContext context) {
     final board = ref.watch(gameControllerProvider).board;
+    final theme = ref.watch(activeThemeProvider);
 
     return DragTarget<int>(
       onMove: (details) => _updatePreview(details.data, details.offset),
@@ -90,7 +91,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
           width: widget.size,
           height: widget.size,
           decoration: BoxDecoration(
-            color: GridColors.boardBackground,
+            color: theme.boardBackground,
             borderRadius: BorderRadius.circular(_cell * 0.25),
           ),
           child: CustomPaint(
@@ -100,6 +101,10 @@ class _BoardViewState extends ConsumerState<BoardView> {
               previewPiece: _previewPiece,
               previewOrigin: _previewOrigin,
               previewValid: _previewValid,
+              emptyColor: theme.emptyCell,
+              placedColor: theme.placed,
+              validColor: theme.validPreview,
+              invalidColor: theme.invalidPreview,
             ),
           ),
         );
@@ -115,6 +120,10 @@ class _BoardPainter extends CustomPainter {
     required this.previewPiece,
     required this.previewOrigin,
     required this.previewValid,
+    required this.emptyColor,
+    required this.placedColor,
+    required this.validColor,
+    required this.invalidColor,
   });
 
   final Board board;
@@ -122,6 +131,10 @@ class _BoardPainter extends CustomPainter {
   final Piece? previewPiece;
   final Cell? previewOrigin;
   final bool previewValid;
+  final Color emptyColor;
+  final Color placedColor;
+  final Color validColor;
+  final Color invalidColor;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -147,7 +160,7 @@ class _BoardPainter extends CustomPainter {
         drawCell(
           r,
           c,
-          board.filledAt(r, c) ? GridColors.placed : GridColors.emptyCell,
+          board.filledAt(r, c) ? placedColor : emptyColor,
         );
       }
     }
@@ -156,8 +169,7 @@ class _BoardPainter extends CustomPainter {
     final piece = previewPiece;
     final origin = previewOrigin;
     if (piece != null && origin != null) {
-      final color =
-          previewValid ? GridColors.validPreview : GridColors.invalidPreview;
+      final color = previewValid ? validColor : invalidColor;
       for (final offset in piece.cells) {
         final r = origin.row + offset.row;
         final c = origin.col + offset.col;
@@ -173,5 +185,7 @@ class _BoardPainter extends CustomPainter {
       old.board != board ||
       old.previewPiece != previewPiece ||
       old.previewOrigin != previewOrigin ||
-      old.previewValid != previewValid;
+      old.previewValid != previewValid ||
+      old.placedColor != placedColor ||
+      old.emptyColor != emptyColor;
 }

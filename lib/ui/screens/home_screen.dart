@@ -8,6 +8,7 @@ import '../state/game_controller.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 import 'missions_screen.dart';
+import 'themes_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -74,19 +75,32 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 14),
-              OutlinedButton.icon(
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  foregroundColor: GridColors.textPrimary,
-                  side: const BorderSide(color: GridColors.gridLine),
-                ),
-                icon: const Icon(Icons.flag_outlined),
-                label: const Text('Missionen'),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const MissionsScreen(),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SecondaryButton(
+                      icon: Icons.flag_outlined,
+                      label: 'Missionen',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const MissionsScreen(),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SecondaryButton(
+                      icon: Icons.palette_outlined,
+                      label: 'Themes',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const ThemesScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const Spacer(),
             ],
@@ -144,6 +158,32 @@ class _PrimaryButton extends StatelessWidget {
       ),
       onPressed: onPressed,
       child: Text(label),
+    );
+  }
+}
+
+class _SecondaryButton extends StatelessWidget {
+  const _SecondaryButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton.icon(
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(52),
+        foregroundColor: GridColors.textPrimary,
+        side: const BorderSide(color: GridColors.gridLine),
+      ),
+      icon: Icon(icon),
+      label: Text(label),
+      onPressed: onPressed,
     );
   }
 }

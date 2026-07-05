@@ -35,6 +35,22 @@ void _playToGameOver(GameController c) {
   }
 }
 
+/// Plays a single first-legal move. Returns whether one was made.
+bool _placeOneLegalMove(GameController c) {
+  for (var slot = 0; slot < c.state.tray.length; slot++) {
+    if (c.state.tray[slot] == null) continue;
+    for (var r = 0; r < Board.size; r++) {
+      for (var col = 0; col < Board.size; col++) {
+        if (c.canPlace(slot, Cell(r, col))) {
+          c.place(slot, Cell(r, col));
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 void main() {
   test('endless run does not touch the daily streak', () async {
     final c = await _controller();
@@ -60,6 +76,23 @@ void main() {
     // First daily completion always grants at least the base + streak reward.
     expect(c.state.coinsEarnedThisRun, greaterThanOrEqualTo(60));
     expect(c.state.coins, greaterThan(startCoins));
+  });
+
+  test('onboarding hint shows on first run and clears after 3 moves', () async {
+    final c = await _controller(); // fresh prefs => onboarding active
+    c.newGame(seed: 3);
+    expect(c.state.onboardingHint, isNotNull);
+
+    for (var i = 0; i < 3; i++) {
+      _placeOneLegalMove(c);
+    }
+    expect(c.state.onboardingHint, isNull);
+  });
+
+  test('daily mode never shows the onboarding hint', () async {
+    final c = await _controller();
+    c.startDaily(now: DateTime(2026, 7, 5));
+    expect(c.state.onboardingHint, isNull);
   });
 
   test('an illegal placement is a no-op', () async {
