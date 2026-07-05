@@ -198,9 +198,13 @@ bis der Mensch sie als erledigt markiert.
 - [ ] 👤 DU: Datenschutzerklärung hosten, Privacy-/Datensicherheits-Formulare + COPPA ausfüllen
 
 ### Phase 4 — Soft Launch (Woche 7–8)
-- [ ] Release-Build (`flutter build appbundle`) inkl. Signing-Anleitung
-- [ ] 👤 DU: Signing-Key erzeugen (Anleitung von Claude), App in Play Console hochladen,
-      Soft Launch in 1–2 kleinen Märkten (z. B. Niederlande/Skandinavien) freischalten
+- [x] Android-Signing-Config (liest `key.properties`, fällt ohne Keystore auf
+      Debug-Keys zurück → baut immer), R8-Keep-Regeln bereit, Anzeigename „GridPop"
+- [x] Release-/Build-Checkliste (`docs/RELEASE.md`) inkl. Keystore-Erzeugung,
+      appbundle/ipa, Screenshots, Soft-Launch-Schritte
+- [ ] 👤 DU: Signing-Key erzeugen (`docs/RELEASE.md`), `flutter build appbundle`,
+      App in Play Console hochladen, Soft Launch in 1–2 kleinen Märkten freischalten
+- [ ] 👤 DU: Screenshots am Gerät/Emulator aufnehmen (Plan in `docs/STORE-LISTING.md`)
 - [ ] KPIs messen (siehe unten), Fairness-Tuning & Ad-Frequenz iterieren
 - [ ] Crashfrei-Rate > 99,5 %
 
