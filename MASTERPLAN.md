@@ -64,6 +64,8 @@ genau dafür ist dieser Plan da.
 |---|---|---|
 | **Werbefrei** (behält Rewarded-Optionen!) | 4,99 € | Non-Consumable — der wichtigste IAP im Genre |
 | Münzpaket S/M/L | 0,99 / 2,99 / 7,99 € | Consumable |
+| Starter-Paket (einmalig, ab Runde 5) | 1,99 € | Consumable — 1200 Münzen + Wood-Theme (Anhang C.6) |
+| Sparschwein öffnen | 2,99 € | Consumable — füllt sich beim Spielen (Anhang C.5) |
 | Münzen kaufen: Revive, Undo, Teil-Tausch, Board-Bombe | — | Booster-Ökonomie |
 | Themes (Holz, Neon, Pastell, Dark) | via Münzen | Kosmetik, treibt Münz-Nachfrage |
 
@@ -222,6 +224,40 @@ iOS-/App-Store-Schritte kommen erst in Phase 5. Der Code läuft unverändert fü
 - [ ] Organik pushen: TikTok/Shorts mit „satisfying"-Clips (Combo-Fieber ist genau dafür gebaut)
 - [ ] Erst wenn LTV > CPI messbar: kleine Paid-UA-Tests
 
+### Phase 6 — Tiefe & Profit: „Warum ich morgen wiederkomme" (parallel zu Soft Launch startbar)
+
+Alles hier ist **offline-fähig** (keine Server-Regel bleibt) und pure-Dart-testbar.
+Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Aufwand).
+
+**Tier 1 — Retention-Kern (zuerst bauen)**
+- [ ] Booster im Spiel: Undo, Teil-Tausch, Board-Bombe als Münz-Senken (C.1) —
+      die Ökonomie hat aktuell zu wenige Ausgabe-Anreize
+- [ ] Lokale Benachrichtigungen ohne Server (`flutter_local_notifications`):
+      Daily-Reminder + Streak-Warnung + Comeback-Geschenk (C.2)
+- [ ] Streak-Schutz: 1 verpasster Tag heilbar (Münzen oder Rewarded Ad) (C.2)
+- [ ] „Münzen verdoppeln"-Rewarded auf dem Game-Over-Screen (C.7)
+- [ ] Juice-Pass II: Score-Popups am Clear-Ort, Screen-Shake bei 3+ Linien,
+      All-Clear-Konfetti-Feier, Squash-Animation beim Landen (C.8)
+
+**Tier 2 — Progression-Meta (macht aus Runden eine Reise)**
+- [ ] Spieler-Level (XP) mit Level-Up-Belohnungen auf dem Home-Screen (C.3)
+- [ ] Rätsel-Modus: seed-generierte, per Solver validierte Puzzle-Level mit
+      3-Sterne-Wertung — endloser Content ohne Content-Kosten (C.4)
+- [ ] Statistik-Screen: Bestwerte, Ø-Score, größte Combo, Gesamt-Linien
+- [ ] Achievements + Bestenlisten via Google Play Games Services (kostenlos,
+      kein Server); 👤 DU: in Play Console anlegen (C.9)
+
+**Tier 3 — Monetarisierungs-Vertiefung (erst nach Retention-Daten)**
+- [ ] Sparschwein: füllt sich beim Spielen, Öffnen per IAP (C.5)
+- [ ] Starter-Paket: einmaliges Angebot ab Runde 5 (C.6)
+- [ ] Wochenend-Event: Sa/So doppelte Missions-Münzen + Bonus-Daily (C.7)
+- [ ] Block-Skins zusätzlich zu Themes (weitere Münz-Senke)
+
+**Bewusst NICHT geplant** (Begründung festhalten, um Feature-Creep zu vermeiden):
+Energie-System (killt die „entspannt"-Positionierung), Multiplayer/Clans
+(bräuchte Server), Season Pass (zu früh — erst ab stabiler D30-Basis), Lootboxen
+(Review-/Rechtsrisiko).
+
 ### KPI-Ziele (Soft Launch)
 
 | Metrik | Minimalziel | Gut |
@@ -307,7 +343,8 @@ Teile werden **nicht** vom Spieler rotiert (genre-üblich) — Rotationen sind e
 - Persistenz-Keys: `highscore`, `coins`, `streak`, `lastDailyDate`, `adFree`,
   `activeTheme`, `settings.*` — zentral in `lib/services/storage.dart`
 - AdMob-Test-IDs im Debug-Build hart verdrahtet; echte IDs via `lib/monetization/ad_config.dart`
-- IAP-Produkt-IDs: `gridpop_remove_ads`, `gridpop_coins_s`, `gridpop_coins_m`, `gridpop_coins_l`
+- IAP-Produkt-IDs: `gridpop_remove_ads`, `gridpop_coins_s`, `gridpop_coins_m`,
+  `gridpop_coins_l`; ab Phase 6: `gridpop_starter`, `gridpop_piggy` (Anhang C)
 
 ## Anhang B — Was nur DU erledigen kannst (Übersicht)
 
@@ -325,3 +362,110 @@ Diese Punkte (alle im Phasenplan mit 👤 markiert):
 
 Für jeden dieser Punkte legt Claude in Phase 3 eine Klick-für-Klick-Anleitung
 unter `docs/` ab.
+
+---
+
+## Anhang C — Spezifikation Phase 6 (verbindlich)
+
+### C.1 Booster im Spiel (Münz-Senken)
+
+UI: Booster-Leiste unter dem Tray (3 Buttons mit Münzpreis-Badge).
+
+| Booster | Kosten | Wirkung | Regeln |
+|---|---|---|---|
+| Undo | 50 | Macht genau den letzten Zug rückgängig (Board, Tray, Score, Combo, Fieber) | Max. 1× in Folge; nicht nach Clear-Animation-Start eines neuen Zugs |
+| Teil-Tausch | 75 | Ersetzt die aktuellen Tray-Teile durch 3 neue | Beliebig oft; nutzt den normalen Generator (kein Wunschteil — das bleibt Lucky Block/Rewarded) |
+| Board-Bombe | 150 | Spieler wählt eine Zelle; 3×3 darum wird geleert | Gibt keine Punkte; bricht die Combo nicht; max. 1× pro Zug |
+
+Engine-Anforderung: `GameSession` bekommt `undo()` (ein Schritt Historie),
+`bombAt(Cell)` — beides pure Dart + Tests.
+
+### C.2 Lokale Benachrichtigungen & Streak-Schutz (kein Server!)
+
+Paket: `flutter_local_notifications`. Opt-in-Dialog erst beim **zweiten**
+App-Start (nicht beim ersten). In Einstellungen abschaltbar.
+
+| Notification | Zeitpunkt | Bedingung | Text-Idee |
+|---|---|---|---|
+| Daily-Reminder | 19:00 lokal | Daily heute nicht gespielt | „Dein Puzzle des Tages wartet 🧩" |
+| Streak-Warnung | 21:30 lokal | Streak ≥ 3 UND Daily offen | „🔥 {n}-Tage-Streak in Gefahr!" |
+| Comeback | einmalig nach 72 h Inaktivität | — | „Wir haben 100 Münzen für dich 🪙" (beim Öffnen gutschreiben) |
+
+**Streak-Schutz:** Genau 1 verpasster Tag kann geheilt werden — beim nächsten
+Öffnen Angebot: Rewarded Ad ODER 150 Münzen. 2+ Tage verpasst → Streak bricht
+normal. Max. 1 Heilung pro 7 Tage (sonst verliert der Streak seine Bedeutung).
+
+### C.3 Spieler-Level (XP)
+
+- XP pro Runde: `score / 100` (abgerundet), Daily-Abschluss: +50 XP extra.
+- Level-Kurve: Level *n* → *n+1* braucht `100 + 50·n` XP.
+- Level-Up-Belohnung: `20 + 5·n` Münzen; jedes 5. Level schaltet einen
+  Block-Skin frei (C-Tier-3).
+- Anzeige: Home-Screen (Level-Ring um den Titel oder Badge), Level-Up-Feier
+  auf dem Game-Over-Screen.
+- Persistenz-Keys: `xp`, `playerLevel`.
+
+### C.4 Rätsel-Modus (seed-generiert, Solver-validiert)
+
+- Level *k* wird deterministisch aus Seed `0xR47SEL + k` generiert:
+  vorgefülltes Board (30–60 % Füllung, steigend) + feste Teilfolge.
+- Ziel: „Board komplett leeren" in ≤ M Zügen. Sterne: 3 = optimal
+  (Solver-Minimum), 2 = +2 Züge, 1 = geschafft.
+- **Generator-Regel:** Ein Level wird nur akzeptiert, wenn der eingebaute
+  Solver (Brute-Force über Teilfolge, pure Dart) es in ≤ M Zügen löst —
+  unlösbare Level sind damit ausgeschlossen. Tests decken die ersten 50 Level ab.
+- Belohnung: 10 Münzen pro Level, +25 Bonus alle 10 Level. Rewarded Ad:
+  „Extra-Zug" (einmal pro Level).
+- Kein Content-Aufwand: unendlich viele Level aus dem Generator.
+
+### C.5 Sparschwein
+
+- Füllung: +1 Münze pro geräumter Linie (zusätzlich zur normalen Ökonomie,
+  landet **nur** im Schwein).
+- Kapazität: 500 (Stufe 1) → nach jedem Öffnen +500, max. 3000.
+- Öffnen: IAP `gridpop_piggy` (2,99 €) — schüttet den Inhalt aus.
+- UI: dezentes Icon auf Home mit Füllstand; Hinweis-Badge erst ab 80 % Füllung.
+  **Nie** blockierend/Popup-Spam — Positionierung „entspannt" schützen.
+
+### C.6 Starter-Paket
+
+- Trigger: einmalig nach Runde 5 (genug Bindung, früh genug für Conversion).
+- Inhalt: 1200 Münzen + Wood-Theme. Preis 1,99 € (`gridpop_starter`).
+- Anzeige: eine Karte auf dem Game-Over-Screen + Eintrag im Shop, 48 h gültig
+  (lokaler Timer), danach dauerhaft weg — echte Knappheit, kein Fake-Countdown-Reset.
+
+### C.7 Zusätzliche Rewarded-Platzierungen & Events
+
+- **Münzen verdoppeln:** Game-Over-Screen, wenn `coinsEarnedThisRun > 0`:
+  „Video ansehen → {n}×2 Münzen". Erwartbar höchstes Engagement.
+- **Wochenend-Event (lokal, uhrbasiert):** Sa+So: Missions-Münzen ×2 und
+  Daily-Belohnung ×2. Banner auf Home. Kein Server nötig — Gerätezeit reicht,
+  Manipulation ist bei reinen Soft-Currency-Boni verschmerzbar.
+
+### C.8 Juice-Pass II (Game Feel)
+
+- Score-Popup am Clear-Ort („+120", floatet hoch, Theme-Farbe).
+- Screen-Shake (subtil, 150 ms) ab 3 gleichzeitigen Linien.
+- All-Clear: Konfetti-Partikel über das ganze Board + eigener Sound + Banner
+  („BLITZBLANK! +300").
+- Landen eines Teils: 80-ms-Squash (Scale 1.0→0.9→1.0).
+- Combo-Sound-Eskalation: Tonhöhe steigt pro Combo-Stufe (bestehende SFX
+  pitchen statt neue Assets).
+
+### C.9 Achievements & Bestenlisten (Google Play Games)
+
+- Kostenlos, kein eigener Server. Bestenlisten: „Endless-Highscore",
+  „Längster Daily-Streak". ~12 Achievements (erste Runde, 10 Missionen,
+  Level 10, 50er-Combo-Summe, All Clear, 7-Tage-Streak, …).
+- 👤 DU: In der Play Console anlegen (IDs liefert Claude als Liste).
+- iOS-Pendant (Game Center) erst beim App-Store-Gang.
+
+### C.10 KPI-Ziele Phase 6 (zusätzlich zu Soft-Launch-KPIs)
+
+| Metrik | Ziel |
+|---|---|
+| D30-Retention | ≥ 8 % |
+| Notification-Opt-in | ≥ 45 % |
+| Rewarded/DAU („verdoppeln" + Revive + Lucky) | ≥ 1,2 Views |
+| Anteil Spieler mit ≥ 1 Booster-Einsatz/Woche | ≥ 25 % |
+| Starter-Pack-Conversion (von Sehern) | ≥ 2 % |
