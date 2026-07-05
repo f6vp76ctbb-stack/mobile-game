@@ -191,7 +191,10 @@ bis der Mensch sie als erledigt markiert.
 - [ ] 👤 DU: Echte Ad-Unit-IDs + App-IDs eintragen (`ad_config.dart`, Manifest, Info.plist)
 - [ ] 👤 DU: IAP-Produkte in beiden Konsolen anlegen (IDs aus `iap.dart` / Anhang A.5)
 - [ ] 👤 DU: Firebase-Config-Dateien einchecken → dann bindet Claude das Firebase-Backend an
-- [ ] Store-Listing-Material: Icon, Screenshots, ASO-Texte (DE + EN), Datenschutzerklärungs-Text
+- [x] Eigenes App-Icon (Android-Mipmaps + iOS-Set via `flutter_launcher_icons`)
+- [x] ASO-Texte DE + EN (`docs/STORE-LISTING.md`: Titel, Keywords, Beschreibungen)
+- [x] Datenschutzerklärungs-Text (`docs/PRIVACY-POLICY.md`, hostbar)
+- [ ] Screenshots: Aufnahme am Gerät/Emulator in Phase 4 (Plan + Captions liegen im Listing)
 - [ ] 👤 DU: Datenschutzerklärung hosten, Privacy-/Datensicherheits-Formulare + COPPA ausfüllen
 
 ### Phase 4 — Soft Launch (Woche 7–8)

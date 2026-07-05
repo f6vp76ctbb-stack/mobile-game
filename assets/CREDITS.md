@@ -18,6 +18,13 @@ mit Attack/Release-Hüllkurve). Kein Fremdmaterial, damit keine Lizenzfragen.
 
 ## Grafik
 
-Bisher keine externen Grafik-Assets — Board, Teile und Effekte werden zur
-Laufzeit gezeichnet (CustomPaint). App-Icon: Flutter-Standard (Platzhalter),
-wird in Phase 3 durch ein eigenes Icon ersetzt.
+Board, Teile und Effekte werden zur Laufzeit gezeichnet (CustomPaint) — keine
+externen Grafik-Assets.
+
+| Datei | Quelle | Lizenz |
+|---|---|---|
+| `assets/icon/icon.png` | Selbst erstellt (prozedural, Pillow) | Eigenwerk / CC0 |
+| `assets/icon/icon_foreground.png` | Selbst erstellt (adaptiver Vordergrund) | Eigenwerk / CC0 |
+
+Aus diesen Quellen generiert `flutter_launcher_icons` die Android-Mipmaps und
+das iOS-AppIcon-Set.
