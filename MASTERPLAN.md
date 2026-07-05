@@ -147,10 +147,14 @@ bis der Mensch sie als erledigt markiert.
 
 ### Phase 1 — MVP (Woche 1–2)
 - [x] Game-Engine (pure Dart): Board + Clear-Logik, Teile-Katalog, Generator, Scoring
-- [x] Unit-Tests für die komplette Spiellogik (Board, Piece, Generator, Scoring, Daily) — 46 Tests
-- [ ] Drag & Drop (UI-Anbindung der Engine)
-- [ ] Scoring-Anbindung + Game Over + Highscore (lokal, `shared_preferences`)
-- [ ] Basis-UI: Menü, Spiel, Game-Over-Screen
+- [x] Unit-Tests für die komplette Spiellogik (Board, Piece, Generator, Scoring, Daily, Session)
+- [x] Drag & Drop (UI-Anbindung der Engine, mit Vorschau-Highlight)
+- [x] Scoring-Anbindung + Game Over + Highscore (lokal, `shared_preferences`)
+- [x] Basis-UI: Menü, Spiel, Game-Over-Screen (Riverpod)
+- [x] Widget-Smoke-Tests (Navigation + Rendering) — insgesamt 56 Tests grün
+
+**Hinweis:** „Weiterspielen" leert vorerst gratis die Board-Mitte (Platzhalter);
+in Phase 3 wird daraus die Rewarded-Ad-„Revive".
 
 ### Phase 2 — Game Feel & Retention (Woche 3–4)
 - [ ] Animationen, Partikel, Sounds, Haptik, Combo-Fieber
