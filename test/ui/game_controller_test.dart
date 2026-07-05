@@ -1,16 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/game/board.dart';
 import 'package:gridpop/game/piece.dart';
+import 'package:gridpop/monetization/ad_gate.dart';
+import 'package:gridpop/monetization/ads.dart';
+import 'package:gridpop/services/analytics.dart';
 import 'package:gridpop/services/audio.dart';
 import 'package:gridpop/services/haptics.dart';
 import 'package:gridpop/services/storage.dart';
 import 'package:gridpop/ui/state/game_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<GameController> _controller() async {
+Future<GameController> _controller({AdService? ads}) async {
   SharedPreferences.setMockInitialValues({});
   final storage = await Storage.create();
-  return GameController(storage, Haptics(enabled: false), SilentAudio());
+  return GameController(
+    storage,
+    Haptics(enabled: false),
+    SilentAudio(),
+    ads ?? FakeAdService(),
+    AdGate(now: DateTime.now),
+    NoopAnalytics(),
+  );
 }
 
 /// Drives the controller by always playing the first legal move it can find.

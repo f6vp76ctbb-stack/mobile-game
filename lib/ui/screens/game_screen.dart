@@ -34,6 +34,16 @@ class GameScreen extends ConsumerWidget {
                   isDaily: snap.isDaily,
                   feverColor: theme.fever,
                 ),
+                if (!snap.gameOver)
+                  TextButton.icon(
+                    onPressed: () =>
+                        ref.read(gameControllerProvider.notifier).luckyBlock(),
+                    icon: const Icon(Icons.card_giftcard, size: 18),
+                    label: const Text('Neue Teile (Video)'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: theme.fever,
+                    ),
+                  ),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
@@ -351,14 +361,14 @@ class _GameOverOverlay extends ConsumerWidget {
                 ),
               ),
             const SizedBox(height: 28),
-            // Revive is a placeholder until Rewarded Ads land in Phase 3.
+            // Rewarded revive — always voluntary, always grants the reward.
             FilledButton.tonal(
-              onPressed: controller.revive,
-              child: const Text('Weiterspielen (Board-Mitte leeren)'),
+              onPressed: () => controller.reviveWithAd(),
+              child: const Text('▶  Weiterspielen (Video ansehen)'),
             ),
             const SizedBox(height: 12),
             FilledButton(
-              onPressed: () => controller.newGame(),
+              onPressed: () => controller.newGameWithInterstitial(),
               child: const Text('Nochmal'),
             ),
             const SizedBox(height: 12),

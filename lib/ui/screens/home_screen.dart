@@ -8,6 +8,7 @@ import '../state/game_controller.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 import 'missions_screen.dart';
+import 'shop_screen.dart';
 import 'themes_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -30,9 +31,22 @@ class HomeScreen extends ConsumerWidget {
           padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Column(
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: _CoinPill(coins: snap.coins),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.shopping_bag_outlined,
+                      color: GridColors.textPrimary,
+                    ),
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const ShopScreen(),
+                      ),
+                    ),
+                  ),
+                  _CoinPill(coins: snap.coins),
+                ],
               ),
               const Spacer(),
               const Text(

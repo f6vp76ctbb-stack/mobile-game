@@ -153,8 +153,7 @@ bis der Mensch sie als erledigt markiert.
 - [x] Basis-UI: Menü, Spiel, Game-Over-Screen (Riverpod)
 - [x] Widget-Smoke-Tests (Navigation + Rendering) — insgesamt 56 Tests grün
 
-**Hinweis:** „Weiterspielen" leert vorerst gratis die Board-Mitte (Platzhalter);
-in Phase 3 wird daraus die Rewarded-Ad-„Revive".
+**Hinweis:** „Weiterspielen" ist seit Phase 3 eine echte Rewarded-Ad (Revive).
 
 ### Phase 2 — Game Feel & Retention (Woche 3–4)
 - [x] Haptik (`services/haptics.dart`, an Platzieren/Clear/Fieber/Game-Over gekoppelt)
@@ -175,19 +174,25 @@ in Phase 3 wird daraus die Rewarded-Ad-„Revive".
 **Phase 2 abgeschlossen.**
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)
-- [ ] 👤 DU: Accounts anlegen — Apple Developer (99 €/Jahr), Google Play Console (25 €),
-      AdMob, Firebase (Claude liefert eine Klick-für-Klick-Anleitung als `docs/SETUP-ACCOUNTS.md`)
-- [ ] AdMob-Integration (Interstitial + Rewarded) mit Frequency Capping —
-      Entwicklung ausschließlich mit Googles offiziellen Test-Ad-Unit-IDs
-- [ ] 👤 DU: Echte Ad-Unit-IDs in AdMob anlegen und in die Config eintragen
-- [ ] IAP-Code (Werbefrei + Münzen), Restore Purchases
-- [ ] 👤 DU: IAP-Produkte in App Store Connect / Play Console anlegen (IDs liefert Claude)
-- [ ] Firebase Analytics-Events (Funnel: install → runde 1 → runde 3 → D1);
-      👤 DU: Firebase-Config-Dateien (`google-services.json`, `GoogleService-Info.plist`) einchecken
+- [x] Anleitung für alle 👤-Schritte geschrieben (`docs/SETUP-ACCOUNTS.md`)
+- [x] AdMob-Integration (Interstitial + Rewarded) mit zentralem Frequency Capping
+      (`ad_gate.dart`, ab Runde 3 / max 1 pro 90 s) — Debug nutzt Test-IDs; getestet
+- [x] Rewarded-Flows: „Revive" (Board-Mitte) und „Lucky Block" (neue Teile) als
+      echte Rewarded-Ads; Belohnung immer freiwillig + garantiert — getestet
+- [x] UMP/DSGVO-Consent-Flow vor dem ersten Ad-Request (`GoogleAdService`)
+- [x] IAP-Code (Werbefrei non-consumable + Münzpakete consumable), Restore,
+      Shop-Screen, Delivery-Handler; „Werbefrei" behält Rewarded — getestet
+- [x] Analytics-Funnel-Events (game_start, round_complete, reach_round_3,
+      daily_played, rewarded_watched, interstitial_shown, purchase) an
+      `Analytics`-Interface angebunden (`DebugAnalytics` aktiv)
+- [x] Native Config: AdMob-App-ID (Test) in AndroidManifest + Info.plist,
+      INTERNET-Permission
+- [ ] 👤 DU: Accounts anlegen — Apple Developer, Google Play, AdMob, Firebase (Anleitung s. o.)
+- [ ] 👤 DU: Echte Ad-Unit-IDs + App-IDs eintragen (`ad_config.dart`, Manifest, Info.plist)
+- [ ] 👤 DU: IAP-Produkte in beiden Konsolen anlegen (IDs aus `iap.dart` / Anhang A.5)
+- [ ] 👤 DU: Firebase-Config-Dateien einchecken → dann bindet Claude das Firebase-Backend an
 - [ ] Store-Listing-Material: Icon, Screenshots, ASO-Texte (DE + EN), Datenschutzerklärungs-Text
-- [ ] App-Review-Anforderungen: DSGVO/UMP-Consent-Dialog (AdMob UMP SDK), COPPA-Einstufung
-- [ ] 👤 DU: Datenschutzerklärung unter eigener URL hosten (kostenlos z. B. GitHub Pages),
-      Privacy Labels / Datensicherheits-Formulare in beiden Konsolen ausfüllen (Vorlage von Claude)
+- [ ] 👤 DU: Datenschutzerklärung hosten, Privacy-/Datensicherheits-Formulare + COPPA ausfüllen
 
 ### Phase 4 — Soft Launch (Woche 7–8)
 - [ ] Release-Build (`flutter build appbundle`) inkl. Signing-Anleitung

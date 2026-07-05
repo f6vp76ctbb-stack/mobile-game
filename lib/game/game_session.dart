@@ -96,6 +96,13 @@ class GameSession {
     return event;
   }
 
+  /// Draws a fresh tray (used by the "Lucky Block" reward) and rechecks the
+  /// game-over state.
+  void rerollTray() {
+    _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
+    _recomputeGameOver();
+  }
+
   /// Empties the central 4x4 block (used by the "Revive" reward) and clears
   /// the game-over flag if a move becomes possible again.
   void reviveClearCenter() {
