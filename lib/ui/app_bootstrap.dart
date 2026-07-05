@@ -9,6 +9,7 @@ import '../monetization/iap.dart';
 import '../services/analytics.dart';
 import 'screens/home_screen.dart';
 import 'state/game_controller.dart';
+import 'state/settings_controller.dart';
 
 class AppBootstrap extends ConsumerStatefulWidget {
   const AppBootstrap({super.key});
@@ -26,6 +27,9 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
   }
 
   Future<void> _init() async {
+    // Force settings creation so sound/haptics flags are applied to the live
+    // services from launch.
+    ref.read(settingsControllerProvider);
     await ref.read(adServiceProvider).initialize();
     await ref.read(iapServiceProvider).initialize(_deliver);
   }

@@ -21,6 +21,8 @@ class Storage {
   static const _kUnlockedThemes = 'unlockedThemes';
   static const _kMissionProgress = 'missionProgress';
   static const _kOnboardingDone = 'onboardingDone';
+  static const _kSoundEnabled = 'settings.sound';
+  static const _kHapticsEnabled = 'settings.haptics';
 
   static const int startingCoins = 100;
 
@@ -74,6 +76,14 @@ class Storage {
   bool get onboardingDone => _prefs.getBool(_kOnboardingDone) ?? false;
   Future<void> setOnboardingDone(bool value) =>
       _prefs.setBool(_kOnboardingDone, value);
+
+  bool get soundEnabled => _prefs.getBool(_kSoundEnabled) ?? true;
+  Future<void> setSoundEnabled(bool value) =>
+      _prefs.setBool(_kSoundEnabled, value);
+
+  bool get hapticsEnabled => _prefs.getBool(_kHapticsEnabled) ?? true;
+  Future<void> setHapticsEnabled(bool value) =>
+      _prefs.setBool(_kHapticsEnabled, value);
 
   String get activeTheme => _prefs.getString(_kActiveTheme) ?? 'classic';
   Future<void> setActiveTheme(String id) =>
