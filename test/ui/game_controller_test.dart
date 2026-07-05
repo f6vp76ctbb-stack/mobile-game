@@ -95,6 +95,15 @@ void main() {
     expect(c.state.onboardingHint, isNull);
   });
 
+  test('clearing lines increments the clear event id', () async {
+    final c = await _controller();
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    // A greedy full run reliably clears lines, so the particle trigger must
+    // have fired at least once and exposed the cleared cells.
+    expect(c.state.clearEventId, greaterThan(0));
+  });
+
   test('an illegal placement is a no-op', () async {
     final c = await _controller();
     c.newGame(seed: 2);

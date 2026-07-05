@@ -42,6 +42,8 @@ class GameSnapshot {
     required this.isDaily,
     required this.streak,
     required this.onboardingHint,
+    required this.clearEventId,
+    required this.clearedCells,
   });
 
   final Board board;
@@ -60,6 +62,14 @@ class GameSnapshot {
 
   /// Short coach hint for the first-run guided moves, or null when inactive.
   final String? onboardingHint;
+
+  /// Increments on every move that clears lines — the UI keys clear-burst
+  /// particle animations off this so each clear fires exactly once.
+  final int clearEventId;
+
+  /// Cells removed by the most recent clear (empty if the last move cleared
+  /// nothing).
+  final List<Cell> clearedCells;
 }
 
 final gameControllerProvider =
@@ -93,6 +103,8 @@ class GameController extends StateNotifier<GameSnapshot> {
   List<String> _completedMissions = const [];
   late bool _onboarding = !_storage.onboardingDone;
   int _onboardingStep = 0;
+  int _clearEventId = 0;
+  List<Cell> _clearedCells = const [];
 
   static const _onboardingHints = <String>[
     'Zieh einen Stein ins Gitter 👆',
@@ -126,6 +138,8 @@ class GameController extends StateNotifier<GameSnapshot> {
       streak: storage.streak,
       onboardingHint:
           storage.onboardingDone ? null : 'Zieh einen Stein ins Gitter 👆',
+      clearEventId: 0,
+      clearedCells: const [],
     );
   }
 
@@ -164,6 +178,10 @@ class GameController extends StateNotifier<GameSnapshot> {
 
     _haptics.place();
     _audio.play(Sfx.place);
+    if (_session.lastClearedCells.isNotEmpty) {
+      _clearEventId += 1;
+      _clearedCells = _session.lastClearedCells;
+    }
     // combo > 0 means this move cleared at least one line (a no-clear move
     // resets combo to 0 in the scorer).
     if (event.combo > 0) {
@@ -266,6 +284,8 @@ class GameController extends StateNotifier<GameSnapshot> {
       isDaily: _isDaily,
       streak: _streak,
       onboardingHint: _onboardingHint,
+      clearEventId: _clearEventId,
+      clearedCells: _clearedCells,
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'services/audio.dart';
 import 'services/storage.dart';
 import 'ui/screens/home_screen.dart';
 import 'ui/state/game_controller.dart';
@@ -12,7 +13,10 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      overrides: [storageProvider.overrideWithValue(storage)],
+      overrides: [
+        storageProvider.overrideWithValue(storage),
+        audioProvider.overrideWithValue(AudioplayersAudio()),
+      ],
       child: const GridPopApp(),
     ),
   );

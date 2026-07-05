@@ -8,6 +8,7 @@ import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
 import '../widgets/board_view.dart';
+import '../widgets/clear_burst.dart';
 import '../widgets/tray_view.dart';
 
 class GameScreen extends ConsumerWidget {
@@ -50,7 +51,23 @@ class GameScreen extends ConsumerWidget {
                           _FeverGlow(
                             fever: snap.feverLevel,
                             color: theme.fever,
-                            child: BoardView(size: boardSize),
+                            child: SizedBox(
+                              width: boardSize,
+                              height: boardSize,
+                              child: Stack(
+                                children: [
+                                  BoardView(size: boardSize),
+                                  Positioned.fill(
+                                    child: IgnorePointer(
+                                      child: ClearBurst(
+                                        size: boardSize,
+                                        cellSize: boardSize / 8,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                           const SizedBox(height: gap),
                           if (snap.onboardingHint != null)

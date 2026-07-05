@@ -34,6 +34,10 @@ class GameSession {
   int _linesCleared = 0;
   int _maxCombo = 0;
   bool _gameOver = false;
+  List<Cell> _lastClearedCells = const [];
+
+  /// Cells removed by the most recent placement (for clear animations).
+  List<Cell> get lastClearedCells => _lastClearedCells;
 
   Board get board => _board;
   List<Piece?> get tray => List.unmodifiable(_tray);
@@ -82,6 +86,7 @@ class GameSession {
       isAllClear: result.isAllClear,
     );
     _linesCleared += result.clearedLines;
+    _lastClearedCells = result.clearedCells.toList(growable: false);
     if (event.combo > _maxCombo) _maxCombo = event.combo;
 
     if (_tray.every((p) => p == null)) {

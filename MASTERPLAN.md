@@ -167,8 +167,12 @@ in Phase 3 wird daraus die Rewarded-Ad-„Revive".
       Theme-Screen mit Vorschau; Board/Tray/Fieber ziehen die aktive Palette — getestet
 - [x] Onboarding: 3 geführte Züge mit kurzen, an Aktionen gekoppelten Coach-Hinweisen
       (kein Text-Wand-Tutorial); nur beim allerersten Endless-Run — getestet
-- [ ] Partikel-Effekte beim Clearen (Reihen-Pop)
-- [ ] Sounds: CC0-Assets beschaffen + `audioplayers` an `SilentAudio`-Interface anbinden
+- [x] Partikel-Effekte beim Clearen (Partikel-Burst aus geräumten Zellen, Theme-Farbe)
+- [x] Sounds: selbst synthetisierte WAV-SFX (place/clear/combo/fever/gameover),
+      `audioplayers`-Backend an das `AudioService`-Interface angebunden; in Tests
+      bleibt `SilentAudio` aktiv. Lizenz in `assets/CREDITS.md` (Eigenwerk)
+
+**Phase 2 abgeschlossen.**
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)
 - [ ] 👤 DU: Accounts anlegen — Apple Developer (99 €/Jahr), Google Play Console (25 €),
