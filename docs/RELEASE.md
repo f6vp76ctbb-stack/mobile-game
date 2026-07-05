@@ -1,7 +1,11 @@
 # Release- & Build-Checkliste
 
 Reihenfolge für einen sauberen (Soft-)Launch. 👤 = nur der Mensch kann es tun.
-Voraussetzung: die Konten-Schritte aus `docs/SETUP-ACCOUNTS.md`.
+Voraussetzung: die Konten-Schritte aus `docs/SETUP-ACCOUNTS.md` (inkl. der
+steuerlichen Punkte in Abschnitt 0).
+
+> **Play Store zuerst.** Abschnitt 3 (iOS) ist *(später/optional)* — überspringe
+> ihn beim ersten Launch. Alles andere gilt für den Android-Release.
 
 ## 0. Vor dem Release im Code prüfen
 
@@ -42,7 +46,7 @@ Optional Code-Shrinking (kleinere App): in `android/app/build.gradle.kts`
 `isMinifyEnabled`/`isShrinkResources` auf `true` setzen (Keep-Regeln liegen in
 `proguard-rules.pro`) und **einen Release-Build testen**, bevor du hochlädst.
 
-## 3. iOS – Build
+## 3. iOS – Build  *(später/optional – beim Play-first-Launch überspringen)*
 
 1. 👤 In Xcode (`ios/Runner.xcworkspace`) unter *Signing & Capabilities* dein
    Team wählen; Bundle-ID muss zu App Store Connect passen.
@@ -65,7 +69,9 @@ Optional Code-Shrinking (kleinere App): in `android/app/build.gradle.kts`
 
 - ASO-Texte aus `docs/STORE-LISTING.md`, Icon ist bereits gesetzt.
 - Datenschutz-URL (aus `docs/PRIVACY-POLICY.md`, gehostet) eintragen.
-- Datensicherheit/App-Privacy-Formulare + Altersfreigabe ausfüllen.
+- Impressum-URL (aus `docs/IMPRESSUM.md`, gehostet) eintragen und in der App
+  hinterlegen (Einstellungen → Impressum).
+- Datensicherheit-Formular + Altersfreigabe in der Play Console ausfüllen.
 
 ## 6. Soft Launch (Phase 4)
 

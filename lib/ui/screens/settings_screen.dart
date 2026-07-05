@@ -74,6 +74,12 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Datenschutz', style: _tileStyle),
             onTap: () => _showPrivacy(context),
           ),
+          ListTile(
+            leading: const Icon(Icons.info_outline,
+                color: GridColors.textPrimary),
+            title: const Text('Impressum', style: _tileStyle),
+            onTap: () => _showImpressum(context),
+          ),
           const SizedBox(height: 24),
           const Center(
             child: Text(
@@ -99,6 +105,27 @@ class SettingsScreen extends ConsumerWidget {
           'nutzen Drittdienste; vor der ersten Anzeige läuft der DSGVO-'
           'Einwilligungsdialog. Die vollständige Datenschutzerklärung wird vor '
           'dem Launch verlinkt.',
+          style: TextStyle(color: GridColors.textMuted, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImpressum(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: GridColors.boardBackground,
+        title: const Text('Impressum', style: _tileStyle),
+        content: const Text(
+          'Anbieterangaben gemäß § 5 DDG werden vor dem Launch hier eingetragen '
+          'und verlinkt.',
           style: TextStyle(color: GridColors.textMuted, fontSize: 14),
         ),
         actions: [

@@ -194,14 +194,20 @@ bis der Mensch sie als erledigt markiert.
 - [x] Eigenes App-Icon (Android-Mipmaps + iOS-Set via `flutter_launcher_icons`)
 - [x] ASO-Texte DE + EN (`docs/STORE-LISTING.md`: Titel, Keywords, Beschreibungen)
 - [x] Datenschutzerklärungs-Text (`docs/PRIVACY-POLICY.md`, hostbar)
+- [x] Impressum-Vorlage (`docs/IMPRESSUM.md`) + In-App-Punkt (Einstellungen → Impressum)
 - [ ] Screenshots: Aufnahme am Gerät/Emulator in Phase 4 (Plan + Captions liegen im Listing)
-- [ ] 👤 DU: Datenschutzerklärung hosten, Privacy-/Datensicherheits-Formulare + COPPA ausfüllen
+- [ ] 👤 DU: Datenschutzerklärung + Impressum hosten, Play-Datensicherheit + COPPA ausfüllen
 
 ### Phase 4 — Soft Launch (Woche 7–8)
+
+**Strategie: Play Store zuerst** (Kosten: Google 25 € einmalig vs. Apple 99 €/Jahr).
+iOS-/App-Store-Schritte kommen erst in Phase 5. Der Code läuft unverändert für beide.
+
 - [x] Android-Signing-Config (liest `key.properties`, fällt ohne Keystore auf
       Debug-Keys zurück → baut immer), R8-Keep-Regeln bereit, Anzeigename „GridPop"
-- [x] Release-/Build-Checkliste (`docs/RELEASE.md`) inkl. Keystore-Erzeugung,
-      appbundle/ipa, Screenshots, Soft-Launch-Schritte
+- [x] Release-/Build-Checkliste (`docs/RELEASE.md`, Play-first) inkl. Keystore,
+      appbundle, Screenshots, Steuer-Vorbereitung, Soft-Launch-Schritte
+- [ ] 👤 DU: Steuerliches klären + Gewerbe/Kleinunternehmer (`docs/SETUP-ACCOUNTS.md` §0)
 - [ ] 👤 DU: Signing-Key erzeugen (`docs/RELEASE.md`), `flutter build appbundle`,
       App in Play Console hochladen, Soft Launch in 1–2 kleinen Märkten freischalten
 - [ ] 👤 DU: Screenshots am Gerät/Emulator aufnehmen (Plan in `docs/STORE-LISTING.md`)
