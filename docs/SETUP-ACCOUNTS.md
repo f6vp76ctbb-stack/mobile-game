@@ -14,20 +14,28 @@ wird nur beschrieben, wie du die **echten** IDs/Configs einträgst.
 
 ---
 
-## 0. Steuerliches (vor dem ersten Upload) 🇩🇪
+## 0. Steuerliches (Hinweis, keine Steuerberatung) 🇩🇪
 
-> **Keine Steuerberatung** — Orientierung. Verbindlich: Steuerberater / Finanzamt /
-> kostenlose IHK-Gründungsberatung.
+**Du kannst jetzt starten, ohne vorher ein Gewerbe anzumelden.** Praktisch
+relevant wird die Anmeldung, sobald tatsächlich **Geld ausgezahlt** wird —
+Google verlangt dafür Steuerdaten im Zahlungsprofil. „Einnahmen" und
+„Anmeldung" fallen also ohnehin am selben Punkt zusammen.
 
-- [ ] 👤 Kurz-Gründungsberatung (IHK kostenlos oder Steuerberater) — klärt deinen
-      Einzelfall (auch ob evtl. freiberuflich statt gewerblich).
-- [ ] 👤 **Gewerbe anmelden** (Gewerbeamt, ~20–60 €). Auslöser ist der Start der
-      Tätigkeit mit Gewinnerzielungsabsicht — nicht erst der Geldeingang.
-- [ ] 👤 Finanzamt-„Fragebogen zur steuerlichen Erfassung": i. d. R.
-      **Kleinunternehmerregelung (§19 UStG)** wählen → keine USt, einfache EÜR.
-- [ ] 👤 Ggf. **USt-IdNr** (kostenlos beim BZSt) — wegen Reverse-Charge auf
-      AdMob-Einnahmen (Google Ireland). Mit Steuerberater kurz prüfen.
-- [ ] 👤 Steuernummer bereithalten — die braucht das Google-Zahlungsprofil.
+Pragmatischer Weg (Hobby-Test → hochskalieren):
+
+- Jetzt bauen & veröffentlichen, beobachten, ob überhaupt Einnahmen kommen.
+- **Sobald real Geld fließt:** Gewerbe anmelden (Gewerbeamt, ~20–60 €, schnell,
+  auch rückwirkend möglich) und im Finanzamt-Fragebogen die
+  **Kleinunternehmerregelung (§19 UStG)** wählen → keine USt, einfache EÜR.
+  Dann Steuernummer/ggf. USt-IdNr (BZSt, wegen AdMob-Reverse-Charge) ins
+  Google-Zahlungsprofil eintragen.
+- Verdienst du nichts und hörst auf → kein Gewerbe nötig, kein Aufwand.
+
+Zur Einordnung: Die **Freigrenzen** (410 € Nebeneinkünfte, 24.500 €
+Gewerbesteuer-Freibetrag, 25.000 € Kleinunternehmer) betreffen die
+**Besteuerung**, nicht die Anmeldepflicht. Der rechtliche Auslöser der
+Anmeldung ist der Start der Tätigkeit mit Gewinnabsicht — bei nennenswerten
+Einnahmen also zeitnah anmelden. Im Zweifel kurz Finanzamt/Steuerberater fragen.
 
 ## 1. Entwickler-Konten
 

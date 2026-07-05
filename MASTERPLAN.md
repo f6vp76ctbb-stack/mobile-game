@@ -207,9 +207,10 @@ iOS-/App-Store-Schritte kommen erst in Phase 5. Der Code läuft unverändert fü
       Debug-Keys zurück → baut immer), R8-Keep-Regeln bereit, Anzeigename „GridPop"
 - [x] Release-/Build-Checkliste (`docs/RELEASE.md`, Play-first) inkl. Keystore,
       appbundle, Screenshots, Steuer-Vorbereitung, Soft-Launch-Schritte
-- [ ] 👤 DU: Steuerliches klären + Gewerbe/Kleinunternehmer (`docs/SETUP-ACCOUNTS.md` §0)
 - [ ] 👤 DU: Signing-Key erzeugen (`docs/RELEASE.md`), `flutter build appbundle`,
       App in Play Console hochladen, Soft Launch in 1–2 kleinen Märkten freischalten
+- [ ] 👤 DU (erst bei Einnahmen): Gewerbe + Kleinunternehmer anmelden, Steuerdaten
+      ins Google-Zahlungsprofil (`docs/SETUP-ACCOUNTS.md` §0 — Hobby-Test vorab ok)
 - [ ] 👤 DU: Screenshots am Gerät/Emulator aufnehmen (Plan in `docs/STORE-LISTING.md`)
 - [ ] KPIs messen (siehe unten), Fairness-Tuning & Ad-Frequenz iterieren
 - [ ] Crashfrei-Rate > 99,5 %
