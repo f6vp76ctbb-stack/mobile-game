@@ -66,6 +66,7 @@ class GameSnapshot {
     required this.clearedCells,
     required this.adFree,
     required this.canUndo,
+    required this.coinsDoubled,
   });
 
   final Board board;
@@ -98,6 +99,9 @@ class GameSnapshot {
 
   /// Whether the last placement can still be undone (booster availability).
   final bool canUndo;
+
+  /// Whether this run's earned coins were already doubled via rewarded ad.
+  final bool coinsDoubled;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -148,6 +152,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   bool _isDaily = false;
   bool _finalized = false;
   int _coinsEarnedThisRun = 0;
+  bool _coinsDoubled = false;
   int _streak = 0;
   List<String> _completedMissions = const [];
   late bool _onboarding = !_storage.onboardingDone;
@@ -191,6 +196,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       clearedCells: const [],
       adFree: storage.adFree,
       canUndo: false,
+      coinsDoubled: false,
     );
   }
 
@@ -233,6 +239,22 @@ class GameController extends StateNotifier<GameSnapshot> {
     return earned;
   }
 
+  /// Doubles this run's earned coins by watching a rewarded ad. Once only.
+  Future<bool> doubleCoinsWithAd() async {
+    if (_coinsDoubled || _coinsEarnedThisRun <= 0) return false;
+    final earned = await _ads.showRewarded();
+    _analytics
+        .logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'double'});
+    if (earned) {
+      final bonus = _coinsEarnedThisRun;
+      await _storage.addCoins(bonus);
+      _coinsEarnedThisRun += bonus;
+      _coinsDoubled = true;
+      _emit();
+    }
+    return earned;
+  }
+
   /// "Lucky Block" reward: watch a rewarded ad for a fresh set of pieces.
   Future<bool> luckyBlock() async {
     final earned = await _ads.showRewarded();
@@ -263,6 +285,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _isDaily = daily;
     _finalized = false;
     _coinsEarnedThisRun = 0;
+    _coinsDoubled = false;
     _completedMissions = const [];
     _streak = _storage.streak;
   }
@@ -422,6 +445,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       clearedCells: _clearedCells,
       adFree: _storage.adFree,
       canUndo: _session.canUndo,
+      coinsDoubled: _coinsDoubled,
     );
   }
 }

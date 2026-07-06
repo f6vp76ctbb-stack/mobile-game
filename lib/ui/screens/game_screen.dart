@@ -478,11 +478,24 @@ class _GameOverOverlay extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(top: 6),
                 child: Text(
-                  '🪙 +${snap.coinsEarnedThisRun} Münzen',
+                  '🪙 +${snap.coinsEarnedThisRun} Münzen'
+                  '${snap.coinsDoubled ? ' (x2)' : ''}',
                   style: const TextStyle(
                     color: GridColors.textPrimary,
                     fontSize: 16,
                   ),
+                ),
+              ),
+            if (snap.coinsEarnedThisRun > 0 && !snap.coinsDoubled)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: FilledButton.tonal(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: GridColors.fever,
+                    foregroundColor: GridColors.background,
+                  ),
+                  onPressed: () => controller.doubleCoinsWithAd(),
+                  child: const Text('▶  Münzen verdoppeln'),
                 ),
               ),
             for (final mission in snap.completedMissions)

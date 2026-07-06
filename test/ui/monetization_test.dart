@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gridpop/game/board.dart';
+import 'package:gridpop/game/piece.dart';
 import 'package:gridpop/monetization/ad_gate.dart';
 import 'package:gridpop/monetization/ads.dart';
 import 'package:gridpop/monetization/iap.dart';
@@ -8,6 +10,27 @@ import 'package:gridpop/services/haptics.dart';
 import 'package:gridpop/services/storage.dart';
 import 'package:gridpop/ui/state/game_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+/// Drives the controller by always playing the first legal move it finds.
+void _playToGameOver(GameController c) {
+  var guard = 0;
+  while (!c.state.gameOver && guard < 5000) {
+    var moved = false;
+    for (var slot = 0; slot < c.state.tray.length && !moved; slot++) {
+      if (c.state.tray[slot] == null) continue;
+      for (var r = 0; r < Board.size && !moved; r++) {
+        for (var col = 0; col < Board.size && !moved; col++) {
+          if (c.canPlace(slot, Cell(r, col))) {
+            c.place(slot, Cell(r, col));
+            moved = true;
+          }
+        }
+      }
+    }
+    if (!moved) break;
+    guard++;
+  }
+}
 
 /// Rewarded ad that never grants (user closed it early).
 class _NoRewardAds implements AdService {
@@ -60,6 +83,32 @@ void main() {
       // A reroll draws the next tray from the generator; with this seed it
       // differs from the opening tray.
       expect(c.state.tray.map((p) => p?.id).toList(), isNot(before));
+    });
+  });
+
+  group('double coins', () {
+    test('doubles earned coins once when the ad is watched', () async {
+      final c = await _controller(prefs: {'coins': 0});
+      c.startDaily(now: DateTime(2026, 7, 5));
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final earned = c.state.coinsEarnedThisRun;
+      final balance = c.state.coins;
+      expect(earned, greaterThan(0));
+
+      final ok = await c.doubleCoinsWithAd();
+      expect(ok, isTrue);
+      expect(c.state.coins, balance + earned); // bonus added once
+      expect(c.state.coinsDoubled, isTrue);
+
+      // Second attempt is a no-op.
+      expect(await c.doubleCoinsWithAd(), isFalse);
+    });
+
+    test('cannot double when nothing was earned', () async {
+      final c = await _controller();
+      expect(await c.doubleCoinsWithAd(), isFalse);
     });
   });
 
