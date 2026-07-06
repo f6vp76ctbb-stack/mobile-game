@@ -230,8 +230,9 @@ Alles hier ist **offline-fähig** (keine Server-Regel bleibt) und pure-Dart-test
 Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Aufwand).
 
 **Tier 1 — Retention-Kern (zuerst bauen)**
-- [ ] Booster im Spiel: Undo, Teil-Tausch, Board-Bombe als Münz-Senken (C.1) —
-      die Ökonomie hat aktuell zu wenige Ausgabe-Anreize
+- [x] Booster im Spiel: Undo (50), Teil-Tausch (75), Board-Bombe (150) als
+      Münz-Senken (C.1) — Engine (`undo()`/`bombAt()` mit Memento) + Booster-Leiste
+      + Bomben-Ziel-Modus, getestet
 - [ ] Lokale Benachrichtigungen ohne Server (`flutter_local_notifications`):
       Daily-Reminder + Streak-Warnung + Comeback-Geschenk (C.2)
 - [ ] Streak-Schutz: 1 verpasster Tag heilbar (Münzen oder Rewarded Ad) (C.2)

@@ -71,6 +71,16 @@ class ScoreKeeper {
     _fever = 0;
   }
 
+  /// Captures the current scoring state (for one-step undo).
+  ScoreMemento save() => ScoreMemento(_total, _combo, _fever);
+
+  /// Restores a previously [save]d state.
+  void restore(ScoreMemento m) {
+    _total = m.total;
+    _combo = m.combo;
+    _fever = m.fever;
+  }
+
   /// Applies a placement outcome and returns the resulting [ScoreEvent].
   ScoreEvent applyPlacement({
     required int placedCells,
@@ -114,4 +124,13 @@ class ScoreKeeper {
       feverBurst: burst,
     );
   }
+}
+
+/// Immutable snapshot of [ScoreKeeper] state for one-step undo.
+class ScoreMemento {
+  const ScoreMemento(this.total, this.combo, this.fever);
+
+  final int total;
+  final int combo;
+  final double fever;
 }

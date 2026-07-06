@@ -65,6 +65,7 @@ class GameSnapshot {
     required this.clearEventId,
     required this.clearedCells,
     required this.adFree,
+    required this.canUndo,
   });
 
   final Board board;
@@ -94,6 +95,17 @@ class GameSnapshot {
 
   /// True once the player owns the "remove ads" IAP.
   final bool adFree;
+
+  /// Whether the last placement can still be undone (booster availability).
+  final bool canUndo;
+}
+
+/// In-run booster prices (MASTERPLAN.md Anhang C.1).
+class BoosterCosts {
+  const BoosterCosts._();
+  static const int undo = 50;
+  static const int swap = 75;
+  static const int bomb = 150;
 }
 
 final gameControllerProvider =
@@ -178,6 +190,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       clearEventId: 0,
       clearedCells: const [],
       adFree: storage.adFree,
+      canUndo: false,
     );
   }
 
@@ -308,6 +321,34 @@ class GameController extends StateNotifier<GameSnapshot> {
     return true;
   }
 
+  /// Undo booster: reverts the last placement for [BoosterCosts.undo] coins.
+  Future<bool> tryUndo() async {
+    if (!_session.canUndo || _storage.coins < BoosterCosts.undo) return false;
+    await _storage.addCoins(-BoosterCosts.undo);
+    _session.undo();
+    _emit();
+    return true;
+  }
+
+  /// Swap booster: redraws the tray for [BoosterCosts.swap] coins.
+  Future<bool> trySwapPieces() async {
+    if (_session.isGameOver || _storage.coins < BoosterCosts.swap) return false;
+    await _storage.addCoins(-BoosterCosts.swap);
+    _session.rerollTray();
+    _emit();
+    return true;
+  }
+
+  /// Bomb booster: clears the 3x3 block around [origin] for
+  /// [BoosterCosts.bomb] coins.
+  Future<bool> tryBomb(Cell origin) async {
+    if (_session.isGameOver || _storage.coins < BoosterCosts.bomb) return false;
+    await _storage.addCoins(-BoosterCosts.bomb);
+    _session.bombAt(origin);
+    _emit();
+    return true;
+  }
+
   /// Grants earned coins/missions/streak once, at the end of a run.
   void _finalizeRun() {
     _haptics.gameOver();
@@ -380,6 +421,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       clearEventId: _clearEventId,
       clearedCells: _clearedCells,
       adFree: _storage.adFree,
+      canUndo: _session.canUndo,
     );
   }
 }

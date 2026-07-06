@@ -114,6 +114,90 @@ void main() {
     expect(c.state.clearEventId, greaterThan(0));
   });
 
+  group('boosters', () {
+    test('undo is unavailable with nothing to undo', () async {
+      final c = await _controller();
+      c.newGame(seed: 1);
+      expect(c.state.canUndo, isFalse);
+      expect(await c.tryUndo(), isFalse);
+    });
+
+    test('undo reverts the last move and costs coins', () async {
+      SharedPreferences.setMockInitialValues({'coins': 100});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 3);
+      final scoreBefore = c.state.score;
+      _placeOneLegalMove(c);
+      expect(c.state.canUndo, isTrue);
+      final ok = await c.tryUndo();
+      expect(ok, isTrue);
+      expect(c.state.score, scoreBefore);
+      expect(c.state.coins, 50); // 100 - 50
+      expect(c.state.canUndo, isFalse); // only one undo
+    });
+
+    test('undo is refused without enough coins', () async {
+      SharedPreferences.setMockInitialValues({'coins': 10});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 3);
+      _placeOneLegalMove(c);
+      expect(await c.tryUndo(), isFalse);
+      expect(c.state.canUndo, isTrue); // move preserved
+    });
+
+    test('swap costs coins and redraws the tray', () async {
+      SharedPreferences.setMockInitialValues({'coins': 100});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 5);
+      final before = c.state.tray.map((p) => p?.id).toList();
+      final ok = await c.trySwapPieces();
+      expect(ok, isTrue);
+      expect(c.state.coins, 25); // 100 - 75
+      expect(c.state.tray.map((p) => p?.id).toList(), isNot(before));
+    });
+
+    test('bomb costs coins', () async {
+      SharedPreferences.setMockInitialValues({'coins': 200});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 5);
+      final ok = await c.tryBomb(const Cell(4, 4));
+      expect(ok, isTrue);
+      expect(c.state.coins, 50); // 200 - 150
+    });
+  });
+
   test('an illegal placement is a no-op', () async {
     final c = await _controller();
     c.newGame(seed: 2);

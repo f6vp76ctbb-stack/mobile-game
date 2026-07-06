@@ -11,6 +11,9 @@ import '../widgets/board_view.dart';
 import '../widgets/clear_burst.dart';
 import '../widgets/tray_view.dart';
 
+/// True while the player is choosing a target cell for the Board Bomb booster.
+final bombModeProvider = StateProvider<bool>((ref) => false);
+
 class GameScreen extends ConsumerWidget {
   const GameScreen({super.key});
 
@@ -18,6 +21,7 @@ class GameScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final snap = ref.watch(gameControllerProvider);
     final theme = ref.watch(activeThemeProvider);
+    final bombMode = ref.watch(bombModeProvider);
 
     return Scaffold(
       backgroundColor: theme.background,
@@ -49,11 +53,17 @@ class GameScreen extends ConsumerWidget {
                     builder: (context, constraints) {
                       const trayHeight = 96.0;
                       const gap = 16.0;
+                      const boosterHeight = 64.0;
                       final hintReserve = snap.onboardingHint != null ? 52.0 : 0.0;
                       final maxBoard = constraints.maxWidth - 24;
                       final boardSize = maxBoard.clamp(
                         0.0,
-                        constraints.maxHeight - trayHeight - gap - hintReserve,
+                        constraints.maxHeight -
+                            trayHeight -
+                            boosterHeight -
+                            gap -
+                            hintReserve -
+                            2,
                       );
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -66,7 +76,20 @@ class GameScreen extends ConsumerWidget {
                               height: boardSize,
                               child: Stack(
                                 children: [
-                                  BoardView(size: boardSize),
+                                  BoardView(
+                                    size: boardSize,
+                                    onCellTap: bombMode
+                                        ? (cell) async {
+                                            await ref
+                                                .read(gameControllerProvider
+                                                    .notifier)
+                                                .tryBomb(cell);
+                                            ref
+                                                .read(bombModeProvider.notifier)
+                                                .state = false;
+                                          }
+                                        : null,
+                                  ),
                                   Positioned.fill(
                                     child: IgnorePointer(
                                       child: ClearBurst(
@@ -80,6 +103,7 @@ class GameScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: gap),
+                          _BoosterBar(snap: snap, bombMode: bombMode),
                           if (snap.onboardingHint != null)
                             _CoachHint(text: snap.onboardingHint!),
                           TrayView(
@@ -130,6 +154,118 @@ class _FeverGlow extends StatelessWidget {
         ],
       ),
       child: child,
+    );
+  }
+}
+
+/// The in-run booster bar: undo, swap pieces, board bomb.
+class _BoosterBar extends ConsumerWidget {
+  const _BoosterBar({required this.snap, required this.bombMode});
+
+  final GameSnapshot snap;
+  final bool bombMode;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(gameControllerProvider.notifier);
+
+    Future<void> run(Future<bool> action) async {
+      final ok = await action;
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 1),
+            content: Text('Nicht möglich (zu wenig Münzen?)'),
+          ),
+        );
+      }
+    }
+
+    return SizedBox(
+      height: 64,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _BoosterButton(
+            icon: Icons.undo,
+            label: 'Undo',
+            cost: BoosterCosts.undo,
+            enabled: snap.canUndo && !snap.gameOver,
+            active: false,
+            onTap: () => run(controller.tryUndo()),
+          ),
+          _BoosterButton(
+            icon: Icons.autorenew,
+            label: 'Tausch',
+            cost: BoosterCosts.swap,
+            enabled: !snap.gameOver,
+            active: false,
+            onTap: () => run(controller.trySwapPieces()),
+          ),
+          _BoosterButton(
+            icon: Icons.blur_circular,
+            label: 'Bombe',
+            cost: BoosterCosts.bomb,
+            enabled: !snap.gameOver,
+            active: bombMode,
+            onTap: () {
+              final notifier = ref.read(bombModeProvider.notifier);
+              notifier.state = !notifier.state;
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BoosterButton extends StatelessWidget {
+  const _BoosterButton({
+    required this.icon,
+    required this.label,
+    required this.cost,
+    required this.enabled,
+    required this.active,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final int cost;
+  final bool enabled;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active
+        ? GridColors.fever
+        : enabled
+            ? GridColors.textPrimary
+            : GridColors.textMuted;
+    return Expanded(
+      child: Opacity(
+        opacity: enabled ? 1.0 : 0.4,
+        child: InkWell(
+          onTap: enabled ? onTap : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: color, size: 22),
+              const SizedBox(height: 2),
+              Text(label, style: TextStyle(color: color, fontSize: 12)),
+              Text(
+                '🪙$cost',
+                style: const TextStyle(
+                  color: GridColors.textMuted,
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

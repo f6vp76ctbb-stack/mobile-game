@@ -13,10 +13,14 @@ import '../state/theme_controller.dart';
 const double kFingerLiftCells = 1.2;
 
 class BoardView extends ConsumerStatefulWidget {
-  const BoardView({super.key, required this.size});
+  const BoardView({super.key, required this.size, this.onCellTap});
 
   /// Side length of the (square) board in logical pixels.
   final double size;
+
+  /// When set (e.g. bomb-targeting mode), a tap on the board reports the tapped
+  /// cell instead of dragging. Null = normal play.
+  final void Function(Cell cell)? onCellTap;
 
   @override
   ConsumerState<BoardView> createState() => _BoardViewState();
@@ -69,10 +73,54 @@ class _BoardViewState extends ConsumerState<BoardView> {
     });
   }
 
+  void _handleTap(Offset localPos) {
+    final onCellTap = widget.onCellTap;
+    if (onCellTap == null) return;
+    final row = (localPos.dy / _cell).floor().clamp(0, Board.size - 1);
+    final col = (localPos.dx / _cell).floor().clamp(0, Board.size - 1);
+    onCellTap(Cell(row, col));
+  }
+
   @override
   Widget build(BuildContext context) {
     final board = ref.watch(gameControllerProvider).board;
     final theme = ref.watch(activeThemeProvider);
+    final bombMode = widget.onCellTap != null;
+
+    final boardBox = Container(
+      key: _boardKey,
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        color: theme.boardBackground,
+        borderRadius: BorderRadius.circular(_cell * 0.25),
+        border: bombMode
+            ? Border.all(color: theme.fever, width: 2)
+            : null,
+      ),
+      child: CustomPaint(
+        painter: _BoardPainter(
+          board: board,
+          cell: _cell,
+          previewPiece: _previewPiece,
+          previewOrigin: _previewOrigin,
+          previewValid: _previewValid,
+          emptyColor: theme.emptyCell,
+          placedColor: theme.placed,
+          validColor: theme.validPreview,
+          invalidColor: theme.invalidPreview,
+        ),
+      ),
+    );
+
+    // In bomb-targeting mode a tap picks the cell; dragging is disabled.
+    if (bombMode) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (d) => _handleTap(d.localPosition),
+        child: boardBox,
+      );
+    }
 
     return DragTarget<int>(
       onMove: (details) => _updatePreview(details.data, details.offset),
@@ -85,30 +133,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
         }
         _clearPreview();
       },
-      builder: (context, _, _) {
-        return Container(
-          key: _boardKey,
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            color: theme.boardBackground,
-            borderRadius: BorderRadius.circular(_cell * 0.25),
-          ),
-          child: CustomPaint(
-            painter: _BoardPainter(
-              board: board,
-              cell: _cell,
-              previewPiece: _previewPiece,
-              previewOrigin: _previewOrigin,
-              previewValid: _previewValid,
-              emptyColor: theme.emptyCell,
-              placedColor: theme.placed,
-              validColor: theme.validPreview,
-              invalidColor: theme.invalidPreview,
-            ),
-          ),
-        );
-      },
+      builder: (context, _, _) => boardBox,
     );
   }
 }
