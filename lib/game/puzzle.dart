@@ -28,45 +28,107 @@ class Puzzle {
   final int minMoves;
 }
 
-/// 64-bit bitboard helpers: cell (r,c) -> bit r*8 + c.
+/// A bitboard split into two 32-bit halves (rows 0-3 in [lo], rows 4-7 in
+/// [hi]). Board.size (8) divides evenly into 4-row halves, so no row or
+/// column mask ever straddles the lo/hi boundary.
+///
+/// A single 64-bit mask would be simpler, but JavaScript numbers (used by the
+/// web/dart2js backend) cannot represent 64-bit integers or bitwise-shift
+/// past bit 31 exactly. Every value used here stays within 32 safe bits on
+/// every platform (VM, AOT, and web).
+class Mask {
+  const Mask(this.lo, this.hi);
+
+  static const Mask zero = Mask(0, 0);
+
+  final int lo;
+  final int hi;
+
+  bool get isEmpty => lo == 0 && hi == 0;
+
+  Mask operator |(Mask other) => Mask(lo | other.lo, hi | other.hi);
+
+  bool overlaps(Mask other) => (lo & other.lo) != 0 || (hi & other.hi) != 0;
+
+  @override
+  bool operator ==(Object other) =>
+      other is Mask && other.lo == lo && other.hi == hi;
+
+  @override
+  int get hashCode => Object.hash(lo, hi);
+}
+
+/// Bitboard helpers: cell (r,c) -> bit c within row r's byte, packed 4 rows
+/// per 32-bit half. Row r lives in [lo] if r < 4, else in [hi] at row (r-4).
 class BitBoard {
   const BitBoard._();
 
-  static const int fullRow0 = 0xFF; // row 0
-  static const int col0 = 0x0101010101010101; // column 0
+  static const int _rowsPerHalf = 4;
+  static const int fullRow = 0xFF;
+  static const int col0PerHalf = 0x01010101; // column 0, within one half
 
-  static int fromBoard(Board b) {
-    var mask = 0;
+  static (int half, int bitRow) _location(int row) {
+    return row < _rowsPerHalf ? (0, row) : (1, row - _rowsPerHalf);
+  }
+
+  static Mask fromBoard(Board b) {
+    var lo = 0;
+    var hi = 0;
     for (var r = 0; r < Board.size; r++) {
+      final (half, bitRow) = _location(r);
       for (var c = 0; c < Board.size; c++) {
-        if (b.filledAt(r, c)) mask |= 1 << (r * Board.size + c);
+        if (b.filledAt(r, c)) {
+          final bit = 1 << (bitRow * Board.size + c);
+          if (half == 0) {
+            lo |= bit;
+          } else {
+            hi |= bit;
+          }
+        }
       }
     }
-    return mask;
+    return Mask(lo, hi);
   }
 
   /// The bit mask of [piece] placed with its top-left at (row, col).
-  static int pieceMaskAt(Piece piece, int row, int col) {
-    var mask = 0;
+  static Mask pieceMaskAt(Piece piece, int row, int col) {
+    var lo = 0;
+    var hi = 0;
     for (final cell in piece.cells) {
-      mask |= 1 << ((row + cell.row) * Board.size + (col + cell.col));
+      final r = row + cell.row;
+      final c = col + cell.col;
+      final (half, bitRow) = _location(r);
+      final bit = 1 << (bitRow * Board.size + c);
+      if (half == 0) {
+        lo |= bit;
+      } else {
+        hi |= bit;
+      }
     }
-    return mask;
+    return Mask(lo, hi);
   }
 
   /// Adds [pieceMask] and removes any completed rows/columns.
-  static int applyPlacement(int board, int pieceMask) {
+  static Mask applyPlacement(Mask board, Mask pieceMask) {
     final next = board | pieceMask;
-    var cleared = 0;
-    for (var r = 0; r < Board.size; r++) {
-      final rowMask = fullRow0 << (r * Board.size);
-      if (next & rowMask == rowMask) cleared |= rowMask;
+    var clearedLo = 0;
+    var clearedHi = 0;
+
+    for (var bitRow = 0; bitRow < _rowsPerHalf; bitRow++) {
+      final rowMask = fullRow << (bitRow * Board.size);
+      if (next.lo & rowMask == rowMask) clearedLo |= rowMask;
+      if (next.hi & rowMask == rowMask) clearedHi |= rowMask;
     }
     for (var c = 0; c < Board.size; c++) {
-      final colMask = col0 << c;
-      if (next & colMask == colMask) cleared |= colMask;
+      final colMask = col0PerHalf << c;
+      final loFull = next.lo & colMask == colMask;
+      final hiFull = next.hi & colMask == colMask;
+      if (loFull && hiFull) {
+        clearedLo |= colMask;
+        clearedHi |= colMask;
+      }
     }
-    return next & ~cleared;
+    return Mask(next.lo & ~clearedLo, next.hi & ~clearedHi);
   }
 }
 
@@ -75,8 +137,8 @@ class PuzzleSolver {
 
   /// All legal top-left placement masks for [piece] on an 8x8 board (ignoring
   /// occupancy — filtered at solve time).
-  static List<int> _placements(Piece piece) {
-    final out = <int>[];
+  static List<Mask> _placements(Piece piece) {
+    final out = <Mask>[];
     for (var r = 0; r <= Board.size - piece.height; r++) {
       for (var c = 0; c <= Board.size - piece.width; c++) {
         out.add(BitBoard.pieceMaskAt(piece, r, c));
@@ -92,16 +154,16 @@ class PuzzleSolver {
     final placements = [for (final p in pieces) _placements(p)];
     final memo = <String, int?>{};
 
-    int? solve(int board, int idx) {
-      if (board == 0) return 0;
+    int? solve(Mask board, int idx) {
+      if (board.isEmpty) return 0;
       if (idx >= pieces.length) return null;
-      final key = '${board}_$idx';
+      final key = '${board.lo}_${board.hi}_$idx';
       final cached = memo[key];
       if (cached != null || memo.containsKey(key)) return cached;
 
       int? best;
       for (final mask in placements[idx]) {
-        if (board & mask != 0) continue; // overlap
+        if (board.overlaps(mask)) continue; // overlap
         final next = BitBoard.applyPlacement(board, mask);
         final sub = solve(next, idx + 1);
         if (sub != null && (best == null || sub + 1 < best)) {

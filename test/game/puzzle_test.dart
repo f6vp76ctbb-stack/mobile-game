@@ -23,7 +23,43 @@ void main() {
       final board = BitBoard.fromBoard(b);
       final dotMask = BitBoard.pieceMaskAt(byId('dot'), 0, 7);
       final after = BitBoard.applyPlacement(board, dotMask);
-      expect(after, 0); // row cleared -> empty
+      expect(after, Mask.zero); // row cleared -> empty
+    });
+
+    test('a completed column spanning both 32-bit halves clears fully', () {
+      // Column 0 filled for rows 0-6 (row 3 is the lo/hi split boundary);
+      // completing row 7's cell empties the whole column across both halves.
+      final b = Board.fromAscii(const [
+        '#.......',
+        '#.......',
+        '#.......',
+        '#.......',
+        '#.......',
+        '#.......',
+        '#.......',
+        '........',
+      ]);
+      final board = BitBoard.fromBoard(b);
+      final dotMask = BitBoard.pieceMaskAt(byId('dot'), 7, 0);
+      final after = BitBoard.applyPlacement(board, dotMask);
+      expect(after, Mask.zero);
+    });
+
+    test('a row entirely in the high half (rows 4-7) clears correctly', () {
+      final b = Board.fromAscii(const [
+        '........',
+        '........',
+        '........',
+        '........',
+        '#######.',
+        '........',
+        '........',
+        '........',
+      ]);
+      final board = BitBoard.fromBoard(b);
+      final dotMask = BitBoard.pieceMaskAt(byId('dot'), 4, 7);
+      final after = BitBoard.applyPlacement(board, dotMask);
+      expect(after, Mask.zero);
     });
   });
 
