@@ -233,8 +233,10 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
 - [x] Booster im Spiel: Undo (50), Teil-Tausch (75), Board-Bombe (150) als
       Münz-Senken (C.1) — Engine (`undo()`/`bombAt()` mit Memento) + Booster-Leiste
       + Bomben-Ziel-Modus, getestet
-- [ ] Lokale Benachrichtigungen ohne Server (`flutter_local_notifications`):
-      Daily-Reminder + Streak-Warnung + Comeback-Geschenk (C.2)
+- [x] Lokale Benachrichtigungen ohne Server (`flutter_local_notifications`):
+      Daily-Reminder 19:00 + Streak-Warnung 21:30 + Comeback (72h) + Comeback-
+      Geschenk; Opt-in beim 2. Start, Settings-Schalter (C.2). Planungs-Logik
+      pure + getestet; native Zustellung auf Gerät verifizieren (`docs/NOTIFICATIONS.md`)
 - [x] Streak-Schutz: 1 verpasster Tag heilbar (150 Münzen oder Rewarded Ad),
       max. 1×/7 Tage (C.2) — pure Logik + Home-Banner, getestet
 - [x] „Münzen verdoppeln"-Rewarded auf dem Game-Over-Screen (C.7) — einmal pro

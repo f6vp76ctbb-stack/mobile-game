@@ -5,9 +5,11 @@ import 'monetization/ads.dart';
 import 'monetization/iap.dart';
 import 'services/analytics.dart';
 import 'services/audio.dart';
+import 'services/notifications.dart';
 import 'services/storage.dart';
 import 'ui/app_bootstrap.dart';
 import 'ui/state/game_controller.dart';
+import 'ui/state/notifications_controller.dart';
 import 'ui/theme.dart';
 
 Future<void> main() async {
@@ -24,6 +26,7 @@ Future<void> main() async {
         // Firebase backend lands once config files exist; DebugAnalytics prints
         // the funnel in the meantime (see docs/SETUP-ACCOUNTS.md).
         analyticsProvider.overrideWithValue(DebugAnalytics()),
+        notificationServiceProvider.overrideWithValue(LocalNotifications()),
       ],
       child: const GridPopApp(),
     ),

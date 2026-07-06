@@ -24,6 +24,9 @@ class Storage {
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
   static const _kLastStreakRepair = 'lastStreakRepairDate';
+  static const _kNotificationsEnabled = 'settings.notifications';
+  static const _kLastActiveMillis = 'lastActiveMillis';
+  static const _kAppOpenCount = 'appOpenCount';
 
   static const int startingCoins = 100;
 
@@ -89,6 +92,23 @@ class Storage {
   bool get hapticsEnabled => _prefs.getBool(_kHapticsEnabled) ?? true;
   Future<void> setHapticsEnabled(bool value) =>
       _prefs.setBool(_kHapticsEnabled, value);
+
+  bool get notificationsEnabled =>
+      _prefs.getBool(_kNotificationsEnabled) ?? false;
+  Future<void> setNotificationsEnabled(bool value) =>
+      _prefs.setBool(_kNotificationsEnabled, value);
+
+  DateTime? get lastActive {
+    final ms = _prefs.getInt(_kLastActiveMillis);
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms);
+  }
+
+  Future<void> setLastActive(DateTime when) =>
+      _prefs.setInt(_kLastActiveMillis, when.millisecondsSinceEpoch);
+
+  int get appOpenCount => _prefs.getInt(_kAppOpenCount) ?? 0;
+  Future<void> setAppOpenCount(int value) =>
+      _prefs.setInt(_kAppOpenCount, value);
 
   String get activeTheme => _prefs.getString(_kActiveTheme) ?? 'classic';
   Future<void> setActiveTheme(String id) =>

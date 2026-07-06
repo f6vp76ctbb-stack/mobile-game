@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/game_controller.dart';
+import '../state/notifications_controller.dart';
 import '../state/settings_controller.dart';
 import '../theme.dart';
 import 'shop_screen.dart';
@@ -38,6 +39,32 @@ class SettingsScreen extends ConsumerWidget {
             value: settings.haptics,
             onChanged: controller.setHaptics,
             activeThumbColor: GridColors.placed,
+          ),
+          const _SectionLabel('Erinnerungen'),
+          SwitchListTile(
+            title: const Text('Benachrichtigungen', style: _tileStyle),
+            subtitle: const Text(
+              'Daily-Erinnerung & Streak-Schutz',
+              style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+            ),
+            value: ref.watch(notificationsControllerProvider),
+            activeThumbColor: GridColors.placed,
+            onChanged: (want) async {
+              final notifier =
+                  ref.read(notificationsControllerProvider.notifier);
+              if (want) {
+                final ok = await notifier.enable();
+                if (!ok && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('In den System-Einstellungen erlauben.'),
+                    ),
+                  );
+                }
+              } else {
+                await notifier.disable();
+              }
+            },
           ),
           const _SectionLabel('Käufe'),
           if (adFree)
