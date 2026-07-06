@@ -35,10 +35,18 @@ class GameSession {
   int _maxCombo = 0;
   bool _gameOver = false;
   List<Cell> _lastClearedCells = const [];
+  int _lastClearedLineCount = 0;
+  bool _lastWasAllClear = false;
   _SessionMemento? _undoMemento; // pre-move state; null = nothing to undo
 
   /// Cells removed by the most recent placement (for clear animations).
   List<Cell> get lastClearedCells => _lastClearedCells;
+
+  /// Lines cleared by the most recent placement (for screen-shake threshold).
+  int get lastClearedLineCount => _lastClearedLineCount;
+
+  /// Whether the most recent placement emptied the whole board.
+  bool get lastWasAllClear => _lastWasAllClear;
 
   /// Whether the last placement can be undone (one step, not across boosters).
   bool get canUndo => _undoMemento != null;
@@ -103,6 +111,8 @@ class GameSession {
     );
     _linesCleared += result.clearedLines;
     _lastClearedCells = result.clearedCells.toList(growable: false);
+    _lastClearedLineCount = result.clearedLines;
+    _lastWasAllClear = result.isAllClear;
     if (event.combo > _maxCombo) _maxCombo = event.combo;
 
     if (_tray.every((p) => p == null)) {

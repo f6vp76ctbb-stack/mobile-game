@@ -68,6 +68,9 @@ class GameSnapshot {
     required this.canUndo,
     required this.coinsDoubled,
     required this.streakRepairAvailable,
+    required this.lastGained,
+    required this.lastClearedLineCount,
+    required this.lastWasAllClear,
   });
 
   final Board board;
@@ -106,6 +109,15 @@ class GameSnapshot {
 
   /// Whether a streak repair is currently on offer (one day missed).
   final bool streakRepairAvailable;
+
+  /// Points gained on the most recent clearing move (for the score popup).
+  final int lastGained;
+
+  /// Lines cleared on the most recent move (screen-shake at 3+).
+  final int lastClearedLineCount;
+
+  /// Whether the most recent move emptied the board (confetti + banner).
+  final bool lastWasAllClear;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -163,6 +175,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _onboardingStep = 0;
   int _clearEventId = 0;
   List<Cell> _clearedCells = const [];
+  int _lastGained = 0;
 
   static const _onboardingHints = <String>[
     'Zieh einen Stein ins Gitter 👆',
@@ -207,6 +220,9 @@ class GameController extends StateNotifier<GameSnapshot> {
         today: DateTime.now(),
         lastRepairDateKey: storage.lastStreakRepairDate,
       ),
+      lastGained: 0,
+      lastClearedLineCount: 0,
+      lastWasAllClear: false,
     );
   }
 
@@ -312,6 +328,7 @@ class GameController extends StateNotifier<GameSnapshot> {
 
     _haptics.place();
     _audio.play(Sfx.place);
+    _lastGained = event.gained;
     if (_session.lastClearedCells.isNotEmpty) {
       _clearEventId += 1;
       _clearedCells = _session.lastClearedCells;
@@ -324,7 +341,9 @@ class GameController extends StateNotifier<GameSnapshot> {
         _audio.play(Sfx.feverBurst);
       } else {
         _haptics.clear();
-        _audio.play(event.combo > 1 ? Sfx.combo : Sfx.clear);
+        // Combo sound escalates in pitch with the combo count (C.8).
+        final pitch = (1.0 + (event.combo - 1) * 0.06).clamp(1.0, 1.6);
+        _audio.play(event.combo > 1 ? Sfx.combo : Sfx.clear, pitch: pitch);
       }
     }
 
@@ -457,6 +476,9 @@ class GameController extends StateNotifier<GameSnapshot> {
       canUndo: _session.canUndo,
       coinsDoubled: _coinsDoubled,
       streakRepairAvailable: _streakRepairAvailable(),
+      lastGained: _lastGained,
+      lastClearedLineCount: _session.lastClearedLineCount,
+      lastWasAllClear: _session.lastWasAllClear,
     );
   }
 

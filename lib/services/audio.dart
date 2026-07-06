@@ -11,7 +11,9 @@ import 'package:audioplayers/audioplayers.dart';
 enum Sfx { place, clear, combo, feverBurst, gameOver }
 
 abstract class AudioService {
-  void play(Sfx sfx);
+  /// Plays [sfx]. [pitch] scales the playback rate (>1 = higher) for the combo
+  /// escalation effect.
+  void play(Sfx sfx, {double pitch});
   set enabled(bool value);
   bool get enabled;
 }
@@ -22,7 +24,7 @@ class SilentAudio implements AudioService {
   bool enabled = true;
 
   @override
-  void play(Sfx sfx) {}
+  void play(Sfx sfx, {double pitch = 1.0}) {}
 }
 
 /// Plays short SFX via a small pool of [AudioPlayer]s so rapid effects (e.g.
@@ -49,12 +51,13 @@ class AudioplayersAudio implements AudioService {
   };
 
   @override
-  void play(Sfx sfx) {
+  void play(Sfx sfx, {double pitch = 1.0}) {
     if (!enabled) return;
     final asset = _assets[sfx];
     if (asset == null) return;
     final player = _pool[_next];
     _next = (_next + 1) % _pool.length;
+    if (pitch != 1.0) player.setPlaybackRate(pitch);
     // Fire-and-forget; low latency matters more than awaiting completion.
     player.play(AssetSource(asset), volume: 0.6);
   }

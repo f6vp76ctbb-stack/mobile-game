@@ -9,6 +9,8 @@ import '../state/theme_controller.dart';
 import '../theme.dart';
 import '../widgets/board_view.dart';
 import '../widgets/clear_burst.dart';
+import '../widgets/juice_overlay.dart';
+import '../widgets/shake.dart';
 import '../widgets/tray_view.dart';
 
 /// True while the player is choosing a target cell for the Board Bomb booster.
@@ -68,37 +70,50 @@ class GameScreen extends ConsumerWidget {
                       return Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          _FeverGlow(
-                            fever: snap.feverLevel,
-                            color: theme.fever,
-                            child: SizedBox(
-                              width: boardSize,
-                              height: boardSize,
-                              child: Stack(
-                                children: [
-                                  BoardView(
-                                    size: boardSize,
-                                    onCellTap: bombMode
-                                        ? (cell) async {
-                                            await ref
-                                                .read(gameControllerProvider
-                                                    .notifier)
-                                                .tryBomb(cell);
-                                            ref
-                                                .read(bombModeProvider.notifier)
-                                                .state = false;
-                                          }
-                                        : null,
-                                  ),
-                                  Positioned.fill(
-                                    child: IgnorePointer(
-                                      child: ClearBurst(
-                                        size: boardSize,
-                                        cellSize: boardSize / 8,
+                          Shake(
+                            trigger: snap.clearEventId,
+                            enabled: snap.lastClearedLineCount >= 3,
+                            child: _FeverGlow(
+                              fever: snap.feverLevel,
+                              color: theme.fever,
+                              child: SizedBox(
+                                width: boardSize,
+                                height: boardSize,
+                                child: Stack(
+                                  children: [
+                                    BoardView(
+                                      size: boardSize,
+                                      onCellTap: bombMode
+                                          ? (cell) async {
+                                              await ref
+                                                  .read(gameControllerProvider
+                                                      .notifier)
+                                                  .tryBomb(cell);
+                                              ref
+                                                  .read(bombModeProvider
+                                                      .notifier)
+                                                  .state = false;
+                                            }
+                                          : null,
+                                    ),
+                                    Positioned.fill(
+                                      child: IgnorePointer(
+                                        child: ClearBurst(
+                                          size: boardSize,
+                                          cellSize: boardSize / 8,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                ],
+                                    Positioned.fill(
+                                      child: IgnorePointer(
+                                        child: JuiceOverlay(
+                                          size: boardSize,
+                                          cellSize: boardSize / 8,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

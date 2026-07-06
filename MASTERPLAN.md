@@ -241,8 +241,10 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
       max. 1×/7 Tage (C.2) — pure Logik + Home-Banner, getestet
 - [x] „Münzen verdoppeln"-Rewarded auf dem Game-Over-Screen (C.7) — einmal pro
       Runde, getestet
-- [ ] Juice-Pass II: Score-Popups am Clear-Ort, Screen-Shake bei 3+ Linien,
-      All-Clear-Konfetti-Feier, Squash-Animation beim Landen (C.8)
+- [x] Juice-Pass II: schwebende Score-Popups am Clear-Ort, Screen-Shake bei
+      3+ Linien, All-Clear-Banner „BLITZBLANK!", Combo-Sound-Pitch-Eskalation (C.8)
+      (Squash-Animation beim Landen bewusst weggelassen — Pulsen bei jedem Zug
+      wirkt schnell nervig; die vier Effekte oben liefern den „Juice")
 
 **Tier 2 — Progression-Meta (macht aus Runden eine Reise)**
 - [ ] Spieler-Level (XP) mit Level-Up-Belohnungen auf dem Home-Screen (C.3)
