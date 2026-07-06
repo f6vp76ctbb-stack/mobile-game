@@ -81,6 +81,22 @@ void main() {
     });
   });
 
+  group('rules', () {
+    test('stars by move count', () {
+      expect(PuzzleRules.stars(moves: 3, minMoves: 3), 3);
+      expect(PuzzleRules.stars(moves: 4, minMoves: 3), 2);
+      expect(PuzzleRules.stars(moves: 5, minMoves: 3), 2);
+      expect(PuzzleRules.stars(moves: 6, minMoves: 3), 1);
+    });
+
+    test('coin reward with 10-level bonus', () {
+      expect(PuzzleRules.coinReward(0), 10); // level 1 shown
+      expect(PuzzleRules.coinReward(8), 10);
+      expect(PuzzleRules.coinReward(9), 35); // 10th level -> +25
+      expect(PuzzleRules.coinReward(19), 35); // 20th level
+    });
+  });
+
   group('generator', () {
     test('levels 0..49 are solvable and non-trivial', () {
       for (var level = 0; level < 50; level++) {

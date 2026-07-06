@@ -20,6 +20,7 @@ class Storage {
   static const _kActiveTheme = 'activeTheme';
   static const _kUnlockedThemes = 'unlockedThemes';
   static const _kMissionProgress = 'missionProgress';
+  static const _kPuzzleStars = 'puzzleStars';
   static const _kOnboardingDone = 'onboardingDone';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
@@ -68,6 +69,19 @@ class Storage {
 
   Future<void> setMissionProgress(Map<String, int> progress) =>
       _prefs.setString(_kMissionProgress, jsonEncode(progress));
+
+  /// Best stars per puzzle level (level -> stars).
+  Map<int, int> get puzzleStars {
+    final raw = _prefs.getString(_kPuzzleStars);
+    if (raw == null) return {};
+    final decoded = jsonDecode(raw) as Map<String, dynamic>;
+    return decoded.map((k, v) => MapEntry(int.parse(k), (v as num).toInt()));
+  }
+
+  Future<void> setPuzzleStars(Map<int, int> stars) {
+    final encoded = stars.map((k, v) => MapEntry(k.toString(), v));
+    return _prefs.setString(_kPuzzleStars, jsonEncode(encoded));
+  }
 
   int get streak => _prefs.getInt(_kStreak) ?? 0;
   Future<void> setStreak(int value) => _prefs.setInt(_kStreak, value);

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/services/storage.dart';
 import 'package:gridpop/ui/screens/game_screen.dart';
 import 'package:gridpop/ui/screens/home_screen.dart';
+import 'package:gridpop/ui/screens/puzzle_screen.dart';
 import 'package:gridpop/ui/state/game_controller.dart';
 import 'package:gridpop/ui/theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -39,6 +40,14 @@ void main() {
     await tester.pumpWidget(await _app(const GameScreen()));
     await tester.pumpAndSettle();
     expect(find.text('PUNKTE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('puzzle screen loads a level and renders', (tester) async {
+    await tester.pumpWidget(await _app(const PuzzleScreen(level: 0)));
+    await tester.pumpAndSettle();
+    expect(find.text('Rätsel 1'), findsOneWidget);
+    expect(find.textContaining('Ziel:'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

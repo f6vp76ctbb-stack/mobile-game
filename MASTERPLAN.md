@@ -249,8 +249,9 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
 **Tier 2 — Progression-Meta (macht aus Runden eine Reise)**
 - [x] Spieler-Level (XP): Score/100 +50 fürs Daily, Kurve 100+50·n, Münz-Belohnung
       pro Level, Home-Badge mit XP-Balken, Level-Up-Feier im Game-Over (C.3) — getestet
-- [ ] Rätsel-Modus: seed-generierte, per Solver validierte Puzzle-Level mit
-      3-Sterne-Wertung — endloser Content ohne Content-Kosten (C.4)
+- [x] Rätsel-Modus: seed-generierte, Solver-validierte Level, 3-Sterne-Wertung,
+      Level-Auswahl mit Fortschritt, Münz-Belohnung (10/Level, +25 alle 10),
+      „Extra-Zug"-Rewarded, Bitboard-Solver erkennt Sackgassen (C.4) — getestet
 - [ ] Statistik-Screen: Bestwerte, Ø-Score, größte Combo, Gesamt-Linien
 - [ ] Achievements + Bestenlisten via Google Play Games Services (kostenlos,
       kein Server); 👤 DU: in Play Console anlegen (C.9)

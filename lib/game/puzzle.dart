@@ -116,6 +116,21 @@ class PuzzleSolver {
   }
 }
 
+/// Star rating and coin rewards for puzzle levels (MASTERPLAN.md C.4).
+class PuzzleRules {
+  const PuzzleRules._();
+
+  /// 3 stars = optimal, 2 = within +2 moves, 1 = solved at all.
+  static int stars({required int moves, required int minMoves}) {
+    if (moves <= minMoves) return 3;
+    if (moves <= minMoves + 2) return 2;
+    return 1;
+  }
+
+  /// 10 coins per level, +25 bonus on every 10th level.
+  static int coinReward(int level) => 10 + ((level + 1) % 10 == 0 ? 25 : 0);
+}
+
 class PuzzleGenerator {
   const PuzzleGenerator._();
 
