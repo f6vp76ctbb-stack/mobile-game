@@ -12,6 +12,7 @@ import 'missions_screen.dart';
 import 'puzzle_levels_screen.dart';
 import 'settings_screen.dart';
 import 'shop_screen.dart';
+import 'stats_screen.dart';
 import 'themes_screen.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -47,6 +48,17 @@ class HomeScreen extends ConsumerWidget {
                         onPressed: () => Navigator.of(context).push(
                           MaterialPageRoute<void>(
                             builder: (_) => const ShopScreen(),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.bar_chart,
+                          color: GridColors.textPrimary,
+                        ),
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const StatsScreen(),
                           ),
                         ),
                       ),

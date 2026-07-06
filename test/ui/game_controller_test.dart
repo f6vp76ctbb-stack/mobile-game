@@ -105,6 +105,26 @@ void main() {
     expect(c.state.onboardingHint, isNull);
   });
 
+  test('a finished run updates lifetime stats', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await Storage.create();
+    final c = GameController(
+      storage,
+      Haptics(enabled: false),
+      SilentAudio(),
+      FakeAdService(),
+      AdGate(now: DateTime.now),
+      NoopAnalytics(),
+    );
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    final stats = storage.lifetimeStats;
+    expect(stats.games, 1);
+    expect(stats.totalPieces, greaterThan(0));
+  });
+
   test('clearing lines increments the clear event id', () async {
     final c = await _controller();
     c.newGame(seed: 1);

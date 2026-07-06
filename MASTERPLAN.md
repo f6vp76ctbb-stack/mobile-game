@@ -252,7 +252,8 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
 - [x] Rätsel-Modus: seed-generierte, Solver-validierte Level, 3-Sterne-Wertung,
       Level-Auswahl mit Fortschritt, Münz-Belohnung (10/Level, +25 alle 10),
       „Extra-Zug"-Rewarded, Bitboard-Solver erkennt Sackgassen (C.4) — getestet
-- [ ] Statistik-Screen: Bestwerte, Ø-Score, größte Combo, Gesamt-Linien
+- [x] Statistik-Screen: Bestwert, Level, Runden, Ø-Score, größte Combo, Gesamt-
+      Linien/-Teile, Rätsel gelöst/Sterne, Münzen (Lifetime-Stats getestet)
 - [ ] Achievements + Bestenlisten via Google Play Games Services (kostenlos,
       kein Server); 👤 DU: in Play Console anlegen (C.9)
 

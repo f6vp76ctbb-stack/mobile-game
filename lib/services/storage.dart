@@ -7,6 +7,8 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/stats.dart';
+
 class Storage {
   Storage(this._prefs);
 
@@ -21,6 +23,7 @@ class Storage {
   static const _kUnlockedThemes = 'unlockedThemes';
   static const _kMissionProgress = 'missionProgress';
   static const _kPuzzleStars = 'puzzleStars';
+  static const _kLifetimeStats = 'lifetimeStats';
   static const _kOnboardingDone = 'onboardingDone';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
@@ -82,6 +85,15 @@ class Storage {
     final encoded = stars.map((k, v) => MapEntry(k.toString(), v));
     return _prefs.setString(_kPuzzleStars, jsonEncode(encoded));
   }
+
+  LifetimeStats get lifetimeStats {
+    final raw = _prefs.getString(_kLifetimeStats);
+    if (raw == null) return const LifetimeStats();
+    return LifetimeStats.fromJson(jsonDecode(raw) as Map<String, dynamic>);
+  }
+
+  Future<void> setLifetimeStats(LifetimeStats stats) =>
+      _prefs.setString(_kLifetimeStats, jsonEncode(stats.toJson()));
 
   int get streak => _prefs.getInt(_kStreak) ?? 0;
   Future<void> setStreak(int value) => _prefs.setInt(_kStreak, value);

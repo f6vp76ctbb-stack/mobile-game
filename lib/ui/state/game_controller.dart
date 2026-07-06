@@ -448,6 +448,10 @@ class GameController extends StateNotifier<GameSnapshot> {
   Future<void> _finalizeAsync() async {
     var earned = 0;
 
+    await _storage.setLifetimeStats(
+      _storage.lifetimeStats.merge(_session.stats),
+    );
+
     final completed = _missions.recordGame(_session.stats);
     for (final m in completed) {
       earned += m.reward;
