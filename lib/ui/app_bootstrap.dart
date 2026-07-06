@@ -102,6 +102,8 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
     final controller = ref.read(gameControllerProvider.notifier);
     if (productId == IapProducts.removeAds) {
       await controller.applyAdFree();
+    } else if (productId == IapProducts.piggy) {
+      await controller.openPiggy();
     } else {
       await controller.grantCoins(IapProducts.coinAmounts[productId] ?? 0);
     }

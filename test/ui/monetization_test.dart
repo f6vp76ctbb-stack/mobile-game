@@ -150,6 +150,36 @@ void main() {
     });
   });
 
+  group('piggy bank', () {
+    test('fills while playing and opening pays out + raises capacity', () async {
+      SharedPreferences.setMockInitialValues({'coins': 0});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final filled = storage.piggyBank.coins;
+      // A full greedy run clears lines, so the piggy has something in it.
+      expect(filled, greaterThan(0));
+      expect(c.state.piggyCoins, filled);
+
+      final balanceBefore = c.state.coins;
+      final payout = await c.openPiggy();
+      expect(payout, filled);
+      expect(c.state.coins, balanceBefore + payout); // paid into balance
+      expect(c.state.piggyCoins, 0); // emptied
+      expect(c.state.piggyCapacity, greaterThan(500)); // capacity grew
+    });
+  });
+
   group('leveling', () {
     test('a daily run grants XP and can level up', () async {
       // Start 1 XP short of level 2 (needs 150). Daily bonus alone is +50 XP.

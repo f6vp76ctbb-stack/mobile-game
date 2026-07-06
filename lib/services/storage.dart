@@ -7,6 +7,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/piggy_bank.dart';
 import '../game/stats.dart';
 
 class Storage {
@@ -30,6 +31,8 @@ class Storage {
   static const _kLastStreakRepair = 'lastStreakRepairDate';
   static const _kXp = 'xp';
   static const _kPlayerLevel = 'playerLevel';
+  static const _kPiggyCoins = 'piggyCoins';
+  static const _kPiggyCapacity = 'piggyCapacity';
   static const _kNotificationsEnabled = 'settings.notifications';
   static const _kLastActiveMillis = 'lastActiveMillis';
   static const _kAppOpenCount = 'appOpenCount';
@@ -104,6 +107,16 @@ class Storage {
 
   int get xp => _prefs.getInt(_kXp) ?? 0;
   Future<void> setXp(int value) => _prefs.setInt(_kXp, value);
+
+  PiggyBank get piggyBank => PiggyBank(
+        coins: _prefs.getInt(_kPiggyCoins) ?? 0,
+        capacity: _prefs.getInt(_kPiggyCapacity) ?? PiggyBank.baseCapacity,
+      );
+
+  Future<void> setPiggyBank(PiggyBank piggy) async {
+    await _prefs.setInt(_kPiggyCoins, piggy.coins);
+    await _prefs.setInt(_kPiggyCapacity, piggy.capacity);
+  }
 
   String? get lastDailyDate => _prefs.getString(_kLastDailyDate);
   Future<void> setLastDailyDate(String key) =>

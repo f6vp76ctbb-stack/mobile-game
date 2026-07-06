@@ -258,9 +258,12 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
       kein Server); 👤 DU: in Play Console anlegen (C.9)
 
 **Tier 3 — Monetarisierungs-Vertiefung (erst nach Retention-Daten)**
-- [ ] Sparschwein: füllt sich beim Spielen, Öffnen per IAP (C.5)
+- [x] Sparschwein: füllt sich (+1/Reihe) beim Spielen, Kapazität wächst pro
+      Öffnung (max 3000), Öffnen per IAP `gridpop_piggy`, Home-Chip mit
+      Füll-Hinweis ab 80 % (C.5) — getestet
+- [x] Wochenend-Event: Sa/So verdoppelt Missions- + Daily-Münzen (uhrbasiert,
+      offline), Home-Banner (C.7) — getestet
 - [ ] Starter-Paket: einmaliges Angebot ab Runde 5 (C.6)
-- [ ] Wochenend-Event: Sa/So doppelte Missions-Münzen + Bonus-Daily (C.7)
 - [ ] Block-Skins zusätzlich zu Themes (weitere Münz-Senke)
 
 **Bewusst NICHT geplant** (Begründung festhalten, um Feature-Creep zu vermeiden):

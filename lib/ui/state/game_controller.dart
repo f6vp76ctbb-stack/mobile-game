@@ -13,6 +13,7 @@ import '../../game/leveling.dart';
 import '../../game/missions.dart';
 import '../../game/piece.dart';
 import '../../game/streak.dart';
+import '../../game/weekend_event.dart';
 import '../../monetization/ad_gate.dart';
 import '../../monetization/ads.dart';
 import '../../monetization/iap.dart';
@@ -77,6 +78,9 @@ class GameSnapshot {
     required this.xpForNextLevel,
     required this.levelsGainedThisRun,
     required this.levelUpCoins,
+    required this.weekendActive,
+    required this.piggyCoins,
+    required this.piggyCapacity,
   });
 
   final Board board;
@@ -133,6 +137,13 @@ class GameSnapshot {
   /// Levels gained + coins from level-ups this run (game-over celebration).
   final int levelsGainedThisRun;
   final int levelUpCoins;
+
+  /// Whether the weekend double-coins event is currently active.
+  final bool weekendActive;
+
+  /// Piggy bank state (fills while playing; emptied via IAP).
+  final int piggyCoins;
+  final int piggyCapacity;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -245,6 +256,9 @@ class GameController extends StateNotifier<GameSnapshot> {
       xpForNextLevel: LevelSystem.xpForNext(storage.playerLevel),
       levelsGainedThisRun: 0,
       levelUpCoins: 0,
+      weekendActive: WeekendEvent.isActive(DateTime.now()),
+      piggyCoins: storage.piggyBank.coins,
+      piggyCapacity: storage.piggyBank.capacity,
     );
   }
 
@@ -319,6 +333,17 @@ class GameController extends StateNotifier<GameSnapshot> {
     if (amount <= 0) return;
     await _storage.addCoins(amount);
     _emit();
+  }
+
+  /// Empties the piggy bank into the coin balance and raises its capacity
+  /// (called on the gridpop_piggy IAP delivery). Returns the payout.
+  Future<int> openPiggy() async {
+    final piggy = _storage.piggyBank;
+    final payout = piggy.coins;
+    if (payout > 0) await _storage.addCoins(payout);
+    await _storage.setPiggyBank(piggy.opened());
+    _emit();
+    return payout;
   }
 
   /// Marks ads removed (from the "remove ads" IAP) and refreshes.
@@ -446,15 +471,24 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
   Future<void> _finalizeAsync() async {
-    var earned = 0;
+    final now = DateTime.now();
 
     await _storage.setLifetimeStats(
       _storage.lifetimeStats.merge(_session.stats),
     );
 
+    // Piggy bank fills with the run's cleared lines (C.5).
+    await _storage.setPiggyBank(
+      _storage.piggyBank.addLines(_session.linesCleared),
+    );
+
+    // Mission + daily rewards are doubled during the weekend event (C.7);
+    // level-up coins are not.
+    var rewardCoins = 0;
+
     final completed = _missions.recordGame(_session.stats);
     for (final m in completed) {
-      earned += m.reward;
+      rewardCoins += m.reward;
     }
     _completedMissions = completed.map((m) => m.description).toList();
     await _storage.setMissionProgress(_missions.progress);
@@ -464,18 +498,18 @@ class GameController extends StateNotifier<GameSnapshot> {
       final result = DailyStreak.onDailyCompleted(
         lastDateKey: _storage.lastDailyDate,
         currentStreak: _storage.streak,
-        today: DateTime.now(),
+        today: now,
       );
       if (!result.alreadyPlayedToday) {
         dailyCompleted = true;
-        earned += result.coinsAwarded;
+        rewardCoins += result.coinsAwarded;
         await _storage.setStreak(result.streak);
-        await _storage.setLastDailyDate(
-          DailyChallenge.dateKey(DateTime.now()),
-        );
+        await _storage.setLastDailyDate(DailyChallenge.dateKey(now));
       }
       _streak = result.streak;
     }
+
+    var earned = WeekendEvent.apply(rewardCoins, now);
 
     // Player XP + level-ups (C.3).
     final gainedXp = LevelSystem.xpForRun(
@@ -530,6 +564,9 @@ class GameController extends StateNotifier<GameSnapshot> {
       xpForNextLevel: LevelSystem.xpForNext(_storage.playerLevel),
       levelsGainedThisRun: _levelsGainedThisRun,
       levelUpCoins: _levelUpCoins,
+      weekendActive: WeekendEvent.isActive(DateTime.now()),
+      piggyCoins: _storage.piggyBank.coins,
+      piggyCapacity: _storage.piggyBank.capacity,
     );
   }
 
