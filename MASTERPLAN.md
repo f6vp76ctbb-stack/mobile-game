@@ -247,7 +247,8 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
       wirkt schnell nervig; die vier Effekte oben liefern den „Juice")
 
 **Tier 2 — Progression-Meta (macht aus Runden eine Reise)**
-- [ ] Spieler-Level (XP) mit Level-Up-Belohnungen auf dem Home-Screen (C.3)
+- [x] Spieler-Level (XP): Score/100 +50 fürs Daily, Kurve 100+50·n, Münz-Belohnung
+      pro Level, Home-Badge mit XP-Balken, Level-Up-Feier im Game-Over (C.3) — getestet
 - [ ] Rätsel-Modus: seed-generierte, per Solver validierte Puzzle-Level mit
       3-Sterne-Wertung — endloser Content ohne Content-Kosten (C.4)
 - [ ] Statistik-Screen: Bestwerte, Ø-Score, größte Combo, Gesamt-Linien

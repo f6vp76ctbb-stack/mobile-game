@@ -24,6 +24,8 @@ class Storage {
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
   static const _kLastStreakRepair = 'lastStreakRepairDate';
+  static const _kXp = 'xp';
+  static const _kPlayerLevel = 'playerLevel';
   static const _kNotificationsEnabled = 'settings.notifications';
   static const _kLastActiveMillis = 'lastActiveMillis';
   static const _kAppOpenCount = 'appOpenCount';
@@ -69,6 +71,13 @@ class Storage {
 
   int get streak => _prefs.getInt(_kStreak) ?? 0;
   Future<void> setStreak(int value) => _prefs.setInt(_kStreak, value);
+
+  int get playerLevel => _prefs.getInt(_kPlayerLevel) ?? 1;
+  Future<void> setPlayerLevel(int value) =>
+      _prefs.setInt(_kPlayerLevel, value);
+
+  int get xp => _prefs.getInt(_kXp) ?? 0;
+  Future<void> setXp(int value) => _prefs.setInt(_kXp, value);
 
   String? get lastDailyDate => _prefs.getString(_kLastDailyDate);
   Future<void> setLastDailyDate(String key) =>

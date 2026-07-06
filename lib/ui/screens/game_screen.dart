@@ -478,6 +478,20 @@ class _GameOverOverlay extends ConsumerWidget {
                   style: TextStyle(color: GridColors.fever, fontSize: 16),
                 ),
               ),
+            if (snap.levelsGainedThisRun > 0)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text(
+                  snap.levelsGainedThisRun == 1
+                      ? 'Level ${snap.playerLevel} erreicht! ⭐'
+                      : '${snap.levelsGainedThisRun} Level aufgestiegen! ⭐',
+                  style: const TextStyle(
+                    color: GridColors.placed,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             if (snap.isDaily && snap.streak > 0)
               Padding(
                 padding: const EdgeInsets.only(top: 6),

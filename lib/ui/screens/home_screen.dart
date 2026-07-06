@@ -89,6 +89,12 @@ class HomeScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 18),
+              _LevelBadge(
+                level: snap.playerLevel,
+                xp: snap.xpIntoLevel,
+                xpForNext: snap.xpForNextLevel,
+              ),
               const Spacer(),
               _PrimaryButton(
                 label: 'Spielen',
@@ -193,6 +199,64 @@ class _PrimaryButton extends StatelessWidget {
       ),
       onPressed: onPressed,
       child: Text(label),
+    );
+  }
+}
+
+class _LevelBadge extends StatelessWidget {
+  const _LevelBadge({
+    required this.level,
+    required this.xp,
+    required this.xpForNext,
+  });
+
+  final int level;
+  final int xp;
+  final int xpForNext;
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = xpForNext == 0 ? 0.0 : (xp / xpForNext).clamp(0.0, 1.0);
+    return SizedBox(
+      width: 220,
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  'Level $level',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: GridColors.textPrimary,
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '$xp / $xpForNext XP',
+                style: const TextStyle(
+                  color: GridColors.textMuted,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 7,
+              backgroundColor: GridColors.emptyCell,
+              valueColor: AlwaysStoppedAnimation(GridColors.traySlots[0]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

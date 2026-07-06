@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/board.dart';
 import '../../game/daily.dart';
 import '../../game/game_session.dart';
+import '../../game/leveling.dart';
 import '../../game/missions.dart';
 import '../../game/piece.dart';
 import '../../game/streak.dart';
@@ -71,6 +72,11 @@ class GameSnapshot {
     required this.lastGained,
     required this.lastClearedLineCount,
     required this.lastWasAllClear,
+    required this.playerLevel,
+    required this.xpIntoLevel,
+    required this.xpForNextLevel,
+    required this.levelsGainedThisRun,
+    required this.levelUpCoins,
   });
 
   final Board board;
@@ -118,6 +124,15 @@ class GameSnapshot {
 
   /// Whether the most recent move emptied the board (confetti + banner).
   final bool lastWasAllClear;
+
+  /// Player level and progress toward the next level (for the home badge).
+  final int playerLevel;
+  final int xpIntoLevel;
+  final int xpForNextLevel;
+
+  /// Levels gained + coins from level-ups this run (game-over celebration).
+  final int levelsGainedThisRun;
+  final int levelUpCoins;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -170,6 +185,8 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _coinsEarnedThisRun = 0;
   bool _coinsDoubled = false;
   int _streak = 0;
+  int _levelsGainedThisRun = 0;
+  int _levelUpCoins = 0;
   List<String> _completedMissions = const [];
   late bool _onboarding = !_storage.onboardingDone;
   int _onboardingStep = 0;
@@ -223,6 +240,11 @@ class GameController extends StateNotifier<GameSnapshot> {
       lastGained: 0,
       lastClearedLineCount: 0,
       lastWasAllClear: false,
+      playerLevel: storage.playerLevel,
+      xpIntoLevel: storage.xp,
+      xpForNextLevel: LevelSystem.xpForNext(storage.playerLevel),
+      levelsGainedThisRun: 0,
+      levelUpCoins: 0,
     );
   }
 
@@ -312,6 +334,8 @@ class GameController extends StateNotifier<GameSnapshot> {
     _finalized = false;
     _coinsEarnedThisRun = 0;
     _coinsDoubled = false;
+    _levelsGainedThisRun = 0;
+    _levelUpCoins = 0;
     _completedMissions = const [];
     _streak = _storage.streak;
   }
@@ -431,6 +455,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _completedMissions = completed.map((m) => m.description).toList();
     await _storage.setMissionProgress(_missions.progress);
 
+    var dailyCompleted = false;
     if (_isDaily) {
       final result = DailyStreak.onDailyCompleted(
         lastDateKey: _storage.lastDailyDate,
@@ -438,6 +463,7 @@ class GameController extends StateNotifier<GameSnapshot> {
         today: DateTime.now(),
       );
       if (!result.alreadyPlayedToday) {
+        dailyCompleted = true;
         earned += result.coinsAwarded;
         await _storage.setStreak(result.streak);
         await _storage.setLastDailyDate(
@@ -446,6 +472,22 @@ class GameController extends StateNotifier<GameSnapshot> {
       }
       _streak = result.streak;
     }
+
+    // Player XP + level-ups (C.3).
+    final gainedXp = LevelSystem.xpForRun(
+      score: _session.score,
+      dailyCompleted: dailyCompleted,
+    );
+    final outcome = LevelSystem.applyXp(
+      level: _storage.playerLevel,
+      xpIntoLevel: _storage.xp,
+      gainedXp: gainedXp,
+    );
+    await _storage.setPlayerLevel(outcome.level);
+    await _storage.setXp(outcome.xpIntoLevel);
+    earned += outcome.coinsAwarded;
+    _levelsGainedThisRun = outcome.levelsGained.length;
+    _levelUpCoins = outcome.coinsAwarded;
 
     if (earned > 0) await _storage.addCoins(earned);
     _coinsEarnedThisRun = earned;
@@ -479,6 +521,11 @@ class GameController extends StateNotifier<GameSnapshot> {
       lastGained: _lastGained,
       lastClearedLineCount: _session.lastClearedLineCount,
       lastWasAllClear: _session.lastWasAllClear,
+      playerLevel: _storage.playerLevel,
+      xpIntoLevel: _storage.xp,
+      xpForNextLevel: LevelSystem.xpForNext(_storage.playerLevel),
+      levelsGainedThisRun: _levelsGainedThisRun,
+      levelUpCoins: _levelUpCoins,
     );
   }
 

@@ -150,6 +150,27 @@ void main() {
     });
   });
 
+  group('leveling', () {
+    test('a daily run grants XP and can level up', () async {
+      // Start 1 XP short of level 2 (needs 150). Daily bonus alone is +50 XP.
+      final c = await _controller(prefs: {'xp': 149, 'playerLevel': 1});
+      c.startDaily(now: DateTime(2026, 7, 5));
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(c.state.playerLevel, 2);
+      expect(c.state.levelsGainedThisRun, greaterThanOrEqualTo(1));
+      expect(c.state.xpForNextLevel, 200); // xpForNext(2)
+    });
+
+    test('level state is exposed from storage on start', () async {
+      final c = await _controller(prefs: {'xp': 40, 'playerLevel': 3});
+      expect(c.state.playerLevel, 3);
+      expect(c.state.xpIntoLevel, 40);
+      expect(c.state.xpForNextLevel, 250); // 100 + 50*3
+    });
+  });
+
   group('IAP entitlements', () {
     test('applyAdFree flips the flag in the snapshot', () async {
       final c = await _controller();
