@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/streak.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
 import 'game_screen.dart';
@@ -97,6 +98,10 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 14),
+              if (snap.streakRepairAvailable) ...[
+                _StreakRepairBanner(streak: snap.streak),
+                const SizedBox(height: 14),
+              ],
               _DailyCard(
                 streak: snap.streak,
                 onPlay: () {
@@ -188,6 +193,71 @@ class _PrimaryButton extends StatelessWidget {
       ),
       onPressed: onPressed,
       child: Text(label),
+    );
+  }
+}
+
+class _StreakRepairBanner extends ConsumerWidget {
+  const _StreakRepairBanner({required this.streak});
+
+  final int streak;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final controller = ref.read(gameControllerProvider.notifier);
+
+    Future<void> repair(Future<bool> action) async {
+      final ok = await action;
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Reparatur nicht möglich')),
+        );
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: GridColors.boardBackground,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: GridColors.fever),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '🔥 $streak-Tage-Streak in Gefahr!',
+            style: const TextStyle(
+              color: GridColors.textPrimary,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Du hast gestern ausgesetzt — rette deinen Streak:',
+            style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () => repair(controller.repairStreakWithAd()),
+                  child: const Text('▶ Video'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: () => repair(controller.repairStreakWithCoins()),
+                  child: Text('🪙 ${StreakRepair.coinCost}'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

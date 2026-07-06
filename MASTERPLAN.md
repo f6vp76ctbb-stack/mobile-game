@@ -235,7 +235,8 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
       + Bomben-Ziel-Modus, getestet
 - [ ] Lokale Benachrichtigungen ohne Server (`flutter_local_notifications`):
       Daily-Reminder + Streak-Warnung + Comeback-Geschenk (C.2)
-- [ ] Streak-Schutz: 1 verpasster Tag heilbar (Münzen oder Rewarded Ad) (C.2)
+- [x] Streak-Schutz: 1 verpasster Tag heilbar (150 Münzen oder Rewarded Ad),
+      max. 1×/7 Tage (C.2) — pure Logik + Home-Banner, getestet
 - [x] „Münzen verdoppeln"-Rewarded auf dem Game-Over-Screen (C.7) — einmal pro
       Runde, getestet
 - [ ] Juice-Pass II: Score-Popups am Clear-Ort, Screen-Shake bei 3+ Linien,

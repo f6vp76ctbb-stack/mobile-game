@@ -112,6 +112,44 @@ void main() {
     });
   });
 
+  group('streak repair', () {
+    // Yesterday-missed setup: last daily 2 days ago, active streak.
+    Map<String, Object> repairablePrefs({int coins = 0}) {
+      final today = DateTime.now();
+      final twoDaysAgo = today.subtract(const Duration(days: 2));
+      final key = '${twoDaysAgo.year}-'
+          '${twoDaysAgo.month.toString().padLeft(2, '0')}-'
+          '${twoDaysAgo.day.toString().padLeft(2, '0')}';
+      return {'lastDailyDate': key, 'streak': 4, 'coins': coins};
+    }
+
+    test('offer is present when exactly one day was missed', () async {
+      final c = await _controller(prefs: repairablePrefs());
+      expect(c.state.streakRepairAvailable, isTrue);
+    });
+
+    test('coin repair spends coins and clears the offer', () async {
+      final c = await _controller(prefs: repairablePrefs(coins: 200));
+      final ok = await c.repairStreakWithCoins();
+      expect(ok, isTrue);
+      expect(c.state.coins, 50); // 200 - 150
+      expect(c.state.streakRepairAvailable, isFalse); // repaired -> yesterday
+    });
+
+    test('coin repair refused without enough coins', () async {
+      final c = await _controller(prefs: repairablePrefs(coins: 100));
+      expect(await c.repairStreakWithCoins(), isFalse);
+      expect(c.state.streakRepairAvailable, isTrue);
+    });
+
+    test('ad repair heals the streak', () async {
+      final c = await _controller(prefs: repairablePrefs());
+      final ok = await c.repairStreakWithAd();
+      expect(ok, isTrue);
+      expect(c.state.streakRepairAvailable, isFalse);
+    });
+  });
+
   group('IAP entitlements', () {
     test('applyAdFree flips the flag in the snapshot', () async {
       final c = await _controller();

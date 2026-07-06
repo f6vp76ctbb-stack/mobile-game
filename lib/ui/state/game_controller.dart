@@ -67,6 +67,7 @@ class GameSnapshot {
     required this.adFree,
     required this.canUndo,
     required this.coinsDoubled,
+    required this.streakRepairAvailable,
   });
 
   final Board board;
@@ -102,6 +103,9 @@ class GameSnapshot {
 
   /// Whether this run's earned coins were already doubled via rewarded ad.
   final bool coinsDoubled;
+
+  /// Whether a streak repair is currently on offer (one day missed).
+  final bool streakRepairAvailable;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -197,6 +201,12 @@ class GameController extends StateNotifier<GameSnapshot> {
       adFree: storage.adFree,
       canUndo: false,
       coinsDoubled: false,
+      streakRepairAvailable: StreakRepair.isRepairable(
+        lastDateKey: storage.lastDailyDate,
+        currentStreak: storage.streak,
+        today: DateTime.now(),
+        lastRepairDateKey: storage.lastStreakRepairDate,
+      ),
     );
   }
 
@@ -446,6 +456,44 @@ class GameController extends StateNotifier<GameSnapshot> {
       adFree: _storage.adFree,
       canUndo: _session.canUndo,
       coinsDoubled: _coinsDoubled,
+      streakRepairAvailable: _streakRepairAvailable(),
     );
+  }
+
+  bool _streakRepairAvailable() => StreakRepair.isRepairable(
+        lastDateKey: _storage.lastDailyDate,
+        currentStreak: _storage.streak,
+        today: DateTime.now(),
+        lastRepairDateKey: _storage.lastStreakRepairDate,
+      );
+
+  Future<void> _applyStreakRepair() async {
+    final now = DateTime.now();
+    await _storage.setLastDailyDate(StreakRepair.repairedLastDateKey(now));
+    await _storage.setLastStreakRepairDate(DailyChallenge.dateKey(now));
+    _streak = _storage.streak;
+    _analytics.logEvent(AnalyticsEvent.dailyPlayed, {'action': 'streak_repair'});
+    _emit();
+  }
+
+  /// Repairs a broken streak for [StreakRepair.coinCost] coins.
+  Future<bool> repairStreakWithCoins() async {
+    if (!_streakRepairAvailable()) return false;
+    if (_storage.coins < StreakRepair.coinCost) return false;
+    await _storage.addCoins(-StreakRepair.coinCost);
+    await _applyStreakRepair();
+    return true;
+  }
+
+  /// Repairs a broken streak by watching a rewarded ad.
+  Future<bool> repairStreakWithAd() async {
+    if (!_streakRepairAvailable()) return false;
+    final earned = await _ads.showRewarded();
+    _analytics.logEvent(
+      AnalyticsEvent.rewardedWatched,
+      {'placement': 'streak_repair'},
+    );
+    if (earned) await _applyStreakRepair();
+    return earned;
   }
 }

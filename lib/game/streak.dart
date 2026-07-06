@@ -70,3 +70,40 @@ class DailyStreak {
     );
   }
 }
+
+/// Streak repair ("Streak-Schutz", MASTERPLAN.md C.2): exactly one missed day
+/// can be healed for coins or a rewarded ad, at most once per 7 days.
+class StreakRepair {
+  const StreakRepair._();
+
+  static const int coinCost = 150;
+  static const int cooldownDays = 7;
+
+  static int _dayDiff(DateTime from, DateTime to) {
+    final a = DateTime(from.year, from.month, from.day);
+    final b = DateTime(to.year, to.month, to.day);
+    return b.difference(a).inDays;
+  }
+
+  /// Whether a repair is offered right now: an active streak, exactly one day
+  /// missed (last play was 2 days ago), and no repair within the cooldown.
+  static bool isRepairable({
+    required String? lastDateKey,
+    required int currentStreak,
+    required DateTime today,
+    required String? lastRepairDateKey,
+  }) {
+    if (lastDateKey == null || currentStreak < 1) return false;
+    if (_dayDiff(DateTime.parse(lastDateKey), today) != 2) return false;
+    if (lastRepairDateKey != null &&
+        _dayDiff(DateTime.parse(lastRepairDateKey), today) < cooldownDays) {
+      return false;
+    }
+    return true;
+  }
+
+  /// The `lastDailyDate` value to store after a repair, so completing today's
+  /// challenge continues the streak (treats yesterday as played).
+  static String repairedLastDateKey(DateTime today) =>
+      DailyChallenge.dateKey(today.subtract(const Duration(days: 1)));
+}

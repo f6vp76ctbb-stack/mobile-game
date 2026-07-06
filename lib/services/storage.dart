@@ -23,6 +23,7 @@ class Storage {
   static const _kOnboardingDone = 'onboardingDone';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
+  static const _kLastStreakRepair = 'lastStreakRepairDate';
 
   static const int startingCoins = 100;
 
@@ -69,6 +70,10 @@ class Storage {
   String? get lastDailyDate => _prefs.getString(_kLastDailyDate);
   Future<void> setLastDailyDate(String key) =>
       _prefs.setString(_kLastDailyDate, key);
+
+  String? get lastStreakRepairDate => _prefs.getString(_kLastStreakRepair);
+  Future<void> setLastStreakRepairDate(String key) =>
+      _prefs.setString(_kLastStreakRepair, key);
 
   bool get adFree => _prefs.getBool(_kAdFree) ?? false;
   Future<void> setAdFree(bool value) => _prefs.setBool(_kAdFree, value);
