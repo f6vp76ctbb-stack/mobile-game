@@ -33,6 +33,8 @@ class Storage {
   static const _kPlayerLevel = 'playerLevel';
   static const _kPiggyCoins = 'piggyCoins';
   static const _kPiggyCapacity = 'piggyCapacity';
+  static const _kStarterStart = 'starterOfferStart';
+  static const _kStarterPurchased = 'starterPurchased';
   static const _kNotificationsEnabled = 'settings.notifications';
   static const _kLastActiveMillis = 'lastActiveMillis';
   static const _kAppOpenCount = 'appOpenCount';
@@ -117,6 +119,14 @@ class Storage {
     await _prefs.setInt(_kPiggyCoins, piggy.coins);
     await _prefs.setInt(_kPiggyCapacity, piggy.capacity);
   }
+
+  int? get starterOfferStart => _prefs.getInt(_kStarterStart);
+  Future<void> setStarterOfferStart(int millis) =>
+      _prefs.setInt(_kStarterStart, millis);
+
+  bool get starterPurchased => _prefs.getBool(_kStarterPurchased) ?? false;
+  Future<void> setStarterPurchased(bool value) =>
+      _prefs.setBool(_kStarterPurchased, value);
 
   String? get lastDailyDate => _prefs.getString(_kLastDailyDate);
   Future<void> setLastDailyDate(String key) =>

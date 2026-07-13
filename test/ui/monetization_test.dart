@@ -180,6 +180,51 @@ void main() {
     });
   });
 
+  group('starter offer', () {
+    test('activates after the 5th finished run', () async {
+      SharedPreferences.setMockInitialValues({'lifetimeStats': '{"games":4}'});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      expect(c.state.starterOfferActive, isFalse);
+
+      c.newGame(seed: 1);
+      _playToGameOver(c); // 5th game overall
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(storage.lifetimeStats.games, 5);
+      expect(c.state.starterOfferActive, isTrue);
+      expect(storage.starterOfferStart, isNotNull);
+    });
+
+    test('does not reactivate once purchased', () async {
+      SharedPreferences.setMockInitialValues({
+        'lifetimeStats': '{"games":10}',
+        'starterPurchased': true,
+      });
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(c.state.starterOfferActive, isFalse);
+      expect(storage.starterOfferStart, isNull);
+    });
+  });
+
   group('leveling', () {
     test('a daily run grants XP and can level up', () async {
       // Start 1 XP short of level 2 (needs 150). Daily bonus alone is +50 XP.

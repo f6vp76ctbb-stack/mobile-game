@@ -12,6 +12,7 @@ import '../../game/game_session.dart';
 import '../../game/leveling.dart';
 import '../../game/missions.dart';
 import '../../game/piece.dart';
+import '../../game/starter_offer.dart';
 import '../../game/streak.dart';
 import '../../game/weekend_event.dart';
 import '../../monetization/ad_gate.dart';
@@ -81,6 +82,8 @@ class GameSnapshot {
     required this.weekendActive,
     required this.piggyCoins,
     required this.piggyCapacity,
+    required this.starterOfferActive,
+    required this.starterHoursLeft,
   });
 
   final Board board;
@@ -144,6 +147,10 @@ class GameSnapshot {
   /// Piggy bank state (fills while playing; emptied via IAP).
   final int piggyCoins;
   final int piggyCapacity;
+
+  /// One-time starter pack offer (active during its 48h window).
+  final bool starterOfferActive;
+  final int starterHoursLeft;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -259,6 +266,12 @@ class GameController extends StateNotifier<GameSnapshot> {
       weekendActive: WeekendEvent.isActive(DateTime.now()),
       piggyCoins: storage.piggyBank.coins,
       piggyCapacity: storage.piggyBank.capacity,
+      starterOfferActive: StarterOffer.isActive(
+        startMillis: storage.starterOfferStart,
+        purchased: storage.starterPurchased,
+        now: DateTime.now(),
+      ),
+      starterHoursLeft: 0,
     );
   }
 
@@ -332,6 +345,26 @@ class GameController extends StateNotifier<GameSnapshot> {
   Future<void> grantCoins(int amount) async {
     if (amount <= 0) return;
     await _storage.addCoins(amount);
+    _emit();
+  }
+
+  bool get _starterActive => StarterOffer.isActive(
+        startMillis: _storage.starterOfferStart,
+        purchased: _storage.starterPurchased,
+        now: DateTime.now(),
+      );
+
+  int get _starterHoursLeft {
+    final start = _storage.starterOfferStart;
+    if (start == null || !_starterActive) return 0;
+    return StarterOffer.remaining(startMillis: start, now: DateTime.now())
+        .inHours;
+  }
+
+  /// Marks the starter pack as purchased (coins + theme are delivered
+  /// separately by the purchase handler) and refreshes.
+  Future<void> markStarterPurchased() async {
+    await _storage.setStarterPurchased(true);
     _emit();
   }
 
@@ -482,6 +515,15 @@ class GameController extends StateNotifier<GameSnapshot> {
       _storage.piggyBank.addLines(_session.linesCleared),
     );
 
+    // Start the one-time starter offer after the 5th run (C.6).
+    if (StarterOffer.shouldStart(
+      gamesPlayed: _storage.lifetimeStats.games,
+      startMillis: _storage.starterOfferStart,
+      purchased: _storage.starterPurchased,
+    )) {
+      await _storage.setStarterOfferStart(now.millisecondsSinceEpoch);
+    }
+
     // Mission + daily rewards are doubled during the weekend event (C.7);
     // level-up coins are not.
     var rewardCoins = 0;
@@ -567,6 +609,8 @@ class GameController extends StateNotifier<GameSnapshot> {
       weekendActive: WeekendEvent.isActive(DateTime.now()),
       piggyCoins: _storage.piggyBank.coins,
       piggyCapacity: _storage.piggyBank.capacity,
+      starterOfferActive: _starterActive,
+      starterHoursLeft: _starterHoursLeft,
     );
   }
 

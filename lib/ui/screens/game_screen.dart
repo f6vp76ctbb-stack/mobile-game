@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
@@ -538,6 +539,10 @@ class _GameOverOverlay extends ConsumerWidget {
                   ),
                 ),
               ),
+            if (snap.starterOfferActive) ...[
+              const SizedBox(height: 20),
+              _StarterCard(hoursLeft: snap.starterHoursLeft),
+            ],
             const SizedBox(height: 28),
             // Rewarded revive — always voluntary, always grants the reward.
             FilledButton.tonal(
@@ -556,6 +561,63 @@ class _GameOverOverlay extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// One-time starter pack card on the game-over screen (C.6).
+class _StarterCard extends ConsumerWidget {
+  const _StarterCard({required this.hoursLeft});
+
+  final int hoursLeft;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Container(
+      width: 300,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF7C6BFF), Color(0xFF4ECDC4)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          const Text(
+            '🎁 Starter-Paket',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '1200 Münzen + Wood-Theme',
+            style: TextStyle(color: Colors.white, fontSize: 15),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Nur noch $hoursLeft h — einmalig!',
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: GridColors.background,
+              minimumSize: const Size.fromHeight(44),
+            ),
+            onPressed: () =>
+                ref.read(iapServiceProvider).buy(IapProducts.starter),
+            child: const Text(
+              'Für 1,99 € holen',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
       ),
     );
   }

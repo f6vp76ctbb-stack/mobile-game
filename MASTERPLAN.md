@@ -263,7 +263,9 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
       Füll-Hinweis ab 80 % (C.5) — getestet
 - [x] Wochenend-Event: Sa/So verdoppelt Missions- + Daily-Münzen (uhrbasiert,
       offline), Home-Banner (C.7) — getestet
-- [ ] Starter-Paket: einmaliges Angebot ab Runde 5 (C.6)
+- [x] Starter-Paket: einmaliges Angebot ab Runde 5, echtes 48-h-Fenster (kein
+      Fake-Reset), 1200 Münzen + Wood-Theme für 1,99 € (`gridpop_starter`),
+      Game-Over-Karte (C.6) — getestet
 - [ ] Block-Skins zusätzlich zu Themes (weitere Münz-Senke)
 
 **Bewusst NICHT geplant** (Begründung festhalten, um Feature-Creep zu vermeiden):

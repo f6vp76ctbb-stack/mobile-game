@@ -45,6 +45,14 @@ class ThemeController extends StateNotifier<ThemeState> {
     state = ThemeState(activeId: id, unlocked: state.unlocked);
   }
 
+  /// Unlocks a theme for free (e.g. from a bundle/IAP), without spending coins.
+  Future<void> grantTheme(String id) async {
+    if (state.isUnlocked(id)) return;
+    final unlocked = {...state.unlocked, id};
+    await _storage.setUnlockedThemes(unlocked);
+    state = ThemeState(activeId: state.activeId, unlocked: unlocked);
+  }
+
   /// Buys (if needed) and equips [entry]. Returns false if unaffordable.
   Future<bool> selectOrUnlock(ThemeEntry entry) async {
     if (state.isUnlocked(entry.id)) {

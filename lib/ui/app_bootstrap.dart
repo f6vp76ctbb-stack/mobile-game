@@ -5,6 +5,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../game/starter_offer.dart';
 import '../monetization/iap.dart';
 import '../services/analytics.dart';
 import '../services/notification_planner.dart';
@@ -12,6 +13,7 @@ import 'screens/home_screen.dart';
 import 'state/game_controller.dart';
 import 'state/notifications_controller.dart';
 import 'state/settings_controller.dart';
+import 'state/theme_controller.dart';
 
 class AppBootstrap extends ConsumerStatefulWidget {
   const AppBootstrap({super.key});
@@ -104,6 +106,12 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
       await controller.applyAdFree();
     } else if (productId == IapProducts.piggy) {
       await controller.openPiggy();
+    } else if (productId == IapProducts.starter) {
+      await controller.grantCoins(StarterOffer.coins);
+      await ref
+          .read(themeControllerProvider.notifier)
+          .grantTheme(StarterOffer.themeId);
+      await controller.markStarterPurchased();
     } else {
       await controller.grantCoins(IapProducts.coinAmounts[productId] ?? 0);
     }

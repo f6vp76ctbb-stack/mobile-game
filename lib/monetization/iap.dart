@@ -19,8 +19,16 @@ class IapProducts {
   static const coinsM = 'gridpop_coins_m';
   static const coinsL = 'gridpop_coins_l';
   static const piggy = 'gridpop_piggy';
+  static const starter = 'gridpop_starter';
 
-  static const all = <String>{removeAds, coinsS, coinsM, coinsL, piggy};
+  static const all = <String>{
+    removeAds,
+    coinsS,
+    coinsM,
+    coinsL,
+    piggy,
+    starter,
+  };
 
   /// Coins granted per fixed-amount consumable pack. (The piggy bank pays out a
   /// variable amount, so it is not listed here.)
@@ -30,7 +38,7 @@ class IapProducts {
     coinsL: 6000,
   };
 
-  static const _consumables = <String>{coinsS, coinsM, coinsL, piggy};
+  static const _consumables = <String>{coinsS, coinsM, coinsL, piggy, starter};
 
   static bool isConsumable(String id) => _consumables.contains(id);
 }
