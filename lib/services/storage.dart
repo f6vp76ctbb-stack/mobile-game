@@ -22,6 +22,8 @@ class Storage {
   static const _kAdFree = 'adFree';
   static const _kActiveTheme = 'activeTheme';
   static const _kUnlockedThemes = 'unlockedThemes';
+  static const _kActiveSkin = 'activeSkin';
+  static const _kUnlockedSkins = 'unlockedSkins';
   static const _kMissionProgress = 'missionProgress';
   static const _kPuzzleStars = 'puzzleStars';
   static const _kLifetimeStats = 'lifetimeStats';
@@ -180,4 +182,15 @@ class Storage {
 
   Future<void> setUnlockedThemes(Set<String> ids) =>
       _prefs.setStringList(_kUnlockedThemes, ids.toList());
+
+  String get activeSkin => _prefs.getString(_kActiveSkin) ?? 'classic';
+  Future<void> setActiveSkin(String id) => _prefs.setString(_kActiveSkin, id);
+
+  Set<String> get unlockedSkins {
+    final list = _prefs.getStringList(_kUnlockedSkins) ?? const [];
+    return {'classic', ...list};
+  }
+
+  Future<void> setUnlockedSkins(Set<String> ids) =>
+      _prefs.setStringList(_kUnlockedSkins, ids.toList());
 }

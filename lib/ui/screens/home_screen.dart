@@ -14,6 +14,7 @@ import 'missions_screen.dart';
 import 'puzzle_levels_screen.dart';
 import 'settings_screen.dart';
 import 'shop_screen.dart';
+import 'skins_screen.dart';
 import 'stats_screen.dart';
 import 'themes_screen.dart';
 
@@ -216,6 +217,18 @@ class HomeScreen extends ConsumerWidget {
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: (_) => const ThemesScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SecondaryButton(
+                      icon: Icons.grid_view,
+                      label: 'Skins',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const SkinsScreen(),
                         ),
                       ),
                     ),

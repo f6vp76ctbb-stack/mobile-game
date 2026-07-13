@@ -4,10 +4,13 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/block_skin.dart';
 import '../../game/board.dart';
 import '../../game/piece.dart';
 import '../state/game_controller.dart';
+import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
+import 'cell_style.dart';
 
 /// How far above the finger the piece is anchored while dragging (in cells).
 const double kFingerLiftCells = 1.2;
@@ -85,6 +88,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
   Widget build(BuildContext context) {
     final board = ref.watch(gameControllerProvider).board;
     final theme = ref.watch(activeThemeProvider);
+    final skin = ref.watch(activeSkinProvider);
     final bombMode = widget.onCellTap != null;
 
     final boardBox = Container(
@@ -109,6 +113,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
           placedColor: theme.placed,
           validColor: theme.validPreview,
           invalidColor: theme.invalidPreview,
+          skin: skin,
         ),
       ),
     );
@@ -149,6 +154,7 @@ class _BoardPainter extends CustomPainter {
     required this.placedColor,
     required this.validColor,
     required this.invalidColor,
+    required this.skin,
   });
 
   final Board board;
@@ -160,33 +166,36 @@ class _BoardPainter extends CustomPainter {
   final Color placedColor;
   final Color validColor;
   final Color invalidColor;
+  final BlockSkinStyle skin;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final radius = Radius.circular(cell * 0.22);
+    final radiusValue = cell * 0.22;
+    final radius = Radius.circular(radiusValue);
     const inset = 1.5;
 
+    Rect cellRect(int row, int col) => Rect.fromLTWH(
+          col * cell + inset,
+          row * cell + inset,
+          cell - inset * 2,
+          cell - inset * 2,
+        );
+
     void drawCell(int row, int col, Color color) {
-      final rect = Rect.fromLTWH(
-        col * cell + inset,
-        row * cell + inset,
-        cell - inset * 2,
-        cell - inset * 2,
-      );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, radius),
+        RRect.fromRectAndRadius(cellRect(row, col), radius),
         Paint()..color = color,
       );
     }
 
-    // Empty grid + locked cells.
+    // Empty grid + locked cells (locked cells use the active block skin).
     for (var r = 0; r < Board.size; r++) {
       for (var c = 0; c < Board.size; c++) {
-        drawCell(
-          r,
-          c,
-          board.filledAt(r, c) ? placedColor : emptyColor,
-        );
+        if (board.filledAt(r, c)) {
+          paintCell(canvas, cellRect(r, c), radiusValue, placedColor, skin);
+        } else {
+          drawCell(r, c, emptyColor);
+        }
       }
     }
 
@@ -212,5 +221,6 @@ class _BoardPainter extends CustomPainter {
       old.previewOrigin != previewOrigin ||
       old.previewValid != previewValid ||
       old.placedColor != placedColor ||
-      old.emptyColor != emptyColor;
+      old.emptyColor != emptyColor ||
+      old.skin != skin;
 }

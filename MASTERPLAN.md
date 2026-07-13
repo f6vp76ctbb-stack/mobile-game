@@ -266,7 +266,11 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
 - [x] Starter-Paket: einmaliges Angebot ab Runde 5, echtes 48-h-Fenster (kein
       Fake-Reset), 1200 Münzen + Wood-Theme für 1,99 € (`gridpop_starter`),
       Game-Over-Karte (C.6) — getestet
-- [ ] Block-Skins zusätzlich zu Themes (weitere Münz-Senke)
+- [x] Block-Skins (Classic/Verlauf/Glanz/Kontur), per Münzen freischaltbar,
+      Skins-Screen mit Vorschau; Board + Tray rendern den aktiven Skin — getestet
+
+**Phase 6 code-seitig abgeschlossen.** Offen nur noch 👤-Punkte:
+Play-Games-Bestenlisten/Achievements, echte AdMob-/IAP-IDs, Firebase-Backend.
 
 **Bewusst NICHT geplant** (Begründung festhalten, um Feature-Creep zu vermeiden):
 Energie-System (killt die „entspannt"-Positionierung), Multiplayer/Clans
