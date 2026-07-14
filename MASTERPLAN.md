@@ -64,6 +64,8 @@ genau dafür ist dieser Plan da.
 |---|---|---|
 | **Werbefrei** (behält Rewarded-Optionen!) | 4,99 € | Non-Consumable — der wichtigste IAP im Genre |
 | Münzpaket S/M/L | 0,99 / 2,99 / 7,99 € | Consumable |
+| Starter-Paket (einmalig, ab Runde 5) | 1,99 € | Consumable — 1200 Münzen + Wood-Theme (Anhang C.6) |
+| Sparschwein öffnen | 2,99 € | Consumable — füllt sich beim Spielen (Anhang C.5) |
 | Münzen kaufen: Revive, Undo, Teil-Tausch, Board-Bombe | — | Booster-Ökonomie |
 | Themes (Holz, Neon, Pastell, Dark) | via Münzen | Kosmetik, treibt Münz-Nachfrage |
 
@@ -153,8 +155,7 @@ bis der Mensch sie als erledigt markiert.
 - [x] Basis-UI: Menü, Spiel, Game-Over-Screen (Riverpod)
 - [x] Widget-Smoke-Tests (Navigation + Rendering) — insgesamt 56 Tests grün
 
-**Hinweis:** „Weiterspielen" leert vorerst gratis die Board-Mitte (Platzhalter);
-in Phase 3 wird daraus die Rewarded-Ad-„Revive".
+**Hinweis:** „Weiterspielen" ist seit Phase 3 eine echte Rewarded-Ad (Revive).
 
 ### Phase 2 — Game Feel & Retention (Woche 3–4)
 - [x] Haptik (`services/haptics.dart`, an Platzieren/Clear/Fieber/Game-Over gekoppelt)
@@ -163,30 +164,56 @@ in Phase 3 wird daraus die Rewarded-Ad-„Revive".
 - [x] Missionen (`missions.dart`, 5 Karriere-Missionen, Fortschritt persistiert) — getestet
 - [x] Münz-Ökonomie: Belohnungen für Daily + Missionen, Münz-Anzeige, Persistenz
 - [x] Missions-Screen + Home-Screen mit Münzen und Daily-Karte
-- [ ] Partikel-Effekte beim Clearen (Reihen-Pop)
-- [ ] Sounds: CC0-Assets beschaffen + `audioplayers` an `SilentAudio`-Interface anbinden
-- [ ] Themes (Holz, Neon, Pastell) — Farbsystem in `theme.dart` swap-bar machen
-- [ ] Onboarding (3 geführte Züge, kein Text-Tutorial)
+- [x] Themes (Classic/Neon/Ocean/Wood) — swap-bares Farbsystem, per Münzen freischaltbar,
+      Theme-Screen mit Vorschau; Board/Tray/Fieber ziehen die aktive Palette — getestet
+- [x] Onboarding: 3 geführte Züge mit kurzen, an Aktionen gekoppelten Coach-Hinweisen
+      (kein Text-Wand-Tutorial); nur beim allerersten Endless-Run — getestet
+- [x] Partikel-Effekte beim Clearen (Partikel-Burst aus geräumten Zellen, Theme-Farbe)
+- [x] Sounds: selbst synthetisierte WAV-SFX (place/clear/combo/fever/gameover),
+      `audioplayers`-Backend an das `AudioService`-Interface angebunden; in Tests
+      bleibt `SilentAudio` aktiv. Lizenz in `assets/CREDITS.md` (Eigenwerk)
+
+**Phase 2 abgeschlossen.**
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)
-- [ ] 👤 DU: Accounts anlegen — Apple Developer (99 €/Jahr), Google Play Console (25 €),
-      AdMob, Firebase (Claude liefert eine Klick-für-Klick-Anleitung als `docs/SETUP-ACCOUNTS.md`)
-- [ ] AdMob-Integration (Interstitial + Rewarded) mit Frequency Capping —
-      Entwicklung ausschließlich mit Googles offiziellen Test-Ad-Unit-IDs
-- [ ] 👤 DU: Echte Ad-Unit-IDs in AdMob anlegen und in die Config eintragen
-- [ ] IAP-Code (Werbefrei + Münzen), Restore Purchases
-- [ ] 👤 DU: IAP-Produkte in App Store Connect / Play Console anlegen (IDs liefert Claude)
-- [ ] Firebase Analytics-Events (Funnel: install → runde 1 → runde 3 → D1);
-      👤 DU: Firebase-Config-Dateien (`google-services.json`, `GoogleService-Info.plist`) einchecken
-- [ ] Store-Listing-Material: Icon, Screenshots, ASO-Texte (DE + EN), Datenschutzerklärungs-Text
-- [ ] App-Review-Anforderungen: DSGVO/UMP-Consent-Dialog (AdMob UMP SDK), COPPA-Einstufung
-- [ ] 👤 DU: Datenschutzerklärung unter eigener URL hosten (kostenlos z. B. GitHub Pages),
-      Privacy Labels / Datensicherheits-Formulare in beiden Konsolen ausfüllen (Vorlage von Claude)
+- [x] Anleitung für alle 👤-Schritte geschrieben (`docs/SETUP-ACCOUNTS.md`)
+- [x] AdMob-Integration (Interstitial + Rewarded) mit zentralem Frequency Capping
+      (`ad_gate.dart`, ab Runde 3 / max 1 pro 90 s) — Debug nutzt Test-IDs; getestet
+- [x] Rewarded-Flows: „Revive" (Board-Mitte) und „Lucky Block" (neue Teile) als
+      echte Rewarded-Ads; Belohnung immer freiwillig + garantiert — getestet
+- [x] UMP/DSGVO-Consent-Flow vor dem ersten Ad-Request (`GoogleAdService`)
+- [x] IAP-Code (Werbefrei non-consumable + Münzpakete consumable), Restore,
+      Shop-Screen, Delivery-Handler; „Werbefrei" behält Rewarded — getestet
+- [x] Analytics-Funnel-Events (game_start, round_complete, reach_round_3,
+      daily_played, rewarded_watched, interstitial_shown, purchase) an
+      `Analytics`-Interface angebunden (`DebugAnalytics` aktiv)
+- [x] Native Config: AdMob-App-ID (Test) in AndroidManifest + Info.plist,
+      INTERNET-Permission
+- [ ] 👤 DU: Accounts anlegen — Apple Developer, Google Play, AdMob, Firebase (Anleitung s. o.)
+- [ ] 👤 DU: Echte Ad-Unit-IDs + App-IDs eintragen (`ad_config.dart`, Manifest, Info.plist)
+- [ ] 👤 DU: IAP-Produkte in beiden Konsolen anlegen (IDs aus `iap.dart` / Anhang A.5)
+- [ ] 👤 DU: Firebase-Config-Dateien einchecken → dann bindet Claude das Firebase-Backend an
+- [x] Eigenes App-Icon (Android-Mipmaps + iOS-Set via `flutter_launcher_icons`)
+- [x] ASO-Texte DE + EN (`docs/STORE-LISTING.md`: Titel, Keywords, Beschreibungen)
+- [x] Datenschutzerklärungs-Text (`docs/PRIVACY-POLICY.md`, hostbar)
+- [x] Impressum-Vorlage (`docs/IMPRESSUM.md`) + In-App-Punkt (Einstellungen → Impressum)
+- [ ] Screenshots: Aufnahme am Gerät/Emulator in Phase 4 (Plan + Captions liegen im Listing)
+- [ ] 👤 DU: Datenschutzerklärung + Impressum hosten, Play-Datensicherheit + COPPA ausfüllen
 
 ### Phase 4 — Soft Launch (Woche 7–8)
-- [ ] Release-Build (`flutter build appbundle`) inkl. Signing-Anleitung
-- [ ] 👤 DU: Signing-Key erzeugen (Anleitung von Claude), App in Play Console hochladen,
-      Soft Launch in 1–2 kleinen Märkten (z. B. Niederlande/Skandinavien) freischalten
+
+**Strategie: Play Store zuerst** (Kosten: Google 25 € einmalig vs. Apple 99 €/Jahr).
+iOS-/App-Store-Schritte kommen erst in Phase 5. Der Code läuft unverändert für beide.
+
+- [x] Android-Signing-Config (liest `key.properties`, fällt ohne Keystore auf
+      Debug-Keys zurück → baut immer), R8-Keep-Regeln bereit, Anzeigename „GridPop"
+- [x] Release-/Build-Checkliste (`docs/RELEASE.md`, Play-first) inkl. Keystore,
+      appbundle, Screenshots, Steuer-Vorbereitung, Soft-Launch-Schritte
+- [ ] 👤 DU: Signing-Key erzeugen (`docs/RELEASE.md`), `flutter build appbundle`,
+      App in Play Console hochladen, Soft Launch in 1–2 kleinen Märkten freischalten
+- [ ] 👤 DU (erst bei Einnahmen): Gewerbe + Kleinunternehmer anmelden, Steuerdaten
+      ins Google-Zahlungsprofil (`docs/SETUP-ACCOUNTS.md` §0 — Hobby-Test vorab ok)
+- [ ] 👤 DU: Screenshots am Gerät/Emulator aufnehmen (Plan in `docs/STORE-LISTING.md`)
 - [ ] KPIs messen (siehe unten), Fairness-Tuning & Ad-Frequenz iterieren
 - [ ] Crashfrei-Rate > 99,5 %
 
@@ -196,6 +223,59 @@ in Phase 3 wird daraus die Rewarded-Ad-„Revive".
 - [ ] ASO-Iteration (Keywords, Screenshot-A/B im Play Store)
 - [ ] Organik pushen: TikTok/Shorts mit „satisfying"-Clips (Combo-Fieber ist genau dafür gebaut)
 - [ ] Erst wenn LTV > CPI messbar: kleine Paid-UA-Tests
+
+### Phase 6 — Tiefe & Profit: „Warum ich morgen wiederkomme" (parallel zu Soft Launch startbar)
+
+Alles hier ist **offline-fähig** (keine Server-Regel bleibt) und pure-Dart-testbar.
+Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Aufwand).
+
+**Tier 1 — Retention-Kern (zuerst bauen)**
+- [x] Booster im Spiel: Undo (50), Teil-Tausch (75), Board-Bombe (150) als
+      Münz-Senken (C.1) — Engine (`undo()`/`bombAt()` mit Memento) + Booster-Leiste
+      + Bomben-Ziel-Modus, getestet
+- [x] Lokale Benachrichtigungen ohne Server (`flutter_local_notifications`):
+      Daily-Reminder 19:00 + Streak-Warnung 21:30 + Comeback (72h) + Comeback-
+      Geschenk; Opt-in beim 2. Start, Settings-Schalter (C.2). Planungs-Logik
+      pure + getestet; native Zustellung auf Gerät verifizieren (`docs/NOTIFICATIONS.md`)
+- [x] Streak-Schutz: 1 verpasster Tag heilbar (150 Münzen oder Rewarded Ad),
+      max. 1×/7 Tage (C.2) — pure Logik + Home-Banner, getestet
+- [x] „Münzen verdoppeln"-Rewarded auf dem Game-Over-Screen (C.7) — einmal pro
+      Runde, getestet
+- [x] Juice-Pass II: schwebende Score-Popups am Clear-Ort, Screen-Shake bei
+      3+ Linien, All-Clear-Banner „BLITZBLANK!", Combo-Sound-Pitch-Eskalation (C.8)
+      (Squash-Animation beim Landen bewusst weggelassen — Pulsen bei jedem Zug
+      wirkt schnell nervig; die vier Effekte oben liefern den „Juice")
+
+**Tier 2 — Progression-Meta (macht aus Runden eine Reise)**
+- [x] Spieler-Level (XP): Score/100 +50 fürs Daily, Kurve 100+50·n, Münz-Belohnung
+      pro Level, Home-Badge mit XP-Balken, Level-Up-Feier im Game-Over (C.3) — getestet
+- [x] Rätsel-Modus: seed-generierte, Solver-validierte Level, 3-Sterne-Wertung,
+      Level-Auswahl mit Fortschritt, Münz-Belohnung (10/Level, +25 alle 10),
+      „Extra-Zug"-Rewarded, Bitboard-Solver erkennt Sackgassen (C.4) — getestet
+- [x] Statistik-Screen: Bestwert, Level, Runden, Ø-Score, größte Combo, Gesamt-
+      Linien/-Teile, Rätsel gelöst/Sterne, Münzen (Lifetime-Stats getestet)
+- [ ] Achievements + Bestenlisten via Google Play Games Services (kostenlos,
+      kein Server); 👤 DU: in Play Console anlegen (C.9)
+
+**Tier 3 — Monetarisierungs-Vertiefung (erst nach Retention-Daten)**
+- [x] Sparschwein: füllt sich (+1/Reihe) beim Spielen, Kapazität wächst pro
+      Öffnung (max 3000), Öffnen per IAP `gridpop_piggy`, Home-Chip mit
+      Füll-Hinweis ab 80 % (C.5) — getestet
+- [x] Wochenend-Event: Sa/So verdoppelt Missions- + Daily-Münzen (uhrbasiert,
+      offline), Home-Banner (C.7) — getestet
+- [x] Starter-Paket: einmaliges Angebot ab Runde 5, echtes 48-h-Fenster (kein
+      Fake-Reset), 1200 Münzen + Wood-Theme für 1,99 € (`gridpop_starter`),
+      Game-Over-Karte (C.6) — getestet
+- [x] Block-Skins (Classic/Verlauf/Glanz/Kontur), per Münzen freischaltbar,
+      Skins-Screen mit Vorschau; Board + Tray rendern den aktiven Skin — getestet
+
+**Phase 6 code-seitig abgeschlossen.** Offen nur noch 👤-Punkte:
+Play-Games-Bestenlisten/Achievements, echte AdMob-/IAP-IDs, Firebase-Backend.
+
+**Bewusst NICHT geplant** (Begründung festhalten, um Feature-Creep zu vermeiden):
+Energie-System (killt die „entspannt"-Positionierung), Multiplayer/Clans
+(bräuchte Server), Season Pass (zu früh — erst ab stabiler D30-Basis), Lootboxen
+(Review-/Rechtsrisiko).
 
 ### KPI-Ziele (Soft Launch)
 
@@ -282,7 +362,8 @@ Teile werden **nicht** vom Spieler rotiert (genre-üblich) — Rotationen sind e
 - Persistenz-Keys: `highscore`, `coins`, `streak`, `lastDailyDate`, `adFree`,
   `activeTheme`, `settings.*` — zentral in `lib/services/storage.dart`
 - AdMob-Test-IDs im Debug-Build hart verdrahtet; echte IDs via `lib/monetization/ad_config.dart`
-- IAP-Produkt-IDs: `gridpop_remove_ads`, `gridpop_coins_s`, `gridpop_coins_m`, `gridpop_coins_l`
+- IAP-Produkt-IDs: `gridpop_remove_ads`, `gridpop_coins_s`, `gridpop_coins_m`,
+  `gridpop_coins_l`; ab Phase 6: `gridpop_starter`, `gridpop_piggy` (Anhang C)
 
 ## Anhang B — Was nur DU erledigen kannst (Übersicht)
 
@@ -300,3 +381,110 @@ Diese Punkte (alle im Phasenplan mit 👤 markiert):
 
 Für jeden dieser Punkte legt Claude in Phase 3 eine Klick-für-Klick-Anleitung
 unter `docs/` ab.
+
+---
+
+## Anhang C — Spezifikation Phase 6 (verbindlich)
+
+### C.1 Booster im Spiel (Münz-Senken)
+
+UI: Booster-Leiste unter dem Tray (3 Buttons mit Münzpreis-Badge).
+
+| Booster | Kosten | Wirkung | Regeln |
+|---|---|---|---|
+| Undo | 50 | Macht genau den letzten Zug rückgängig (Board, Tray, Score, Combo, Fieber) | Max. 1× in Folge; nicht nach Clear-Animation-Start eines neuen Zugs |
+| Teil-Tausch | 75 | Ersetzt die aktuellen Tray-Teile durch 3 neue | Beliebig oft; nutzt den normalen Generator (kein Wunschteil — das bleibt Lucky Block/Rewarded) |
+| Board-Bombe | 150 | Spieler wählt eine Zelle; 3×3 darum wird geleert | Gibt keine Punkte; bricht die Combo nicht; max. 1× pro Zug |
+
+Engine-Anforderung: `GameSession` bekommt `undo()` (ein Schritt Historie),
+`bombAt(Cell)` — beides pure Dart + Tests.
+
+### C.2 Lokale Benachrichtigungen & Streak-Schutz (kein Server!)
+
+Paket: `flutter_local_notifications`. Opt-in-Dialog erst beim **zweiten**
+App-Start (nicht beim ersten). In Einstellungen abschaltbar.
+
+| Notification | Zeitpunkt | Bedingung | Text-Idee |
+|---|---|---|---|
+| Daily-Reminder | 19:00 lokal | Daily heute nicht gespielt | „Dein Puzzle des Tages wartet 🧩" |
+| Streak-Warnung | 21:30 lokal | Streak ≥ 3 UND Daily offen | „🔥 {n}-Tage-Streak in Gefahr!" |
+| Comeback | einmalig nach 72 h Inaktivität | — | „Wir haben 100 Münzen für dich 🪙" (beim Öffnen gutschreiben) |
+
+**Streak-Schutz:** Genau 1 verpasster Tag kann geheilt werden — beim nächsten
+Öffnen Angebot: Rewarded Ad ODER 150 Münzen. 2+ Tage verpasst → Streak bricht
+normal. Max. 1 Heilung pro 7 Tage (sonst verliert der Streak seine Bedeutung).
+
+### C.3 Spieler-Level (XP)
+
+- XP pro Runde: `score / 100` (abgerundet), Daily-Abschluss: +50 XP extra.
+- Level-Kurve: Level *n* → *n+1* braucht `100 + 50·n` XP.
+- Level-Up-Belohnung: `20 + 5·n` Münzen; jedes 5. Level schaltet einen
+  Block-Skin frei (C-Tier-3).
+- Anzeige: Home-Screen (Level-Ring um den Titel oder Badge), Level-Up-Feier
+  auf dem Game-Over-Screen.
+- Persistenz-Keys: `xp`, `playerLevel`.
+
+### C.4 Rätsel-Modus (seed-generiert, Solver-validiert)
+
+- Level *k* wird deterministisch aus Seed `0xR47SEL + k` generiert:
+  vorgefülltes Board (30–60 % Füllung, steigend) + feste Teilfolge.
+- Ziel: „Board komplett leeren" in ≤ M Zügen. Sterne: 3 = optimal
+  (Solver-Minimum), 2 = +2 Züge, 1 = geschafft.
+- **Generator-Regel:** Ein Level wird nur akzeptiert, wenn der eingebaute
+  Solver (Brute-Force über Teilfolge, pure Dart) es in ≤ M Zügen löst —
+  unlösbare Level sind damit ausgeschlossen. Tests decken die ersten 50 Level ab.
+- Belohnung: 10 Münzen pro Level, +25 Bonus alle 10 Level. Rewarded Ad:
+  „Extra-Zug" (einmal pro Level).
+- Kein Content-Aufwand: unendlich viele Level aus dem Generator.
+
+### C.5 Sparschwein
+
+- Füllung: +1 Münze pro geräumter Linie (zusätzlich zur normalen Ökonomie,
+  landet **nur** im Schwein).
+- Kapazität: 500 (Stufe 1) → nach jedem Öffnen +500, max. 3000.
+- Öffnen: IAP `gridpop_piggy` (2,99 €) — schüttet den Inhalt aus.
+- UI: dezentes Icon auf Home mit Füllstand; Hinweis-Badge erst ab 80 % Füllung.
+  **Nie** blockierend/Popup-Spam — Positionierung „entspannt" schützen.
+
+### C.6 Starter-Paket
+
+- Trigger: einmalig nach Runde 5 (genug Bindung, früh genug für Conversion).
+- Inhalt: 1200 Münzen + Wood-Theme. Preis 1,99 € (`gridpop_starter`).
+- Anzeige: eine Karte auf dem Game-Over-Screen + Eintrag im Shop, 48 h gültig
+  (lokaler Timer), danach dauerhaft weg — echte Knappheit, kein Fake-Countdown-Reset.
+
+### C.7 Zusätzliche Rewarded-Platzierungen & Events
+
+- **Münzen verdoppeln:** Game-Over-Screen, wenn `coinsEarnedThisRun > 0`:
+  „Video ansehen → {n}×2 Münzen". Erwartbar höchstes Engagement.
+- **Wochenend-Event (lokal, uhrbasiert):** Sa+So: Missions-Münzen ×2 und
+  Daily-Belohnung ×2. Banner auf Home. Kein Server nötig — Gerätezeit reicht,
+  Manipulation ist bei reinen Soft-Currency-Boni verschmerzbar.
+
+### C.8 Juice-Pass II (Game Feel)
+
+- Score-Popup am Clear-Ort („+120", floatet hoch, Theme-Farbe).
+- Screen-Shake (subtil, 150 ms) ab 3 gleichzeitigen Linien.
+- All-Clear: Konfetti-Partikel über das ganze Board + eigener Sound + Banner
+  („BLITZBLANK! +300").
+- Landen eines Teils: 80-ms-Squash (Scale 1.0→0.9→1.0).
+- Combo-Sound-Eskalation: Tonhöhe steigt pro Combo-Stufe (bestehende SFX
+  pitchen statt neue Assets).
+
+### C.9 Achievements & Bestenlisten (Google Play Games)
+
+- Kostenlos, kein eigener Server. Bestenlisten: „Endless-Highscore",
+  „Längster Daily-Streak". ~12 Achievements (erste Runde, 10 Missionen,
+  Level 10, 50er-Combo-Summe, All Clear, 7-Tage-Streak, …).
+- 👤 DU: In der Play Console anlegen (IDs liefert Claude als Liste).
+- iOS-Pendant (Game Center) erst beim App-Store-Gang.
+
+### C.10 KPI-Ziele Phase 6 (zusätzlich zu Soft-Launch-KPIs)
+
+| Metrik | Ziel |
+|---|---|
+| D30-Retention | ≥ 8 % |
+| Notification-Opt-in | ≥ 45 % |
+| Rewarded/DAU („verdoppeln" + Revive + Lucky) | ≥ 1,2 Views |
+| Anteil Spieler mit ≥ 1 Booster-Einsatz/Woche | ≥ 25 % |
+| Starter-Pack-Conversion (von Sehern) | ≥ 2 % |

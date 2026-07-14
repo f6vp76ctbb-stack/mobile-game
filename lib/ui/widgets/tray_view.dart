@@ -4,9 +4,11 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/block_skin.dart';
 import '../../game/piece.dart';
 import '../state/game_controller.dart';
-import '../theme.dart';
+import '../state/skin_controller.dart';
+import '../state/theme_controller.dart';
 import 'board_view.dart';
 import 'piece_view.dart';
 
@@ -24,6 +26,8 @@ class TrayView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final tray = ref.watch(gameControllerProvider).tray;
+    final slotColors = ref.watch(activeThemeProvider).traySlots;
+    final skin = ref.watch(activeSkinProvider);
     // Tray pieces render a little smaller than board cells to leave padding.
     final trayCell = (height / 5).clamp(16.0, boardCell);
 
@@ -35,7 +39,7 @@ class TrayView extends ConsumerWidget {
           for (var slot = 0; slot < tray.length; slot++)
             Expanded(
               child: Center(
-                child: _slot(tray[slot], slot, trayCell),
+                child: _slot(tray[slot], slot, trayCell, slotColors, skin),
               ),
             ),
         ],
@@ -43,9 +47,15 @@ class TrayView extends ConsumerWidget {
     );
   }
 
-  Widget _slot(Piece? piece, int slot, double trayCell) {
+  Widget _slot(
+    Piece? piece,
+    int slot,
+    double trayCell,
+    List<Color> colors,
+    BlockSkinStyle skin,
+  ) {
     if (piece == null) return const SizedBox.shrink();
-    final color = GridColors.traySlots[slot % GridColors.traySlots.length];
+    final color = colors[slot % colors.length];
 
     final feedbackW = piece.width * boardCell;
     final feedbackH = piece.height * boardCell;
@@ -56,12 +66,23 @@ class TrayView extends ConsumerWidget {
         feedbackW / 2,
         feedbackH / 2 + kFingerLiftCells * boardCell,
       ),
-      feedback: PieceView(piece: piece, cellSize: boardCell, color: color),
+      feedback:
+          PieceView(piece: piece, cellSize: boardCell, color: color, skin: skin),
       childWhenDragging: Opacity(
         opacity: 0.25,
-        child: PieceView(piece: piece, cellSize: trayCell, color: color),
+        child: PieceView(
+          piece: piece,
+          cellSize: trayCell,
+          color: color,
+          skin: skin,
+        ),
       ),
-      child: PieceView(piece: piece, cellSize: trayCell, color: color),
+      child: PieceView(
+        piece: piece,
+        cellSize: trayCell,
+        color: color,
+        skin: skin,
+      ),
     );
   }
 }

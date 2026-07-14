@@ -1,16 +1,26 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/game/board.dart';
 import 'package:gridpop/game/piece.dart';
+import 'package:gridpop/monetization/ad_gate.dart';
+import 'package:gridpop/monetization/ads.dart';
+import 'package:gridpop/services/analytics.dart';
 import 'package:gridpop/services/audio.dart';
 import 'package:gridpop/services/haptics.dart';
 import 'package:gridpop/services/storage.dart';
 import 'package:gridpop/ui/state/game_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<GameController> _controller() async {
+Future<GameController> _controller({AdService? ads}) async {
   SharedPreferences.setMockInitialValues({});
   final storage = await Storage.create();
-  return GameController(storage, Haptics(enabled: false), SilentAudio());
+  return GameController(
+    storage,
+    Haptics(enabled: false),
+    SilentAudio(),
+    ads ?? FakeAdService(),
+    AdGate(now: DateTime.now),
+    NoopAnalytics(),
+  );
 }
 
 /// Drives the controller by always playing the first legal move it can find.
@@ -33,6 +43,22 @@ void _playToGameOver(GameController c) {
     if (!moved) break;
     guard++;
   }
+}
+
+/// Plays a single first-legal move. Returns whether one was made.
+bool _placeOneLegalMove(GameController c) {
+  for (var slot = 0; slot < c.state.tray.length; slot++) {
+    if (c.state.tray[slot] == null) continue;
+    for (var r = 0; r < Board.size; r++) {
+      for (var col = 0; col < Board.size; col++) {
+        if (c.canPlace(slot, Cell(r, col))) {
+          c.place(slot, Cell(r, col));
+          return true;
+        }
+      }
+    }
+  }
+  return false;
 }
 
 void main() {
@@ -60,6 +86,136 @@ void main() {
     // First daily completion always grants at least the base + streak reward.
     expect(c.state.coinsEarnedThisRun, greaterThanOrEqualTo(60));
     expect(c.state.coins, greaterThan(startCoins));
+  });
+
+  test('onboarding hint shows on first run and clears after 3 moves', () async {
+    final c = await _controller(); // fresh prefs => onboarding active
+    c.newGame(seed: 3);
+    expect(c.state.onboardingHint, isNotNull);
+
+    for (var i = 0; i < 3; i++) {
+      _placeOneLegalMove(c);
+    }
+    expect(c.state.onboardingHint, isNull);
+  });
+
+  test('daily mode never shows the onboarding hint', () async {
+    final c = await _controller();
+    c.startDaily(now: DateTime(2026, 7, 5));
+    expect(c.state.onboardingHint, isNull);
+  });
+
+  test('a finished run updates lifetime stats', () async {
+    SharedPreferences.setMockInitialValues({});
+    final storage = await Storage.create();
+    final c = GameController(
+      storage,
+      Haptics(enabled: false),
+      SilentAudio(),
+      FakeAdService(),
+      AdGate(now: DateTime.now),
+      NoopAnalytics(),
+    );
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    final stats = storage.lifetimeStats;
+    expect(stats.games, 1);
+    expect(stats.totalPieces, greaterThan(0));
+  });
+
+  test('clearing lines increments the clear event id', () async {
+    final c = await _controller();
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    // A greedy full run reliably clears lines, so the particle trigger must
+    // have fired at least once and exposed the cleared cells.
+    expect(c.state.clearEventId, greaterThan(0));
+  });
+
+  group('boosters', () {
+    test('undo is unavailable with nothing to undo', () async {
+      final c = await _controller();
+      c.newGame(seed: 1);
+      expect(c.state.canUndo, isFalse);
+      expect(await c.tryUndo(), isFalse);
+    });
+
+    test('undo reverts the last move and costs coins', () async {
+      SharedPreferences.setMockInitialValues({'coins': 100});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 3);
+      final scoreBefore = c.state.score;
+      _placeOneLegalMove(c);
+      expect(c.state.canUndo, isTrue);
+      final ok = await c.tryUndo();
+      expect(ok, isTrue);
+      expect(c.state.score, scoreBefore);
+      expect(c.state.coins, 50); // 100 - 50
+      expect(c.state.canUndo, isFalse); // only one undo
+    });
+
+    test('undo is refused without enough coins', () async {
+      SharedPreferences.setMockInitialValues({'coins': 10});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 3);
+      _placeOneLegalMove(c);
+      expect(await c.tryUndo(), isFalse);
+      expect(c.state.canUndo, isTrue); // move preserved
+    });
+
+    test('swap costs coins and redraws the tray', () async {
+      SharedPreferences.setMockInitialValues({'coins': 100});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 5);
+      final before = c.state.tray.map((p) => p?.id).toList();
+      final ok = await c.trySwapPieces();
+      expect(ok, isTrue);
+      expect(c.state.coins, 25); // 100 - 75
+      expect(c.state.tray.map((p) => p?.id).toList(), isNot(before));
+    });
+
+    test('bomb costs coins', () async {
+      SharedPreferences.setMockInitialValues({'coins': 200});
+      final storage = await Storage.create();
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        AdGate(now: DateTime.now),
+        NoopAnalytics(),
+      );
+      c.newGame(seed: 5);
+      final ok = await c.tryBomb(const Cell(4, 4));
+      expect(ok, isTrue);
+      expect(c.state.coins, 50); // 200 - 150
+    });
   });
 
   test('an illegal placement is a no-op', () async {

@@ -4,19 +4,26 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/block_skin.dart';
 import '../../game/board.dart';
 import '../../game/piece.dart';
 import '../state/game_controller.dart';
-import '../theme.dart';
+import '../state/skin_controller.dart';
+import '../state/theme_controller.dart';
+import 'cell_style.dart';
 
 /// How far above the finger the piece is anchored while dragging (in cells).
 const double kFingerLiftCells = 1.2;
 
 class BoardView extends ConsumerStatefulWidget {
-  const BoardView({super.key, required this.size});
+  const BoardView({super.key, required this.size, this.onCellTap});
 
   /// Side length of the (square) board in logical pixels.
   final double size;
+
+  /// When set (e.g. bomb-targeting mode), a tap on the board reports the tapped
+  /// cell instead of dragging. Null = normal play.
+  final void Function(Cell cell)? onCellTap;
 
   @override
   ConsumerState<BoardView> createState() => _BoardViewState();
@@ -69,9 +76,56 @@ class _BoardViewState extends ConsumerState<BoardView> {
     });
   }
 
+  void _handleTap(Offset localPos) {
+    final onCellTap = widget.onCellTap;
+    if (onCellTap == null) return;
+    final row = (localPos.dy / _cell).floor().clamp(0, Board.size - 1);
+    final col = (localPos.dx / _cell).floor().clamp(0, Board.size - 1);
+    onCellTap(Cell(row, col));
+  }
+
   @override
   Widget build(BuildContext context) {
     final board = ref.watch(gameControllerProvider).board;
+    final theme = ref.watch(activeThemeProvider);
+    final skin = ref.watch(activeSkinProvider);
+    final bombMode = widget.onCellTap != null;
+
+    final boardBox = Container(
+      key: _boardKey,
+      width: widget.size,
+      height: widget.size,
+      decoration: BoxDecoration(
+        color: theme.boardBackground,
+        borderRadius: BorderRadius.circular(_cell * 0.25),
+        border: bombMode
+            ? Border.all(color: theme.fever, width: 2)
+            : null,
+      ),
+      child: CustomPaint(
+        painter: _BoardPainter(
+          board: board,
+          cell: _cell,
+          previewPiece: _previewPiece,
+          previewOrigin: _previewOrigin,
+          previewValid: _previewValid,
+          emptyColor: theme.emptyCell,
+          placedColor: theme.placed,
+          validColor: theme.validPreview,
+          invalidColor: theme.invalidPreview,
+          skin: skin,
+        ),
+      ),
+    );
+
+    // In bomb-targeting mode a tap picks the cell; dragging is disabled.
+    if (bombMode) {
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTapUp: (d) => _handleTap(d.localPosition),
+        child: boardBox,
+      );
+    }
 
     return DragTarget<int>(
       onMove: (details) => _updatePreview(details.data, details.offset),
@@ -84,26 +138,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
         }
         _clearPreview();
       },
-      builder: (context, _, _) {
-        return Container(
-          key: _boardKey,
-          width: widget.size,
-          height: widget.size,
-          decoration: BoxDecoration(
-            color: GridColors.boardBackground,
-            borderRadius: BorderRadius.circular(_cell * 0.25),
-          ),
-          child: CustomPaint(
-            painter: _BoardPainter(
-              board: board,
-              cell: _cell,
-              previewPiece: _previewPiece,
-              previewOrigin: _previewOrigin,
-              previewValid: _previewValid,
-            ),
-          ),
-        );
-      },
+      builder: (context, _, _) => boardBox,
     );
   }
 }
@@ -115,6 +150,11 @@ class _BoardPainter extends CustomPainter {
     required this.previewPiece,
     required this.previewOrigin,
     required this.previewValid,
+    required this.emptyColor,
+    required this.placedColor,
+    required this.validColor,
+    required this.invalidColor,
+    required this.skin,
   });
 
   final Board board;
@@ -122,33 +162,40 @@ class _BoardPainter extends CustomPainter {
   final Piece? previewPiece;
   final Cell? previewOrigin;
   final bool previewValid;
+  final Color emptyColor;
+  final Color placedColor;
+  final Color validColor;
+  final Color invalidColor;
+  final BlockSkinStyle skin;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final radius = Radius.circular(cell * 0.22);
+    final radiusValue = cell * 0.22;
+    final radius = Radius.circular(radiusValue);
     const inset = 1.5;
 
+    Rect cellRect(int row, int col) => Rect.fromLTWH(
+          col * cell + inset,
+          row * cell + inset,
+          cell - inset * 2,
+          cell - inset * 2,
+        );
+
     void drawCell(int row, int col, Color color) {
-      final rect = Rect.fromLTWH(
-        col * cell + inset,
-        row * cell + inset,
-        cell - inset * 2,
-        cell - inset * 2,
-      );
       canvas.drawRRect(
-        RRect.fromRectAndRadius(rect, radius),
+        RRect.fromRectAndRadius(cellRect(row, col), radius),
         Paint()..color = color,
       );
     }
 
-    // Empty grid + locked cells.
+    // Empty grid + locked cells (locked cells use the active block skin).
     for (var r = 0; r < Board.size; r++) {
       for (var c = 0; c < Board.size; c++) {
-        drawCell(
-          r,
-          c,
-          board.filledAt(r, c) ? GridColors.placed : GridColors.emptyCell,
-        );
+        if (board.filledAt(r, c)) {
+          paintCell(canvas, cellRect(r, c), radiusValue, placedColor, skin);
+        } else {
+          drawCell(r, c, emptyColor);
+        }
       }
     }
 
@@ -156,8 +203,7 @@ class _BoardPainter extends CustomPainter {
     final piece = previewPiece;
     final origin = previewOrigin;
     if (piece != null && origin != null) {
-      final color =
-          previewValid ? GridColors.validPreview : GridColors.invalidPreview;
+      final color = previewValid ? validColor : invalidColor;
       for (final offset in piece.cells) {
         final r = origin.row + offset.row;
         final c = origin.col + offset.col;
@@ -173,5 +219,8 @@ class _BoardPainter extends CustomPainter {
       old.board != board ||
       old.previewPiece != previewPiece ||
       old.previewOrigin != previewOrigin ||
-      old.previewValid != previewValid;
+      old.previewValid != previewValid ||
+      old.placedColor != placedColor ||
+      old.emptyColor != emptyColor ||
+      old.skin != skin;
 }

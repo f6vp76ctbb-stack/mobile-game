@@ -9,9 +9,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/board.dart';
 import '../../game/daily.dart';
 import '../../game/game_session.dart';
+import '../../game/leveling.dart';
 import '../../game/missions.dart';
 import '../../game/piece.dart';
+import '../../game/starter_offer.dart';
 import '../../game/streak.dart';
+import '../../game/weekend_event.dart';
+import '../../monetization/ad_gate.dart';
+import '../../monetization/ads.dart';
+import '../../monetization/iap.dart';
+import '../../services/analytics.dart';
 import '../../services/audio.dart';
 import '../../services/haptics.dart';
 import '../../services/storage.dart';
@@ -23,6 +30,22 @@ final storageProvider = Provider<Storage>(
 
 final hapticsProvider = Provider<Haptics>((ref) => Haptics());
 final audioProvider = Provider<AudioService>((ref) => SilentAudio());
+final analyticsProvider = Provider<Analytics>((ref) => NoopAnalytics());
+
+/// Ad service — [FakeAdService] by default (tests/dev); main overrides it with
+/// the real AdMob-backed one.
+final adServiceProvider = Provider<AdService>((ref) => FakeAdService());
+
+/// Single [AdGate] instance; ad-free is seeded from storage.
+final adGateProvider = Provider<AdGate>((ref) {
+  final gate = AdGate(now: DateTime.now);
+  gate.adFree = ref.read(storageProvider).adFree;
+  return gate;
+});
+
+/// IAP service — [FakeIap] by default (tests/dev); main overrides with the real
+/// store-backed one.
+final iapServiceProvider = Provider<IapService>((ref) => FakeIap());
 
 /// Immutable view of the current run for the widget tree.
 @immutable
@@ -41,6 +64,26 @@ class GameSnapshot {
     required this.completedMissions,
     required this.isDaily,
     required this.streak,
+    required this.onboardingHint,
+    required this.clearEventId,
+    required this.clearedCells,
+    required this.adFree,
+    required this.canUndo,
+    required this.coinsDoubled,
+    required this.streakRepairAvailable,
+    required this.lastGained,
+    required this.lastClearedLineCount,
+    required this.lastWasAllClear,
+    required this.playerLevel,
+    required this.xpIntoLevel,
+    required this.xpForNextLevel,
+    required this.levelsGainedThisRun,
+    required this.levelUpCoins,
+    required this.weekendActive,
+    required this.piggyCoins,
+    required this.piggyCapacity,
+    required this.starterOfferActive,
+    required this.starterHoursLeft,
   });
 
   final Board board;
@@ -56,6 +99,66 @@ class GameSnapshot {
   final List<String> completedMissions;
   final bool isDaily;
   final int streak;
+
+  /// Short coach hint for the first-run guided moves, or null when inactive.
+  final String? onboardingHint;
+
+  /// Increments on every move that clears lines — the UI keys clear-burst
+  /// particle animations off this so each clear fires exactly once.
+  final int clearEventId;
+
+  /// Cells removed by the most recent clear (empty if the last move cleared
+  /// nothing).
+  final List<Cell> clearedCells;
+
+  /// True once the player owns the "remove ads" IAP.
+  final bool adFree;
+
+  /// Whether the last placement can still be undone (booster availability).
+  final bool canUndo;
+
+  /// Whether this run's earned coins were already doubled via rewarded ad.
+  final bool coinsDoubled;
+
+  /// Whether a streak repair is currently on offer (one day missed).
+  final bool streakRepairAvailable;
+
+  /// Points gained on the most recent clearing move (for the score popup).
+  final int lastGained;
+
+  /// Lines cleared on the most recent move (screen-shake at 3+).
+  final int lastClearedLineCount;
+
+  /// Whether the most recent move emptied the board (confetti + banner).
+  final bool lastWasAllClear;
+
+  /// Player level and progress toward the next level (for the home badge).
+  final int playerLevel;
+  final int xpIntoLevel;
+  final int xpForNextLevel;
+
+  /// Levels gained + coins from level-ups this run (game-over celebration).
+  final int levelsGainedThisRun;
+  final int levelUpCoins;
+
+  /// Whether the weekend double-coins event is currently active.
+  final bool weekendActive;
+
+  /// Piggy bank state (fills while playing; emptied via IAP).
+  final int piggyCoins;
+  final int piggyCapacity;
+
+  /// One-time starter pack offer (active during its 48h window).
+  final bool starterOfferActive;
+  final int starterHoursLeft;
+}
+
+/// In-run booster prices (MASTERPLAN.md Anhang C.1).
+class BoosterCosts {
+  const BoosterCosts._();
+  static const int undo = 50;
+  static const int swap = 75;
+  static const int bomb = 150;
 }
 
 final gameControllerProvider =
@@ -64,12 +167,22 @@ final gameControllerProvider =
     ref.read(storageProvider),
     ref.read(hapticsProvider),
     ref.read(audioProvider),
+    ref.read(adServiceProvider),
+    ref.read(adGateProvider),
+    ref.read(analyticsProvider),
   );
 });
 
 class GameController extends StateNotifier<GameSnapshot> {
-  GameController(this._storage, this._haptics, this._audio, {int? seed})
-      : _missions = MissionEngine(progress: _storage.missionProgress),
+  GameController(
+    this._storage,
+    this._haptics,
+    this._audio,
+    this._ads,
+    this._adGate,
+    this._analytics, {
+    int? seed,
+  })  : _missions = MissionEngine(progress: _storage.missionProgress),
         _session = GameSession.newGame(seed: seed ?? _randomSeed()),
         super(_initialSnapshot(_storage)) {
     _emit();
@@ -78,6 +191,9 @@ class GameController extends StateNotifier<GameSnapshot> {
   final Storage _storage;
   final Haptics _haptics;
   final AudioService _audio;
+  final AdService _ads;
+  final AdGate _adGate;
+  final Analytics _analytics;
   final MissionEngine _missions;
 
   GameSession _session;
@@ -85,8 +201,28 @@ class GameController extends StateNotifier<GameSnapshot> {
   bool _isDaily = false;
   bool _finalized = false;
   int _coinsEarnedThisRun = 0;
+  bool _coinsDoubled = false;
   int _streak = 0;
+  int _levelsGainedThisRun = 0;
+  int _levelUpCoins = 0;
   List<String> _completedMissions = const [];
+  late bool _onboarding = !_storage.onboardingDone;
+  int _onboardingStep = 0;
+  int _clearEventId = 0;
+  List<Cell> _clearedCells = const [];
+  int _lastGained = 0;
+
+  static const _onboardingHints = <String>[
+    'Zieh einen Stein ins Gitter 👆',
+    'Fülle eine ganze Reihe oder Spalte',
+    'Volle Linien lösen sich auf — Punkte! ✨',
+  ];
+
+  String? get _onboardingHint {
+    if (!_onboarding || _isDaily) return null;
+    if (_onboardingStep >= _onboardingHints.length) return null;
+    return _onboardingHints[_onboardingStep];
+  }
 
   static int _randomSeed() => Random().nextInt(1 << 31);
 
@@ -106,6 +242,36 @@ class GameController extends StateNotifier<GameSnapshot> {
       completedMissions: const [],
       isDaily: false,
       streak: storage.streak,
+      onboardingHint:
+          storage.onboardingDone ? null : 'Zieh einen Stein ins Gitter 👆',
+      clearEventId: 0,
+      clearedCells: const [],
+      adFree: storage.adFree,
+      canUndo: false,
+      coinsDoubled: false,
+      streakRepairAvailable: StreakRepair.isRepairable(
+        lastDateKey: storage.lastDailyDate,
+        currentStreak: storage.streak,
+        today: DateTime.now(),
+        lastRepairDateKey: storage.lastStreakRepairDate,
+      ),
+      lastGained: 0,
+      lastClearedLineCount: 0,
+      lastWasAllClear: false,
+      playerLevel: storage.playerLevel,
+      xpIntoLevel: storage.xp,
+      xpForNextLevel: LevelSystem.xpForNext(storage.playerLevel),
+      levelsGainedThisRun: 0,
+      levelUpCoins: 0,
+      weekendActive: WeekendEvent.isActive(DateTime.now()),
+      piggyCoins: storage.piggyBank.coins,
+      piggyCapacity: storage.piggyBank.capacity,
+      starterOfferActive: StarterOffer.isActive(
+        startMillis: storage.starterOfferStart,
+        purchased: storage.starterPurchased,
+        now: DateTime.now(),
+      ),
+      starterHoursLeft: 0,
     );
   }
 
@@ -113,6 +279,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   void newGame({int? seed}) {
     _session = GameSession.newGame(seed: seed ?? _randomSeed());
     _resetRunState(daily: false);
+    _analytics.logEvent(AnalyticsEvent.gameStart, {'mode': 'endless'});
     _emit();
   }
 
@@ -120,6 +287,102 @@ class GameController extends StateNotifier<GameSnapshot> {
   void startDaily({DateTime? now}) {
     _session = GameSession.newGame(seed: DailyChallenge.seedForToday(now: now));
     _resetRunState(daily: true);
+    _analytics.logEvent(AnalyticsEvent.gameStart, {'mode': 'daily'});
+    _emit();
+  }
+
+  /// Shows an interstitial if the gate allows, then starts a new endless run.
+  /// This is the sanctioned "play again" path — never show ads elsewhere.
+  Future<void> newGameWithInterstitial() async {
+    if (_adGate.canShowInterstitial()) {
+      await _ads.showInterstitial();
+      _adGate.recordInterstitialShown();
+      _analytics.logEvent(AnalyticsEvent.interstitialShown);
+    }
+    newGame();
+  }
+
+  /// "Revive" reward: watch a rewarded ad to clear the board centre. Always
+  /// grants the reward when earned. Returns whether the player revived.
+  Future<bool> reviveWithAd() async {
+    final earned = await _ads.showRewarded();
+    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'revive'});
+    if (earned) {
+      _session.reviveClearCenter();
+      _emit();
+    }
+    return earned;
+  }
+
+  /// Doubles this run's earned coins by watching a rewarded ad. Once only.
+  Future<bool> doubleCoinsWithAd() async {
+    if (_coinsDoubled || _coinsEarnedThisRun <= 0) return false;
+    final earned = await _ads.showRewarded();
+    _analytics
+        .logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'double'});
+    if (earned) {
+      final bonus = _coinsEarnedThisRun;
+      await _storage.addCoins(bonus);
+      _coinsEarnedThisRun += bonus;
+      _coinsDoubled = true;
+      _emit();
+    }
+    return earned;
+  }
+
+  /// "Lucky Block" reward: watch a rewarded ad for a fresh set of pieces.
+  Future<bool> luckyBlock() async {
+    final earned = await _ads.showRewarded();
+    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'lucky'});
+    if (earned) {
+      _session.rerollTray();
+      _emit();
+    }
+    return earned;
+  }
+
+  /// Adds coins (e.g. from a consumable IAP) and refreshes the display.
+  Future<void> grantCoins(int amount) async {
+    if (amount <= 0) return;
+    await _storage.addCoins(amount);
+    _emit();
+  }
+
+  bool get _starterActive => StarterOffer.isActive(
+        startMillis: _storage.starterOfferStart,
+        purchased: _storage.starterPurchased,
+        now: DateTime.now(),
+      );
+
+  int get _starterHoursLeft {
+    final start = _storage.starterOfferStart;
+    if (start == null || !_starterActive) return 0;
+    return StarterOffer.remaining(startMillis: start, now: DateTime.now())
+        .inHours;
+  }
+
+  /// Marks the starter pack as purchased (coins + theme are delivered
+  /// separately by the purchase handler) and refreshes.
+  Future<void> markStarterPurchased() async {
+    await _storage.setStarterPurchased(true);
+    _emit();
+  }
+
+  /// Empties the piggy bank into the coin balance and raises its capacity
+  /// (called on the gridpop_piggy IAP delivery). Returns the payout.
+  Future<int> openPiggy() async {
+    final piggy = _storage.piggyBank;
+    final payout = piggy.coins;
+    if (payout > 0) await _storage.addCoins(payout);
+    await _storage.setPiggyBank(piggy.opened());
+    _emit();
+    return payout;
+  }
+
+  /// Marks ads removed (from the "remove ads" IAP) and refreshes.
+  Future<void> applyAdFree() async {
+    await _storage.setAdFree(true);
+    _adGate.adFree = true;
     _emit();
   }
 
@@ -128,6 +391,9 @@ class GameController extends StateNotifier<GameSnapshot> {
     _isDaily = daily;
     _finalized = false;
     _coinsEarnedThisRun = 0;
+    _coinsDoubled = false;
+    _levelsGainedThisRun = 0;
+    _levelUpCoins = 0;
     _completedMissions = const [];
     _streak = _storage.streak;
   }
@@ -144,6 +410,11 @@ class GameController extends StateNotifier<GameSnapshot> {
 
     _haptics.place();
     _audio.play(Sfx.place);
+    _lastGained = event.gained;
+    if (_session.lastClearedCells.isNotEmpty) {
+      _clearEventId += 1;
+      _clearedCells = _session.lastClearedCells;
+    }
     // combo > 0 means this move cleared at least one line (a no-clear move
     // resets combo to 0 in the scorer).
     if (event.combo > 0) {
@@ -152,9 +423,13 @@ class GameController extends StateNotifier<GameSnapshot> {
         _audio.play(Sfx.feverBurst);
       } else {
         _haptics.clear();
-        _audio.play(event.combo > 1 ? Sfx.combo : Sfx.clear);
+        // Combo sound escalates in pitch with the combo count (C.8).
+        final pitch = (1.0 + (event.combo - 1) * 0.06).clamp(1.0, 1.6);
+        _audio.play(event.combo > 1 ? Sfx.combo : Sfx.clear, pitch: pitch);
       }
     }
+
+    _advanceOnboarding();
 
     if (_session.isGameOver) {
       _finalizeRun();
@@ -162,10 +437,50 @@ class GameController extends StateNotifier<GameSnapshot> {
     _emit();
   }
 
-  /// Applies the "Revive" reward: clears the central 4x4 block.
-  void revive() {
-    _session.reviveClearCenter();
+  void _advanceOnboarding() {
+    if (!_onboarding || _isDaily) return;
+    _onboardingStep += 1;
+    if (_onboardingStep >= _onboardingHints.length) {
+      _onboarding = false;
+      _storage.setOnboardingDone(true);
+    }
+  }
+
+  /// Spends [cost] coins if affordable (e.g. unlocking a theme). Returns
+  /// whether the purchase went through, and refreshes the coin display.
+  Future<bool> trySpendCoins(int cost) async {
+    if (_storage.coins < cost) return false;
+    await _storage.addCoins(-cost);
     _emit();
+    return true;
+  }
+
+  /// Undo booster: reverts the last placement for [BoosterCosts.undo] coins.
+  Future<bool> tryUndo() async {
+    if (!_session.canUndo || _storage.coins < BoosterCosts.undo) return false;
+    await _storage.addCoins(-BoosterCosts.undo);
+    _session.undo();
+    _emit();
+    return true;
+  }
+
+  /// Swap booster: redraws the tray for [BoosterCosts.swap] coins.
+  Future<bool> trySwapPieces() async {
+    if (_session.isGameOver || _storage.coins < BoosterCosts.swap) return false;
+    await _storage.addCoins(-BoosterCosts.swap);
+    _session.rerollTray();
+    _emit();
+    return true;
+  }
+
+  /// Bomb booster: clears the 3x3 block around [origin] for
+  /// [BoosterCosts.bomb] coins.
+  Future<bool> tryBomb(Cell origin) async {
+    if (_session.isGameOver || _storage.coins < BoosterCosts.bomb) return false;
+    await _storage.addCoins(-BoosterCosts.bomb);
+    _session.bombAt(origin);
+    _emit();
+    return true;
   }
 
   /// Grants earned coins/missions/streak once, at the end of a run.
@@ -174,34 +489,85 @@ class GameController extends StateNotifier<GameSnapshot> {
     _audio.play(Sfx.gameOver);
     if (_finalized) return;
     _finalized = true;
+
+    _adGate.recordRoundComplete();
+    _analytics.logEvent(AnalyticsEvent.roundComplete, {
+      'score': _session.score,
+      'mode': _isDaily ? 'daily' : 'endless',
+    });
+    if (_adGate.roundsCompleted == 3) {
+      _analytics.logEvent(AnalyticsEvent.reachRound3);
+    }
+    if (_isDaily) _analytics.logEvent(AnalyticsEvent.dailyPlayed);
+
     _finalizeAsync();
   }
 
   Future<void> _finalizeAsync() async {
-    var earned = 0;
+    final now = DateTime.now();
+
+    await _storage.setLifetimeStats(
+      _storage.lifetimeStats.merge(_session.stats),
+    );
+
+    // Piggy bank fills with the run's cleared lines (C.5).
+    await _storage.setPiggyBank(
+      _storage.piggyBank.addLines(_session.linesCleared),
+    );
+
+    // Start the one-time starter offer after the 5th run (C.6).
+    if (StarterOffer.shouldStart(
+      gamesPlayed: _storage.lifetimeStats.games,
+      startMillis: _storage.starterOfferStart,
+      purchased: _storage.starterPurchased,
+    )) {
+      await _storage.setStarterOfferStart(now.millisecondsSinceEpoch);
+    }
+
+    // Mission + daily rewards are doubled during the weekend event (C.7);
+    // level-up coins are not.
+    var rewardCoins = 0;
 
     final completed = _missions.recordGame(_session.stats);
     for (final m in completed) {
-      earned += m.reward;
+      rewardCoins += m.reward;
     }
     _completedMissions = completed.map((m) => m.description).toList();
     await _storage.setMissionProgress(_missions.progress);
 
+    var dailyCompleted = false;
     if (_isDaily) {
       final result = DailyStreak.onDailyCompleted(
         lastDateKey: _storage.lastDailyDate,
         currentStreak: _storage.streak,
-        today: DateTime.now(),
+        today: now,
       );
       if (!result.alreadyPlayedToday) {
-        earned += result.coinsAwarded;
+        dailyCompleted = true;
+        rewardCoins += result.coinsAwarded;
         await _storage.setStreak(result.streak);
-        await _storage.setLastDailyDate(
-          DailyChallenge.dateKey(DateTime.now()),
-        );
+        await _storage.setLastDailyDate(DailyChallenge.dateKey(now));
       }
       _streak = result.streak;
     }
+
+    var earned = WeekendEvent.apply(rewardCoins, now);
+
+    // Player XP + level-ups (C.3).
+    final gainedXp = LevelSystem.xpForRun(
+      score: _session.score,
+      dailyCompleted: dailyCompleted,
+    );
+    final outcome = LevelSystem.applyXp(
+      level: _storage.playerLevel,
+      xpIntoLevel: _storage.xp,
+      gainedXp: gainedXp,
+    );
+    await _storage.setPlayerLevel(outcome.level);
+    await _storage.setXp(outcome.xpIntoLevel);
+    earned += outcome.coinsAwarded;
+    _levelsGainedThisRun = outcome.levelsGained.length;
+    _levelUpCoins = outcome.coinsAwarded;
 
     if (earned > 0) await _storage.addCoins(earned);
     _coinsEarnedThisRun = earned;
@@ -225,6 +591,63 @@ class GameController extends StateNotifier<GameSnapshot> {
       completedMissions: _completedMissions,
       isDaily: _isDaily,
       streak: _streak,
+      onboardingHint: _onboardingHint,
+      clearEventId: _clearEventId,
+      clearedCells: _clearedCells,
+      adFree: _storage.adFree,
+      canUndo: _session.canUndo,
+      coinsDoubled: _coinsDoubled,
+      streakRepairAvailable: _streakRepairAvailable(),
+      lastGained: _lastGained,
+      lastClearedLineCount: _session.lastClearedLineCount,
+      lastWasAllClear: _session.lastWasAllClear,
+      playerLevel: _storage.playerLevel,
+      xpIntoLevel: _storage.xp,
+      xpForNextLevel: LevelSystem.xpForNext(_storage.playerLevel),
+      levelsGainedThisRun: _levelsGainedThisRun,
+      levelUpCoins: _levelUpCoins,
+      weekendActive: WeekendEvent.isActive(DateTime.now()),
+      piggyCoins: _storage.piggyBank.coins,
+      piggyCapacity: _storage.piggyBank.capacity,
+      starterOfferActive: _starterActive,
+      starterHoursLeft: _starterHoursLeft,
     );
+  }
+
+  bool _streakRepairAvailable() => StreakRepair.isRepairable(
+        lastDateKey: _storage.lastDailyDate,
+        currentStreak: _storage.streak,
+        today: DateTime.now(),
+        lastRepairDateKey: _storage.lastStreakRepairDate,
+      );
+
+  Future<void> _applyStreakRepair() async {
+    final now = DateTime.now();
+    await _storage.setLastDailyDate(StreakRepair.repairedLastDateKey(now));
+    await _storage.setLastStreakRepairDate(DailyChallenge.dateKey(now));
+    _streak = _storage.streak;
+    _analytics.logEvent(AnalyticsEvent.dailyPlayed, {'action': 'streak_repair'});
+    _emit();
+  }
+
+  /// Repairs a broken streak for [StreakRepair.coinCost] coins.
+  Future<bool> repairStreakWithCoins() async {
+    if (!_streakRepairAvailable()) return false;
+    if (_storage.coins < StreakRepair.coinCost) return false;
+    await _storage.addCoins(-StreakRepair.coinCost);
+    await _applyStreakRepair();
+    return true;
+  }
+
+  /// Repairs a broken streak by watching a rewarded ad.
+  Future<bool> repairStreakWithAd() async {
+    if (!_streakRepairAvailable()) return false;
+    final earned = await _ads.showRewarded();
+    _analytics.logEvent(
+      AnalyticsEvent.rewardedWatched,
+      {'placement': 'streak_repair'},
+    );
+    if (earned) await _applyStreakRepair();
+    return earned;
   }
 }

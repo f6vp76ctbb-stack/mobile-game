@@ -44,3 +44,119 @@ ThemeData buildGridTheme() {
     ),
   );
 }
+
+/// A swappable board palette. Chrome text stays on [GridColors] (all themes
+/// use dark backgrounds, so light text is always readable).
+class GameTheme {
+  const GameTheme({
+    required this.background,
+    required this.boardBackground,
+    required this.emptyCell,
+    required this.placed,
+    required this.traySlots,
+    required this.validPreview,
+    required this.invalidPreview,
+    required this.fever,
+  });
+
+  final Color background;
+  final Color boardBackground;
+  final Color emptyCell;
+  final Color placed;
+  final List<Color> traySlots;
+  final Color validPreview;
+  final Color invalidPreview;
+  final Color fever;
+}
+
+/// A theme plus its store metadata.
+class ThemeEntry {
+  const ThemeEntry({
+    required this.id,
+    required this.name,
+    required this.cost,
+    required this.theme,
+  });
+
+  final String id;
+  final String name;
+
+  /// Coin cost to unlock (0 = free / always owned).
+  final int cost;
+  final GameTheme theme;
+}
+
+const String kDefaultThemeId = 'classic';
+
+/// All available themes (classic is free; others cost coins per Anhang A.3).
+const List<ThemeEntry> kThemeCatalog = [
+  ThemeEntry(
+    id: kDefaultThemeId,
+    name: 'Classic',
+    cost: 0,
+    theme: GameTheme(
+      background: Color(0xFF12122A),
+      boardBackground: Color(0xFF1B1B3A),
+      emptyCell: Color(0xFF23234A),
+      placed: Color(0xFF4ECDC4),
+      traySlots: [Color(0xFF7C6BFF), Color(0xFF4ECDC4), Color(0xFFFF6BAA)],
+      validPreview: Color(0x664ECDC4),
+      invalidPreview: Color(0x66FF5D5D),
+      fever: Color(0xFFFFB020),
+    ),
+  ),
+  ThemeEntry(
+    id: 'neon',
+    name: 'Neon',
+    cost: 500,
+    theme: GameTheme(
+      background: Color(0xFF07070C),
+      boardBackground: Color(0xFF12121C),
+      emptyCell: Color(0xFF1B1B28),
+      placed: Color(0xFF39FF14),
+      traySlots: [Color(0xFF00E5FF), Color(0xFF39FF14), Color(0xFFFF2D95)],
+      validPreview: Color(0x6639FF14),
+      invalidPreview: Color(0x66FF2D95),
+      fever: Color(0xFFFFE600),
+    ),
+  ),
+  ThemeEntry(
+    id: 'ocean',
+    name: 'Ocean',
+    cost: 500,
+    theme: GameTheme(
+      background: Color(0xFF06263A),
+      boardBackground: Color(0xFF0B3450),
+      emptyCell: Color(0xFF124765),
+      placed: Color(0xFF35D0BA),
+      traySlots: [Color(0xFF35D0BA), Color(0xFF4AA8FF), Color(0xFF8CE0FF)],
+      validPreview: Color(0x6635D0BA),
+      invalidPreview: Color(0x66FF6B6B),
+      fever: Color(0xFFFFC24B),
+    ),
+  ),
+  ThemeEntry(
+    id: 'wood',
+    name: 'Wood',
+    cost: 700,
+    theme: GameTheme(
+      background: Color(0xFF241811),
+      boardBackground: Color(0xFF33251A),
+      emptyCell: Color(0xFF43301F),
+      placed: Color(0xFFD9A05B),
+      traySlots: [Color(0xFFD9A05B), Color(0xFFB5763C), Color(0xFFE8C79A)],
+      validPreview: Color(0x66D9A05B),
+      invalidPreview: Color(0x66C1502F),
+      fever: Color(0xFFFFD27F),
+    ),
+  ),
+];
+
+GameTheme themeById(String id) {
+  return kThemeCatalog
+      .firstWhere(
+        (e) => e.id == id,
+        orElse: () => kThemeCatalog.first,
+      )
+      .theme;
+}

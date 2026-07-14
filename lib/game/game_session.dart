@@ -34,6 +34,32 @@ class GameSession {
   int _linesCleared = 0;
   int _maxCombo = 0;
   bool _gameOver = false;
+  List<Cell> _lastClearedCells = const [];
+  int _lastClearedLineCount = 0;
+  bool _lastWasAllClear = false;
+  _SessionMemento? _undoMemento; // pre-move state; null = nothing to undo
+
+  /// Cells removed by the most recent placement (for clear animations).
+  List<Cell> get lastClearedCells => _lastClearedCells;
+
+  /// Lines cleared by the most recent placement (for screen-shake threshold).
+  int get lastClearedLineCount => _lastClearedLineCount;
+
+  /// Whether the most recent placement emptied the whole board.
+  bool get lastWasAllClear => _lastWasAllClear;
+
+  /// Whether the last placement can be undone (one step, not across boosters).
+  bool get canUndo => _undoMemento != null;
+
+  _SessionMemento _snapshot() => _SessionMemento(
+        board: _board,
+        tray: List<Piece?>.of(_tray),
+        placements: _placements,
+        linesCleared: _linesCleared,
+        maxCombo: _maxCombo,
+        score: _scorer.save(),
+        lastClearedCells: _lastClearedCells,
+      );
 
   Board get board => _board;
   List<Piece?> get tray => List.unmodifiable(_tray);
@@ -70,6 +96,8 @@ class GameSession {
       return null;
     }
 
+    _undoMemento = _snapshot();
+
     final result = _board.place(piece, origin);
     _board = result.board;
     _tray[slot] = null;
@@ -82,6 +110,9 @@ class GameSession {
       isAllClear: result.isAllClear,
     );
     _linesCleared += result.clearedLines;
+    _lastClearedCells = result.clearedCells.toList(growable: false);
+    _lastClearedLineCount = result.clearedLines;
+    _lastWasAllClear = result.isAllClear;
     if (event.combo > _maxCombo) _maxCombo = event.combo;
 
     if (_tray.every((p) => p == null)) {
@@ -89,6 +120,47 @@ class GameSession {
     }
     _recomputeGameOver();
     return event;
+  }
+
+  /// Undoes the last placement (board, tray, score, combo, fever, stats).
+  /// Only one step, and not across a booster/revive. Returns whether it ran.
+  bool undo() {
+    final m = _undoMemento;
+    if (m == null) return false;
+    _board = m.board;
+    _tray = List<Piece?>.of(m.tray);
+    _placements = m.placements;
+    _linesCleared = m.linesCleared;
+    _maxCombo = m.maxCombo;
+    _scorer.restore(m.score);
+    _lastClearedCells = m.lastClearedCells;
+    _undoMemento = null;
+    _recomputeGameOver();
+    return true;
+  }
+
+  /// Board Bomb booster: clears the 3x3 block centred on [origin]. Gives no
+  /// points and does not touch the combo. Cannot be undone.
+  void bombAt(Cell origin) {
+    final rows = _board.toAscii().map((r) => r.split('')).toList();
+    for (var r = origin.row - 1; r <= origin.row + 1; r++) {
+      for (var c = origin.col - 1; c <= origin.col + 1; c++) {
+        if (r >= 0 && r < Board.size && c >= 0 && c < Board.size) {
+          rows[r][c] = '.';
+        }
+      }
+    }
+    _board = Board.fromAscii(rows.map((r) => r.join()).toList());
+    _undoMemento = null;
+    _recomputeGameOver();
+  }
+
+  /// Draws a fresh tray (used by "Lucky Block" and the swap booster) and
+  /// rechecks the game-over state. Cannot be undone.
+  void rerollTray() {
+    _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
+    _undoMemento = null;
+    _recomputeGameOver();
   }
 
   /// Empties the central 4x4 block (used by the "Revive" reward) and clears
@@ -101,6 +173,7 @@ class GameSession {
       }
     }
     _board = Board.fromAscii(rows.map((r) => r.join()).toList());
+    _undoMemento = null;
     _recomputeGameOver();
   }
 
@@ -109,6 +182,28 @@ class GameSession {
         .whereType<Piece>()
         .any((piece) => _board.hasAnyPlacement(piece));
   }
+}
+
+/// Captured pre-move state for one-step undo. [Board] and [ScoreMemento] are
+/// immutable; the tray list is copied when the memento is taken.
+class _SessionMemento {
+  _SessionMemento({
+    required this.board,
+    required this.tray,
+    required this.placements,
+    required this.linesCleared,
+    required this.maxCombo,
+    required this.score,
+    required this.lastClearedCells,
+  });
+
+  final Board board;
+  final List<Piece?> tray;
+  final int placements;
+  final int linesCleared;
+  final int maxCombo;
+  final ScoreMemento score;
+  final List<Cell> lastClearedCells;
 }
 
 /// Immutable summary of one run, consumed by missions and analytics.

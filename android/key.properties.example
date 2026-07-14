@@ -1,0 +1,11 @@
+# Copy to android/key.properties (git-ignored) and fill in your real values.
+# Generate the keystore first (see docs/RELEASE.md):
+#
+#   keytool -genkey -v -keystore ~/gridpop-upload.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+storePassword=CHANGE_ME
+keyPassword=CHANGE_ME
+keyAlias=upload
+# Absolute path to the .jks, or relative to the android/app directory.
+storeFile=/absolute/path/to/gridpop-upload.jks
