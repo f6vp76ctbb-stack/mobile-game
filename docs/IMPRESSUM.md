@@ -1,4 +1,4 @@
-# Impressum – GridPop
+# Impressum – Qubble
 
 > **Hinweis für den Betreiber:** Für eine gewerblich betriebene App ist in
 > Deutschland ein Impressum Pflicht (§ 5 DDG, ehem. § 5 TMG). Platzhalter `[…]`

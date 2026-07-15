@@ -14,12 +14,12 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 class IapProducts {
   const IapProducts._();
 
-  static const removeAds = 'gridpop_remove_ads';
-  static const coinsS = 'gridpop_coins_s';
-  static const coinsM = 'gridpop_coins_m';
-  static const coinsL = 'gridpop_coins_l';
-  static const piggy = 'gridpop_piggy';
-  static const starter = 'gridpop_starter';
+  static const removeAds = 'qubble_remove_ads';
+  static const coinsS = 'qubble_coins_s';
+  static const coinsM = 'qubble_coins_m';
+  static const coinsL = 'qubble_coins_l';
+  static const piggy = 'qubble_piggy';
+  static const starter = 'qubble_starter';
 
   static const all = <String>{
     removeAds,

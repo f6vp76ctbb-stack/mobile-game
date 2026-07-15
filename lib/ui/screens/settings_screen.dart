@@ -110,7 +110,7 @@ class SettingsScreen extends ConsumerWidget {
           const SizedBox(height: 24),
           const Center(
             child: Text(
-              'GridPop • Offline Block Puzzle',
+              'Qubble • Offline Block Puzzle',
               style: TextStyle(color: GridColors.textMuted, fontSize: 13),
             ),
           ),
@@ -127,7 +127,7 @@ class SettingsScreen extends ConsumerWidget {
         backgroundColor: GridColors.boardBackground,
         title: const Text('Datenschutz', style: _tileStyle),
         content: const Text(
-          'GridPop speichert deinen Fortschritt nur lokal auf dem Gerät — kein '
+          'Qubble speichert deinen Fortschritt nur lokal auf dem Gerät — kein '
           'Konto, kein eigener Server. Werbung (AdMob) und Analyse (Firebase) '
           'nutzen Drittdienste; vor der ersten Anzeige läuft der DSGVO-'
           'Einwilligungsdialog. Die vollständige Datenschutzerklärung wird vor '

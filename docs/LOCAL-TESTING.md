@@ -1,6 +1,6 @@
 # Lokal testen: PC + iPhone (Web-Version)
 
-GridPop ist eine **Flutter**-App, keine Expo/React-Native-App — Expo Go
+Qubble ist eine **Flutter**-App, keine Expo/React-Native-App — Expo Go
 funktioniert damit nicht. Diese Anleitung nutzt stattdessen Flutters
 **Web-Version**: läuft über deinen Windows-PC im lokalen WLAN, das iPhone
 öffnet sie im Safari-Browser. Kein Mac, kein Xcode nötig.

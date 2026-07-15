@@ -133,7 +133,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const Spacer(),
               const Text(
-                'GridPop',
+                'Qubble',
                 style: TextStyle(
                   color: GridColors.textPrimary,
                   fontSize: 52,

@@ -1,11 +1,11 @@
 {
-    "name": "GridPop",
-    "short_name": "GridPop",
+    "name": "Qubble",
+    "short_name": "Qubble",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#12122A",
     "theme_color": "#12122A",
-    "description": "GridPop - Block Puzzle",
+    "description": "Qubble - Block Puzzle",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
