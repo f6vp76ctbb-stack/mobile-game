@@ -30,6 +30,10 @@ final storageProvider = Provider<Storage>(
 
 final hapticsProvider = Provider<Haptics>((ref) => Haptics());
 final audioProvider = Provider<AudioService>((ref) => SilentAudio());
+
+/// Background music — silent by default (tests/dev); main overrides it with
+/// the audioplayers-backed loop.
+final musicProvider = Provider<MusicService>((ref) => SilentMusic());
 final analyticsProvider = Provider<Analytics>((ref) => NoopAnalytics());
 
 /// Ad service — [FakeAdService] by default (tests/dev); main overrides it with
@@ -84,6 +88,10 @@ class GameSnapshot {
     required this.piggyCapacity,
     required this.starterOfferActive,
     required this.starterHoursLeft,
+    required this.comboEndsAt,
+    required this.rotationCharges,
+    required this.rotationFree,
+    required this.runActive,
   });
 
   final Board board;
@@ -151,6 +159,20 @@ class GameSnapshot {
   /// One-time starter pack offer (active during its 48h window).
   final bool starterOfferActive;
   final int starterHoursLeft;
+
+  /// When the running combo expires (drives the countdown UI); null while no
+  /// combo is active.
+  final DateTime? comboEndsAt;
+
+  /// Remaining piece-rotation charges (refilled by clearing lines).
+  final int rotationCharges;
+
+  /// True while rotation is free (beginner mode, player level <= 2).
+  final bool rotationFree;
+
+  /// True while a run is in progress (pieces placed, not yet game over) — the
+  /// home screen shows "Weiterspielen" instead of restarting.
+  final bool runActive;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -183,10 +205,18 @@ class GameController extends StateNotifier<GameSnapshot> {
     this._analytics, {
     int? seed,
   })  : _missions = MissionEngine(progress: _storage.missionProgress),
-        _session = GameSession.newGame(seed: seed ?? _randomSeed()),
+        _session = GameSession.newGame(
+          seed: seed ?? _randomSeed(),
+          freeRotation: _storage.playerLevel <= 2,
+        ),
         super(_initialSnapshot(_storage)) {
     _emit();
   }
+
+  /// Rotation is free while the player is still learning (level <= 2) — in
+  /// endless mode only; the Daily Challenge is competitive, so everyone plays
+  /// with the same charge rules there.
+  bool get _freeRotationForEndless => _storage.playerLevel <= 2;
 
   final Storage _storage;
   final Haptics _haptics;
@@ -272,12 +302,19 @@ class GameController extends StateNotifier<GameSnapshot> {
         now: DateTime.now(),
       ),
       starterHoursLeft: 0,
+      comboEndsAt: null,
+      rotationCharges: GameSession.startRotationCharges,
+      rotationFree: storage.playerLevel <= 2,
+      runActive: false,
     );
   }
 
   /// Starts a fresh endless run.
   void newGame({int? seed}) {
-    _session = GameSession.newGame(seed: seed ?? _randomSeed());
+    _session = GameSession.newGame(
+      seed: seed ?? _randomSeed(),
+      freeRotation: _freeRotationForEndless,
+    );
     _resetRunState(daily: false);
     _analytics.logEvent(AnalyticsEvent.gameStart, {'mode': 'endless'});
     _emit();
@@ -290,6 +327,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _analytics.logEvent(AnalyticsEvent.gameStart, {'mode': 'daily'});
     _emit();
   }
+
 
   /// Shows an interstitial if the gate allows, then starts a new endless run.
   /// This is the sanctioned "play again" path — never show ads elsewhere.
@@ -403,6 +441,19 @@ class GameController extends StateNotifier<GameSnapshot> {
 
   bool canPlace(int slot, Cell origin) => _session.canPlace(slot, origin);
 
+  /// Rotates the tray piece in [slot] 90° clockwise (tap-to-rotate). Free in
+  /// beginner mode, otherwise consumes a rotation charge. Returns whether it
+  /// ran (false = no charges left).
+  bool rotateTray(int slot) {
+    final ok = _session.rotate(slot);
+    if (ok) {
+      _haptics.place();
+      _audio.play(Sfx.place, pitch: 1.3);
+      _emit();
+    }
+    return ok;
+  }
+
   /// Attempts to place tray[slot] at [origin]. No-op if illegal.
   void place(int slot, Cell origin) {
     final event = _session.place(slot, origin);
@@ -415,9 +466,9 @@ class GameController extends StateNotifier<GameSnapshot> {
       _clearEventId += 1;
       _clearedCells = _session.lastClearedCells;
     }
-    // combo > 0 means this move cleared at least one line (a no-clear move
-    // resets combo to 0 in the scorer).
-    if (event.combo > 0) {
+    // The combo now survives non-clearing moves (time-based), so gate the
+    // clear feedback on this move actually having cleared lines.
+    if (_session.lastClearedLineCount > 0) {
       if (event.feverBurst) {
         _haptics.feverBurst();
         _audio.play(Sfx.feverBurst);
@@ -478,7 +529,13 @@ class GameController extends StateNotifier<GameSnapshot> {
   Future<bool> tryBomb(Cell origin) async {
     if (_session.isGameOver || _storage.coins < BoosterCosts.bomb) return false;
     await _storage.addCoins(-BoosterCosts.bomb);
-    _session.bombAt(origin);
+    final hit = _session.bombAt(origin);
+    // Feed the hit cells into the clear-burst pipeline so the bomb visibly
+    // detonates (particles + sound) even when it only cleared a few blocks.
+    _clearEventId += 1;
+    _clearedCells = hit;
+    _haptics.clear();
+    _audio.play(Sfx.clear, pitch: 0.8);
     _emit();
     return true;
   }
@@ -611,6 +668,10 @@ class GameController extends StateNotifier<GameSnapshot> {
       piggyCapacity: _storage.piggyBank.capacity,
       starterOfferActive: _starterActive,
       starterHoursLeft: _starterHoursLeft,
+      comboEndsAt: _session.comboExpiresAt,
+      rotationCharges: _session.rotationCharges,
+      rotationFree: _session.freeRotation,
+      runActive: _session.placements > 0 && !_session.isGameOver,
     );
   }
 

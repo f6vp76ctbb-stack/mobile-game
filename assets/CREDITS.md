@@ -12,6 +12,7 @@ Neue Assets hier mit Quelle und Lizenz eintragen.
 | `combo.wav` | Selbst synthetisiert | Eigenwerk / CC0 |
 | `fever.wav` | Selbst synthetisiert | Eigenwerk / CC0 |
 | `gameover.wav` | Selbst synthetisiert | Eigenwerk / CC0 |
+| `music.wav` | Selbst synthetisiert (`scripts/gen_music.py`, Ambient-Loop aus Sinustönen) | Eigenwerk / CC0 |
 
 Die WAV-Dateien wurden prozedural erzeugt (kurze, mono, 22050 Hz, 16-bit PCM
 mit Attack/Release-Hüllkurve). Kein Fremdmaterial, damit keine Lizenzfragen.

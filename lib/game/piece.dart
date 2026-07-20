@@ -58,6 +58,15 @@ class Piece {
 
   int get size => cells.length;
 
+  /// This piece rotated 90° clockwise (normalized back to origin). The id is
+  /// kept — a rotated piece is the same catalog entry in a different
+  /// orientation (only tray pieces are ever rotated, via the rotate feature).
+  Piece rotatedCw() => Piece(
+        id,
+        [for (final c in cells) Cell(c.col, height - 1 - c.row)],
+        weight,
+      );
+
   /// Shifts each cell so the top-left of the bounding box sits at (0, 0),
   /// then sorts for a deterministic ordering.
   static List<Cell> _normalize(List<Cell> cells) {

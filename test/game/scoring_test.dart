@@ -76,7 +76,81 @@ void main() {
       expect(e2.gained, 120);
     });
 
-    test('a move without a clear breaks the combo', () {
+    test('a non-clearing move inside the window keeps the combo alive', () {
+      final s = ScoreKeeper(feverPerLine: 0);
+      final t0 = DateTime(2026, 1, 1, 12);
+      s.applyPlacement(
+        placedCells: 0,
+        clearedLines: 1,
+        clearedCells: 8,
+        isAllClear: false,
+        now: t0,
+      );
+      final held = s.applyPlacement(
+        placedCells: 3,
+        clearedLines: 0,
+        clearedCells: 0,
+        isAllClear: false,
+        now: t0.add(const Duration(seconds: 3)),
+      );
+      expect(held.combo, 1, reason: 'time-based combo survives filler moves');
+      final chained = s.applyPlacement(
+        placedCells: 0,
+        clearedLines: 1,
+        clearedCells: 8,
+        isAllClear: false,
+        now: t0.add(const Duration(seconds: 6)),
+      );
+      expect(chained.combo, 2);
+    });
+
+    test('the combo expires once the window has passed', () {
+      final s = ScoreKeeper(feverPerLine: 0);
+      final t0 = DateTime(2026, 1, 1, 12);
+      s.applyPlacement(
+        placedCells: 0,
+        clearedLines: 1,
+        clearedCells: 8,
+        isAllClear: false,
+        now: t0,
+      );
+      expect(s.comboExpiresAt, t0.add(const Duration(seconds: 10)));
+
+      // A non-clearing move after the window drops the combo entirely.
+      final lapsed = s.applyPlacement(
+        placedCells: 3,
+        clearedLines: 0,
+        clearedCells: 0,
+        isAllClear: false,
+        now: t0.add(const Duration(seconds: 11)),
+      );
+      expect(lapsed.combo, 0);
+      expect(s.comboExpiresAt, isNull);
+    });
+
+    test('a clear after the window restarts the streak at 1', () {
+      final s = ScoreKeeper(feverPerLine: 0);
+      final t0 = DateTime(2026, 1, 1, 12);
+      s.applyPlacement(
+        placedCells: 0,
+        clearedLines: 1,
+        clearedCells: 8,
+        isAllClear: false,
+        now: t0,
+      );
+      final late = s.applyPlacement(
+        placedCells: 0,
+        clearedLines: 1,
+        clearedCells: 8,
+        isAllClear: false,
+        now: t0.add(const Duration(seconds: 20)),
+      );
+      expect(late.combo, 1);
+      // Base points, no combo bonus: 8*10 = 80.
+      expect(late.gained, 80);
+    });
+
+    test('without a clock the combo never expires (legacy behaviour)', () {
       final s = ScoreKeeper(feverPerLine: 0);
       s.applyPlacement(
         placedCells: 0,
@@ -84,13 +158,14 @@ void main() {
         clearedCells: 8,
         isAllClear: false,
       );
-      final broken = s.applyPlacement(
-        placedCells: 3,
-        clearedLines: 0,
-        clearedCells: 0,
+      final e2 = s.applyPlacement(
+        placedCells: 0,
+        clearedLines: 1,
+        clearedCells: 8,
         isAllClear: false,
       );
-      expect(broken.combo, 0);
+      expect(e2.combo, 2);
+      expect(s.comboExpiresAt, isNull);
     });
   });
 

@@ -8,29 +8,57 @@ import 'piece.dart';
 import 'scoring.dart';
 
 class GameSession {
-  GameSession._(this.seed, this._generator, this._scorer, this._board) {
+  GameSession._(
+    this.seed,
+    this._generator,
+    this._scorer,
+    this._board,
+    this._clock,
+    this.freeRotation,
+  ) {
     _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
     _recomputeGameOver();
   }
 
   /// Starts a fresh run for the given [seed] (date seed for the Daily
   /// Challenge, or a random seed for endless).
-  factory GameSession.newGame({required int seed}) {
+  ///
+  /// [clock] feeds the combo window (injectable for tests). With
+  /// [freeRotation] tray pieces rotate without consuming charges (used while
+  /// the player is still learning the game).
+  factory GameSession.newGame({
+    required int seed,
+    DateTime Function()? clock,
+    bool freeRotation = false,
+  }) {
     return GameSession._(
       seed,
       PieceGenerator(seed: seed),
       ScoreKeeper(),
       Board.empty(),
+      clock ?? DateTime.now,
+      freeRotation,
     );
   }
+
+  /// Maximum stored rotation charges; every clearing move refills one.
+  static const int maxRotationCharges = 3;
+
+  /// Charges a fresh run starts with.
+  static const int startRotationCharges = 2;
 
   final int seed;
   final PieceGenerator _generator;
   final ScoreKeeper _scorer;
+  final DateTime Function() _clock;
+
+  /// True while rotation is free (beginner mode) — charges are not consumed.
+  final bool freeRotation;
 
   Board _board;
   late List<Piece?> _tray; // 3 slots; null once placed
   int _placements = 0;
+  int _rotationCharges = startRotationCharges;
   int _linesCleared = 0;
   int _maxCombo = 0;
   bool _gameOver = false;
@@ -59,6 +87,7 @@ class GameSession {
         maxCombo: _maxCombo,
         score: _scorer.save(),
         lastClearedCells: _lastClearedCells,
+        rotationCharges: _rotationCharges,
       );
 
   Board get board => _board;
@@ -68,6 +97,29 @@ class GameSession {
   double get feverLevel => _scorer.feverLevel;
   int get placements => _placements;
   bool get isGameOver => _gameOver;
+
+  /// When the running combo expires (UI countdown), or null without a combo.
+  DateTime? get comboExpiresAt => _scorer.comboExpiresAt;
+
+  /// Remaining rotation charges (meaningless while [freeRotation] is true).
+  int get rotationCharges => _rotationCharges;
+
+  /// Whether the piece in [slot] can currently be rotated.
+  bool canRotate(int slot) {
+    if (_gameOver || _tray[slot] == null) return false;
+    return freeRotation || _rotationCharges > 0;
+  }
+
+  /// Rotates the piece in [slot] 90° clockwise, consuming one charge (unless
+  /// [freeRotation]). Rotation can rescue a stuck board, so the game-over
+  /// state is recomputed. Returns whether it ran.
+  bool rotate(int slot) {
+    if (!canRotate(slot)) return false;
+    _tray[slot] = _tray[slot]!.rotatedCw();
+    if (!freeRotation) _rotationCharges -= 1;
+    _recomputeGameOver();
+    return true;
+  }
 
   /// Per-run statistics (basis for missions and analytics).
   int get linesCleared => _linesCleared;
@@ -108,7 +160,11 @@ class GameSession {
       clearedLines: result.clearedLines,
       clearedCells: result.clearedCells.length,
       isAllClear: result.isAllClear,
+      now: _clock(),
     );
+    if (result.clearedLines > 0 && _rotationCharges < maxRotationCharges) {
+      _rotationCharges += 1; // clears recharge the rotate booster
+    }
     _linesCleared += result.clearedLines;
     _lastClearedCells = result.clearedCells.toList(growable: false);
     _lastClearedLineCount = result.clearedLines;
@@ -134,25 +190,30 @@ class GameSession {
     _maxCombo = m.maxCombo;
     _scorer.restore(m.score);
     _lastClearedCells = m.lastClearedCells;
+    _rotationCharges = m.rotationCharges;
     _undoMemento = null;
     _recomputeGameOver();
     return true;
   }
 
   /// Board Bomb booster: clears the 3x3 block centred on [origin]. Gives no
-  /// points and does not touch the combo. Cannot be undone.
-  void bombAt(Cell origin) {
+  /// points and does not touch the combo. Cannot be undone. Returns the
+  /// in-bounds cells the bomb hit (for the UI's particle burst).
+  List<Cell> bombAt(Cell origin) {
+    final hit = <Cell>[];
     final rows = _board.toAscii().map((r) => r.split('')).toList();
     for (var r = origin.row - 1; r <= origin.row + 1; r++) {
       for (var c = origin.col - 1; c <= origin.col + 1; c++) {
         if (r >= 0 && r < Board.size && c >= 0 && c < Board.size) {
           rows[r][c] = '.';
+          hit.add(Cell(r, c));
         }
       }
     }
     _board = Board.fromAscii(rows.map((r) => r.join()).toList());
     _undoMemento = null;
     _recomputeGameOver();
+    return hit;
   }
 
   /// Draws a fresh tray (used by "Lucky Block" and the swap booster) and
@@ -195,6 +256,7 @@ class _SessionMemento {
     required this.maxCombo,
     required this.score,
     required this.lastClearedCells,
+    required this.rotationCharges,
   });
 
   final Board board;
@@ -204,6 +266,7 @@ class _SessionMemento {
   final int maxCombo;
   final ScoreMemento score;
   final List<Cell> lastClearedCells;
+  final int rotationCharges;
 }
 
 /// Immutable summary of one run, consumed by missions and analytics.

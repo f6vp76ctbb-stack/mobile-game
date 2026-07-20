@@ -21,6 +21,7 @@ Future<void> main() async {
       overrides: [
         storageProvider.overrideWithValue(storage),
         audioProvider.overrideWithValue(AudioplayersAudio()),
+        musicProvider.overrideWithValue(AudioplayersMusic()),
         adServiceProvider.overrideWithValue(GoogleAdService()),
         iapServiceProvider.overrideWithValue(StoreIap()),
         // Firebase backend lands once config files exist; DebugAnalytics prints

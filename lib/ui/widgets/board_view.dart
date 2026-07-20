@@ -1,4 +1,9 @@
-/// The interactive 8x8 board: renders cells and accepts dragged tray pieces.
+/// The 8x8 board: renders cells, placed blocks and the live drag preview.
+///
+/// The [DragTarget] that accepts tray pieces lives in the game screen and
+/// covers board *and* tray area — with the finger-lift, the finger is below
+/// the hovering piece, so drops for the bottom rows land outside the board.
+/// The preview state is shared via [dragPreviewProvider].
 library;
 
 import 'package:flutter/material.dart';
@@ -7,77 +12,95 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/block_skin.dart';
 import '../../game/board.dart';
 import '../../game/piece.dart';
-import '../state/game_controller.dart';
 import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
 import 'cell_style.dart';
 
-/// How far above the finger the piece is anchored while dragging (in cells).
+/// How far above the finger the piece is anchored while dragging (in cells),
+/// so the finger never covers the piece.
 const double kFingerLiftCells = 1.2;
 
-class BoardView extends ConsumerStatefulWidget {
-  const BoardView({super.key, required this.size, this.onCellTap});
+/// How far (in cells) outside the board a drag may sit and still snap to the
+/// nearest edge cell. Beyond this, the drag counts as "not over the board".
+const double _kSnapSlackCells = 0.75;
+
+/// Live drag state shared between the game screen's [DragTarget] and the
+/// board painter.
+@immutable
+class DragPreview {
+  const DragPreview({
+    required this.piece,
+    required this.origin,
+    required this.valid,
+  });
+
+  final Piece piece;
+  final Cell origin;
+  final bool valid;
+}
+
+final dragPreviewProvider = StateProvider<DragPreview?>((ref) => null);
+
+/// Maps the drag feedback's top-left (global) to a board origin cell.
+///
+/// [feedbackTopLeft] is `DragTargetDetails.offset`: the top-left of the
+/// feedback widget, which renders the piece at board scale — so the visible
+/// piece position IS the placement position (no finger math needed here; the
+/// finger-lift is applied by the drag anchor in the tray).
+/// Returns null when the piece is too far from the board to snap.
+Cell? boardOriginForDrag({
+  required GlobalKey boardKey,
+  required Piece piece,
+  required Offset feedbackTopLeft,
+}) {
+  final box = boardKey.currentContext?.findRenderObject() as RenderBox?;
+  if (box == null || !box.hasSize) return null;
+  final cell = box.size.width / Board.size;
+  if (cell <= 0) return null;
+
+  final local = box.globalToLocal(feedbackTopLeft);
+  final rawCol = local.dx / cell;
+  final rawRow = local.dy / cell;
+
+  // Snap only when the piece is on the board or within the slack margin.
+  if (rawCol < -_kSnapSlackCells ||
+      rawCol > Board.size - piece.width + _kSnapSlackCells ||
+      rawRow < -_kSnapSlackCells ||
+      rawRow > Board.size - piece.height + _kSnapSlackCells) {
+    return null;
+  }
+
+  final col = rawCol.round().clamp(0, Board.size - piece.width);
+  final row = rawRow.round().clamp(0, Board.size - piece.height);
+  return Cell(row, col);
+}
+
+class BoardView extends ConsumerWidget {
+  const BoardView({
+    super.key,
+    required this.size,
+    required this.board,
+    required this.boardKey,
+    this.onCellTap,
+  });
 
   /// Side length of the (square) board in logical pixels.
   final double size;
+
+  final Board board;
+
+  /// Attached to the board container so the game screen can map global drag
+  /// positions into board coordinates.
+  final GlobalKey boardKey;
 
   /// When set (e.g. bomb-targeting mode), a tap on the board reports the tapped
   /// cell instead of dragging. Null = normal play.
   final void Function(Cell cell)? onCellTap;
 
-  @override
-  ConsumerState<BoardView> createState() => _BoardViewState();
-}
-
-class _BoardViewState extends ConsumerState<BoardView> {
-  final GlobalKey _boardKey = GlobalKey();
-  Piece? _previewPiece;
-  Cell? _previewOrigin;
-  bool _previewValid = false;
-
-  double get _cell => widget.size / Board.size;
-
-  /// Maps a global pointer position + dragged slot to a candidate origin.
-  Cell? _originFor(int slot, Offset globalPos) {
-    final piece = ref.read(gameControllerProvider).tray[slot];
-    if (piece == null) return null;
-    final box = _boardKey.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return null;
-
-    final local = box.globalToLocal(globalPos);
-    final liftedY = local.dy - kFingerLiftCells * _cell;
-    final topLeftX = local.dx - piece.width * _cell / 2;
-    final topLeftY = liftedY - piece.height * _cell / 2;
-
-    var col = (topLeftX / _cell).round();
-    var row = (topLeftY / _cell).round();
-    col = col.clamp(0, Board.size - piece.width);
-    row = row.clamp(0, Board.size - piece.height);
-    return Cell(row, col);
-  }
-
-  void _updatePreview(int slot, Offset globalPos) {
-    final origin = _originFor(slot, globalPos);
-    final piece = ref.read(gameControllerProvider).tray[slot];
-    final valid = origin != null &&
-        ref.read(gameControllerProvider.notifier).canPlace(slot, origin);
-    setState(() {
-      _previewPiece = piece;
-      _previewOrigin = origin;
-      _previewValid = valid;
-    });
-  }
-
-  void _clearPreview() {
-    setState(() {
-      _previewPiece = null;
-      _previewOrigin = null;
-      _previewValid = false;
-    });
-  }
+  double get _cell => size / Board.size;
 
   void _handleTap(Offset localPos) {
-    final onCellTap = widget.onCellTap;
+    final onCellTap = this.onCellTap;
     if (onCellTap == null) return;
     final row = (localPos.dy / _cell).floor().clamp(0, Board.size - 1);
     final col = (localPos.dx / _cell).floor().clamp(0, Board.size - 1);
@@ -85,30 +108,28 @@ class _BoardViewState extends ConsumerState<BoardView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final board = ref.watch(gameControllerProvider).board;
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = ref.watch(activeThemeProvider);
     final skin = ref.watch(activeSkinProvider);
-    final bombMode = widget.onCellTap != null;
+    final preview = ref.watch(dragPreviewProvider);
+    final bombMode = onCellTap != null;
 
     final boardBox = Container(
-      key: _boardKey,
-      width: widget.size,
-      height: widget.size,
+      key: boardKey,
+      width: size,
+      height: size,
       decoration: BoxDecoration(
         color: theme.boardBackground,
         borderRadius: BorderRadius.circular(_cell * 0.25),
-        border: bombMode
-            ? Border.all(color: theme.fever, width: 2)
-            : null,
+        border: bombMode ? Border.all(color: theme.fever, width: 2) : null,
       ),
       child: CustomPaint(
         painter: _BoardPainter(
           board: board,
           cell: _cell,
-          previewPiece: _previewPiece,
-          previewOrigin: _previewOrigin,
-          previewValid: _previewValid,
+          previewPiece: preview?.piece,
+          previewOrigin: preview?.origin,
+          previewValid: preview?.valid ?? false,
           emptyColor: theme.emptyCell,
           placedColor: theme.placed,
           validColor: theme.validPreview,
@@ -126,20 +147,7 @@ class _BoardViewState extends ConsumerState<BoardView> {
         child: boardBox,
       );
     }
-
-    return DragTarget<int>(
-      onMove: (details) => _updatePreview(details.data, details.offset),
-      onLeave: (_) => _clearPreview(),
-      onAcceptWithDetails: (details) {
-        final slot = details.data;
-        final origin = _originFor(slot, details.offset);
-        if (origin != null) {
-          ref.read(gameControllerProvider.notifier).place(slot, origin);
-        }
-        _clearPreview();
-      },
-      builder: (context, _, _) => boardBox,
-    );
+    return boardBox;
   }
 }
 

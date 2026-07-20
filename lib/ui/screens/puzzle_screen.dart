@@ -10,7 +10,7 @@ import '../state/game_controller.dart';
 import '../state/puzzle_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
-import '../widgets/board_view.dart' show kFingerLiftCells;
+import '../widgets/board_view.dart' show boardOriginForDrag, kFingerLiftCells;
 import '../widgets/piece_view.dart';
 
 class PuzzleScreen extends ConsumerStatefulWidget {
@@ -23,12 +23,26 @@ class PuzzleScreen extends ConsumerStatefulWidget {
 }
 
 class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
+  final GlobalKey _boardKey = GlobalKey();
+  Cell? _preview;
+  bool _valid = false;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(puzzleControllerProvider.notifier).loadLevel(widget.level);
     });
+  }
+
+  Cell? _originFor(Offset feedbackTopLeft) {
+    final piece = ref.read(puzzleControllerProvider).currentPiece;
+    if (piece == null) return null;
+    return boardOriginForDrag(
+      boardKey: _boardKey,
+      piece: piece,
+      feedbackTopLeft: feedbackTopLeft,
+    );
   }
 
   @override
@@ -68,13 +82,38 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
                       const gap = 16.0;
                       final boardSize = (constraints.maxWidth - 24)
                           .clamp(0.0, constraints.maxHeight - trayHeight - gap);
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _PuzzleBoard(size: boardSize),
-                          const SizedBox(height: gap),
-                          _PuzzleTray(boardCell: boardSize / 8, height: trayHeight),
-                        ],
+                      // Like the main game, the DragTarget spans board AND
+                      // tray so the bottom rows stay reachable despite the
+                      // finger-lift.
+                      return DragTarget<int>(
+                        onMove: (d) {
+                          final origin = _originFor(d.offset);
+                          setState(() {
+                            _preview = origin;
+                            _valid =
+                                origin != null && controller.canPlace(origin);
+                          });
+                        },
+                        onLeave: (_) => setState(() => _preview = null),
+                        onAcceptWithDetails: (d) {
+                          final origin = _originFor(d.offset);
+                          if (origin != null) controller.place(origin);
+                          setState(() => _preview = null);
+                        },
+                        builder: (context, _, _) => Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _PuzzleBoard(
+                              size: boardSize,
+                              boardKey: _boardKey,
+                              preview: _preview,
+                              valid: _valid,
+                            ),
+                            const SizedBox(height: gap),
+                            _PuzzleTray(
+                                boardCell: boardSize / 8, height: trayHeight),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -90,76 +129,45 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
   }
 }
 
-class _PuzzleBoard extends ConsumerStatefulWidget {
-  const _PuzzleBoard({required this.size});
+class _PuzzleBoard extends ConsumerWidget {
+  const _PuzzleBoard({
+    required this.size,
+    required this.boardKey,
+    required this.preview,
+    required this.valid,
+  });
 
   final double size;
+  final GlobalKey boardKey;
+  final Cell? preview;
+  final bool valid;
+
+  double get _cell => size / Board.size;
 
   @override
-  ConsumerState<_PuzzleBoard> createState() => _PuzzleBoardState();
-}
-
-class _PuzzleBoardState extends ConsumerState<_PuzzleBoard> {
-  final GlobalKey _key = GlobalKey();
-  Cell? _preview;
-  bool _valid = false;
-
-  double get _cell => widget.size / Board.size;
-
-  Cell? _originFor(Offset globalPos) {
-    final piece = ref.read(puzzleControllerProvider).currentPiece;
-    if (piece == null) return null;
-    final box = _key.currentContext?.findRenderObject() as RenderBox?;
-    if (box == null) return null;
-    final local = box.globalToLocal(globalPos);
-    final topLeftX = local.dx - piece.width * _cell / 2;
-    final topLeftY =
-        (local.dy - kFingerLiftCells * _cell) - piece.height * _cell / 2;
-    final col = (topLeftX / _cell).round().clamp(0, Board.size - piece.width);
-    final row = (topLeftY / _cell).round().clamp(0, Board.size - piece.height);
-    return Cell(row, col);
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(puzzleControllerProvider);
     final theme = ref.watch(activeThemeProvider);
-    final controller = ref.read(puzzleControllerProvider.notifier);
 
-    return DragTarget<int>(
-      onMove: (d) {
-        final origin = _originFor(d.offset);
-        setState(() {
-          _preview = origin;
-          _valid = origin != null && controller.canPlace(origin);
-        });
-      },
-      onLeave: (_) => setState(() => _preview = null),
-      onAcceptWithDetails: (d) {
-        final origin = _originFor(d.offset);
-        if (origin != null) controller.place(origin);
-        setState(() => _preview = null);
-      },
-      builder: (context, _, _) => Container(
-        key: _key,
-        width: widget.size,
-        height: widget.size,
-        decoration: BoxDecoration(
-          color: theme.boardBackground,
-          borderRadius: BorderRadius.circular(_cell * 0.25),
-        ),
-        child: CustomPaint(
-          painter: _PuzzlePainter(
-            board: state.board,
-            cell: _cell,
-            piece: state.currentPiece,
-            origin: _preview,
-            valid: _valid,
-            filled: theme.placed,
-            empty: theme.emptyCell,
-            validColor: theme.validPreview,
-            invalidColor: theme.invalidPreview,
-          ),
+    return Container(
+      key: boardKey,
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: theme.boardBackground,
+        borderRadius: BorderRadius.circular(_cell * 0.25),
+      ),
+      child: CustomPaint(
+        painter: _PuzzlePainter(
+          board: state.board,
+          cell: _cell,
+          piece: state.currentPiece,
+          origin: preview,
+          valid: valid,
+          filled: theme.placed,
+          empty: theme.emptyCell,
+          validColor: theme.validPreview,
+          invalidColor: theme.invalidPreview,
         ),
       ),
     );

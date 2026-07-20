@@ -25,22 +25,28 @@ class _ClearBurstState extends ConsumerState<ClearBurst>
   final List<_Burst> _bursts = [];
   final Random _rng = Random();
 
-  void _spawn(List<Offset> centers, Color color) {
+  void _spawn(List<Offset> centers, Color color, {int lineCount = 1}) {
+    // More lines → a much bigger celebration: more, faster, longer-lived
+    // particles per cleared cell.
+    final intensity = 1.0 + (lineCount - 1) * 0.7;
+    final perCell = (7 * intensity).round();
     final particles = <_Particle>[];
     for (final c in centers) {
-      final count = 3 + _rng.nextInt(2);
-      for (var i = 0; i < count; i++) {
+      for (var i = 0; i < perCell; i++) {
         final angle = _rng.nextDouble() * 2 * pi;
-        final speed = widget.cellSize * (0.8 + _rng.nextDouble() * 1.8);
+        final speed =
+            widget.cellSize * (1.0 + _rng.nextDouble() * 2.6) * intensity;
         particles.add(_Particle(
           origin: c,
           velocity: Offset(cos(angle), sin(angle)) * speed,
+          sizeFactor: 0.10 + _rng.nextDouble() * 0.16,
+          sparkle: _rng.nextDouble() < 0.25,
         ));
       }
     }
     final controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 550),
+      duration: Duration(milliseconds: (650 * intensity).clamp(650, 1100).round()),
     );
     final burst = _Burst(controller: controller, particles: particles, color: color);
     controller.addStatusListener((status) {
@@ -75,6 +81,7 @@ class _ClearBurstState extends ConsumerState<ClearBurst>
         _spawn(
           [for (final c in next.clearedCells) _cellCenter(c.row, c.col)],
           color,
+          lineCount: next.lastClearedLineCount.clamp(1, 5),
         );
       }
     });
@@ -115,10 +122,21 @@ class _Burst {
 }
 
 class _Particle {
-  _Particle({required this.origin, required this.velocity});
+  _Particle({
+    required this.origin,
+    required this.velocity,
+    this.sizeFactor = 0.18,
+    this.sparkle = false,
+  });
 
   final Offset origin;
   final Offset velocity;
+
+  /// Particle radius as a fraction of the cell size (varied for depth).
+  final double sizeFactor;
+
+  /// Sparkles render white-hot instead of theme-colored.
+  final bool sparkle;
 }
 
 class _ParticlePainter extends CustomPainter {
@@ -135,12 +153,18 @@ class _ParticlePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final eased = Curves.easeOut.transform(t);
-    final paint = Paint()..color = burst.color.withValues(alpha: 1.0 - t);
-    final radius = cellSize * 0.18 * (1.0 - t);
-    if (radius <= 0) return;
+    final alpha = 1.0 - t;
+    if (alpha <= 0) return;
+    final paint = Paint()..color = burst.color.withValues(alpha: alpha);
+    final sparklePaint = Paint()
+      ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha);
+    // Light gravity so the burst falls like confetti instead of just fading.
+    final gravity = cellSize * 1.6 * t * t;
     for (final p in burst.particles) {
-      final pos = p.origin + p.velocity * eased;
-      canvas.drawCircle(pos, radius, paint);
+      final radius = cellSize * p.sizeFactor * (1.0 - t);
+      if (radius <= 0) continue;
+      final pos = p.origin + p.velocity * eased + Offset(0, gravity);
+      canvas.drawCircle(pos, radius, p.sparkle ? sparklePaint : paint);
     }
   }
 
