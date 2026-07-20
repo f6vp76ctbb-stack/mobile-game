@@ -10,14 +10,45 @@ import '../state/settings_controller.dart';
 import '../theme.dart';
 import 'shop_screen.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  /// Hidden admin/test mode: unlocked by tapping the footer 7 times.
+  static const int _adminTapTarget = 7;
+  int _footerTaps = 0;
+  bool _adminUnlocked = false;
+
+  void _onFooterTap() {
+    if (_adminUnlocked) return;
+    setState(() => _footerTaps += 1);
+    if (_footerTaps >= _adminTapTarget) {
+      setState(() => _adminUnlocked = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('🔧 Admin-Modus aktiviert')),
+      );
+    } else if (_footerTaps >= _adminTapTarget - 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          duration: const Duration(milliseconds: 600),
+          content: Text(
+            'Noch ${_adminTapTarget - _footerTaps}× tippen für Admin-Modus',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final settings = ref.watch(settingsControllerProvider);
     final controller = ref.read(settingsControllerProvider.notifier);
-    final adFree = ref.watch(gameControllerProvider).adFree;
+    final snap = ref.watch(gameControllerProvider);
+    final adFree = snap.adFree;
     final iap = ref.read(iapServiceProvider);
 
     return Scaffold(
@@ -113,11 +144,49 @@ class SettingsScreen extends ConsumerWidget {
             title: const Text('Impressum', style: _tileStyle),
             onTap: () => _showImpressum(context),
           ),
+          if (_adminUnlocked) ...[
+            const _SectionLabel('Admin (Test)'),
+            ListTile(
+              leading: const Icon(Icons.paid_outlined,
+                  color: GridColors.textPrimary),
+              title: Text('🪙 ${snap.coins} Münzen', style: _tileStyle),
+              subtitle: const Text(
+                'Nur zum Testen — nicht in Release-Screenshots zeigen',
+                style: TextStyle(color: GridColors.textMuted, fontSize: 12),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add, color: GridColors.placed),
+              title: const Text('+1.000 Münzen', style: _tileStyle),
+              onTap: () =>
+                  ref.read(gameControllerProvider.notifier).grantCoins(1000),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add, color: GridColors.placed),
+              title: const Text('+10.000 Münzen', style: _tileStyle),
+              onTap: () =>
+                  ref.read(gameControllerProvider.notifier).grantCoins(10000),
+            ),
+            ListTile(
+              leading:
+                  const Icon(Icons.exposure_zero, color: GridColors.fever),
+              title: const Text('Münzen auf 0 setzen', style: _tileStyle),
+              onTap: () =>
+                  ref.read(gameControllerProvider.notifier).setCoinsForTest(0),
+            ),
+          ],
           const SizedBox(height: 24),
-          const Center(
-            child: Text(
-              'Qubble • Offline Block Puzzle',
-              style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+          Center(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _onFooterTap,
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Text(
+                  'Qubble • Offline Block Puzzle',
+                  style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 24),

@@ -386,6 +386,13 @@ class GameController extends StateNotifier<GameSnapshot> {
     _emit();
   }
 
+  /// Sets the coin balance directly — only reachable from the hidden admin
+  /// (test) section in the settings.
+  Future<void> setCoinsForTest(int value) async {
+    await _storage.setCoins(value.clamp(0, 1 << 31));
+    _emit();
+  }
+
   bool get _starterActive => StarterOffer.isActive(
         startMillis: _storage.starterOfferStart,
         purchased: _storage.starterPurchased,
