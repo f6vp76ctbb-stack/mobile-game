@@ -167,12 +167,26 @@ class HomeScreen extends ConsumerWidget {
               ],
               const Spacer(),
               _PrimaryButton(
-                label: 'Spielen',
+                // A running game resumes instead of silently restarting.
+                label: snap.runActive ? 'Weiterspielen' : 'Spielen',
                 onPressed: () {
-                  controller.newGame();
+                  ref.read(musicProvider).ensureStarted();
+                  if (!snap.runActive) controller.newGame();
                   _openGame(context);
                 },
               ),
+              if (snap.runActive)
+                TextButton(
+                  onPressed: () {
+                    ref.read(musicProvider).ensureStarted();
+                    controller.newGame();
+                    _openGame(context);
+                  },
+                  child: const Text(
+                    'Neue Runde starten',
+                    style: TextStyle(color: GridColors.textMuted),
+                  ),
+                ),
               const SizedBox(height: 14),
               if (snap.streakRepairAvailable) ...[
                 _StreakRepairBanner(streak: snap.streak),
@@ -181,6 +195,7 @@ class HomeScreen extends ConsumerWidget {
               _DailyCard(
                 streak: snap.streak,
                 onPlay: () {
+                  ref.read(musicProvider).ensureStarted();
                   controller.startDaily();
                   _openGame(context);
                 },

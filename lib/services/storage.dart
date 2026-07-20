@@ -30,6 +30,7 @@ class Storage {
   static const _kOnboardingDone = 'onboardingDone';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
+  static const _kMusicEnabled = 'settings.music';
   static const _kLastStreakRepair = 'lastStreakRepairDate';
   static const _kXp = 'xp';
   static const _kPlayerLevel = 'playerLevel';
@@ -152,6 +153,10 @@ class Storage {
   bool get hapticsEnabled => _prefs.getBool(_kHapticsEnabled) ?? true;
   Future<void> setHapticsEnabled(bool value) =>
       _prefs.setBool(_kHapticsEnabled, value);
+
+  bool get musicEnabled => _prefs.getBool(_kMusicEnabled) ?? true;
+  Future<void> setMusicEnabled(bool value) =>
+      _prefs.setBool(_kMusicEnabled, value);
 
   bool get notificationsEnabled =>
       _prefs.getBool(_kNotificationsEnabled) ?? false;

@@ -1,4 +1,5 @@
-/// The three-slot piece tray. Each piece is draggable onto the board.
+/// The three-slot piece tray. Each piece is draggable onto the board and can
+/// be tapped to rotate it 90° (free in beginner mode, else one charge).
 library;
 
 import 'package:flutter/material.dart';
@@ -39,7 +40,15 @@ class TrayView extends ConsumerWidget {
           for (var slot = 0; slot < tray.length; slot++)
             Expanded(
               child: Center(
-                child: _slot(tray[slot], slot, trayCell, slotColors, skin),
+                child: _slot(
+                  context,
+                  ref,
+                  tray[slot],
+                  slot,
+                  trayCell,
+                  slotColors,
+                  skin,
+                ),
               ),
             ),
         ],
@@ -48,6 +57,8 @@ class TrayView extends ConsumerWidget {
   }
 
   Widget _slot(
+    BuildContext context,
+    WidgetRef ref,
     Piece? piece,
     int slot,
     double trayCell,
@@ -60,12 +71,27 @@ class TrayView extends ConsumerWidget {
     final feedbackW = piece.width * boardCell;
     final feedbackH = piece.height * boardCell;
 
+    void rotate() {
+      final ok = ref.read(gameControllerProvider.notifier).rotateTray(slot);
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            duration: Duration(seconds: 2),
+            content: Text('Keine Drehungen übrig — räume Reihen zum Aufladen!'),
+          ),
+        );
+      }
+    }
+
     return Draggable<int>(
       data: slot,
       dragAnchorStrategy: (draggable, context, position) => Offset(
         feedbackW / 2,
         feedbackH / 2 + kFingerLiftCells * boardCell,
       ),
+      // Safety net: whatever way the drag ends, never leave a stale preview.
+      onDragEnd: (_) =>
+          ref.read(dragPreviewProvider.notifier).state = null,
       feedback:
           PieceView(piece: piece, cellSize: boardCell, color: color, skin: skin),
       childWhenDragging: Opacity(
@@ -77,11 +103,14 @@ class TrayView extends ConsumerWidget {
           skin: skin,
         ),
       ),
-      child: PieceView(
-        piece: piece,
-        cellSize: trayCell,
-        color: color,
-        skin: skin,
+      child: GestureDetector(
+        onTap: rotate,
+        child: PieceView(
+          piece: piece,
+          cellSize: trayCell,
+          color: color,
+          skin: skin,
+        ),
       ),
     );
   }

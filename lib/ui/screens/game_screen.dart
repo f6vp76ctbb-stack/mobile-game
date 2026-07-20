@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/piece.dart';
 import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
@@ -17,11 +18,77 @@ import '../widgets/tray_view.dart';
 /// True while the player is choosing a target cell for the Board Bomb booster.
 final bombModeProvider = StateProvider<bool>((ref) => false);
 
-class GameScreen extends ConsumerWidget {
+class GameScreen extends ConsumerStatefulWidget {
   const GameScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends ConsumerState<GameScreen> {
+  /// Attached to the board container; maps global drag positions to cells.
+  final GlobalKey _boardKey = GlobalKey();
+
+  @override
+  void initState() {
+    super.initState();
+    // Entering the game is always a user gesture, so the music may start here
+    // (satisfies web/PWA autoplay policies).
+    ref.read(musicProvider).ensureStarted();
+  }
+
+  void _updateDragPreview(int slot, Offset feedbackTopLeft) {
+    final piece = ref.read(gameControllerProvider).tray[slot];
+    final notifier = ref.read(dragPreviewProvider.notifier);
+    if (piece == null) {
+      notifier.state = null;
+      return;
+    }
+    final origin = boardOriginForDrag(
+      boardKey: _boardKey,
+      piece: piece,
+      feedbackTopLeft: feedbackTopLeft,
+    );
+    if (origin == null) {
+      notifier.state = null;
+      return;
+    }
+    final valid =
+        ref.read(gameControllerProvider.notifier).canPlace(slot, origin);
+    notifier.state = DragPreview(piece: piece, origin: origin, valid: valid);
+  }
+
+  void _handleDrop(int slot, Offset feedbackTopLeft) {
+    final piece = ref.read(gameControllerProvider).tray[slot];
+    if (piece != null) {
+      final origin = boardOriginForDrag(
+        boardKey: _boardKey,
+        piece: piece,
+        feedbackTopLeft: feedbackTopLeft,
+      );
+      if (origin != null) {
+        ref.read(gameControllerProvider.notifier).place(slot, origin);
+      }
+    }
+    ref.read(dragPreviewProvider.notifier).state = null;
+  }
+
+  Future<void> _handleBombTap(Cell cell) async {
+    final ok =
+        await ref.read(gameControllerProvider.notifier).tryBomb(cell);
+    ref.read(bombModeProvider.notifier).state = false;
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          duration: Duration(seconds: 1),
+          content: Text('Nicht genug Münzen für die Bombe'),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final snap = ref.watch(gameControllerProvider);
     final theme = ref.watch(activeThemeProvider);
     final bombMode = ref.watch(bombModeProvider);
@@ -37,6 +104,7 @@ class GameScreen extends ConsumerWidget {
                   score: snap.score,
                   highscore: snap.highscore,
                   combo: snap.combo,
+                  comboEndsAt: snap.comboEndsAt,
                   fever: snap.feverLevel,
                   isDaily: snap.isDaily,
                   feverColor: theme.fever,
@@ -57,7 +125,10 @@ class GameScreen extends ConsumerWidget {
                       const trayHeight = 96.0;
                       const gap = 16.0;
                       const boosterHeight = 64.0;
-                      final hintReserve = snap.onboardingHint != null ? 52.0 : 0.0;
+                      final hintReserve =
+                          (snap.onboardingHint != null || bombMode)
+                              ? 52.0
+                              : 0.0;
                       final maxBoard = constraints.maxWidth - 24;
                       final boardSize = maxBoard.clamp(
                         0.0,
@@ -68,65 +139,71 @@ class GameScreen extends ConsumerWidget {
                             hintReserve -
                             2,
                       );
-                      return Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Shake(
-                            trigger: snap.clearEventId,
-                            enabled: snap.lastClearedLineCount >= 3,
-                            child: _FeverGlow(
-                              fever: snap.feverLevel,
-                              color: theme.fever,
-                              child: SizedBox(
-                                width: boardSize,
-                                height: boardSize,
-                                child: Stack(
-                                  children: [
-                                    BoardView(
-                                      size: boardSize,
-                                      onCellTap: bombMode
-                                          ? (cell) async {
-                                              await ref
-                                                  .read(gameControllerProvider
-                                                      .notifier)
-                                                  .tryBomb(cell);
-                                              ref
-                                                  .read(bombModeProvider
-                                                      .notifier)
-                                                  .state = false;
-                                            }
-                                          : null,
-                                    ),
-                                    Positioned.fill(
-                                      child: IgnorePointer(
-                                        child: ClearBurst(
-                                          size: boardSize,
-                                          cellSize: boardSize / 8,
+                      // The DragTarget spans board AND tray: with the
+                      // finger-lift the finger sits below the hovering piece,
+                      // so drops targeting the bottom rows happen while the
+                      // finger is over the booster/tray area.
+                      return DragTarget<int>(
+                        onMove: (d) => _updateDragPreview(d.data, d.offset),
+                        onLeave: (_) =>
+                            ref.read(dragPreviewProvider.notifier).state = null,
+                        onAcceptWithDetails: (d) =>
+                            _handleDrop(d.data, d.offset),
+                        builder: (context, _, _) => Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Shake(
+                              trigger: snap.clearEventId,
+                              enabled: snap.lastClearedLineCount >= 3,
+                              child: _FeverGlow(
+                                fever: snap.feverLevel,
+                                color: theme.fever,
+                                child: SizedBox(
+                                  width: boardSize,
+                                  height: boardSize,
+                                  child: Stack(
+                                    children: [
+                                      BoardView(
+                                        size: boardSize,
+                                        board: snap.board,
+                                        boardKey: _boardKey,
+                                        onCellTap:
+                                            bombMode ? _handleBombTap : null,
+                                      ),
+                                      Positioned.fill(
+                                        child: IgnorePointer(
+                                          child: ClearBurst(
+                                            size: boardSize,
+                                            cellSize: boardSize / 8,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    Positioned.fill(
-                                      child: IgnorePointer(
-                                        child: JuiceOverlay(
-                                          size: boardSize,
-                                          cellSize: boardSize / 8,
+                                      Positioned.fill(
+                                        child: IgnorePointer(
+                                          child: JuiceOverlay(
+                                            size: boardSize,
+                                            cellSize: boardSize / 8,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: gap),
-                          _BoosterBar(snap: snap, bombMode: bombMode),
-                          if (snap.onboardingHint != null)
-                            _CoachHint(text: snap.onboardingHint!),
-                          TrayView(
-                            boardCell: boardSize / 8,
-                            height: trayHeight,
-                          ),
-                        ],
+                            const SizedBox(height: gap),
+                            _BoosterBar(snap: snap, bombMode: bombMode),
+                            if (bombMode)
+                              const _CoachHint(
+                                  text: '💣 Tippe auf eine Zelle im Board')
+                            else if (snap.onboardingHint != null)
+                              _CoachHint(text: snap.onboardingHint!),
+                            TrayView(
+                              boardCell: boardSize / 8,
+                              height: trayHeight,
+                            ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -205,28 +282,49 @@ class _BoosterBar extends ConsumerWidget {
           _BoosterButton(
             icon: Icons.undo,
             label: 'Undo',
-            cost: BoosterCosts.undo,
-            enabled: snap.canUndo && !snap.gameOver,
+            sub: '🪙${BoosterCosts.undo}',
+            enabled: snap.canUndo &&
+                !snap.gameOver &&
+                snap.coins >= BoosterCosts.undo,
             active: false,
             onTap: () => run(controller.tryUndo()),
           ),
           _BoosterButton(
             icon: Icons.autorenew,
             label: 'Tausch',
-            cost: BoosterCosts.swap,
-            enabled: !snap.gameOver,
+            sub: '🪙${BoosterCosts.swap}',
+            enabled: !snap.gameOver && snap.coins >= BoosterCosts.swap,
             active: false,
             onTap: () => run(controller.trySwapPieces()),
           ),
           _BoosterButton(
             icon: Icons.blur_circular,
             label: 'Bombe',
-            cost: BoosterCosts.bomb,
-            enabled: !snap.gameOver,
+            sub: '🪙${BoosterCosts.bomb}',
+            enabled: !snap.gameOver && snap.coins >= BoosterCosts.bomb,
             active: bombMode,
             onTap: () {
               final notifier = ref.read(bombModeProvider.notifier);
               notifier.state = !notifier.state;
+            },
+          ),
+          // Rotation status: not a coin booster — tapping a tray piece
+          // rotates it; this chip shows the remaining charges.
+          _BoosterButton(
+            icon: Icons.rotate_right,
+            label: 'Drehen',
+            sub: snap.rotationFree ? 'frei' : '⟳${snap.rotationCharges}',
+            enabled: !snap.gameOver &&
+                (snap.rotationFree || snap.rotationCharges > 0),
+            active: false,
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  duration: Duration(seconds: 2),
+                  content:
+                      Text('Tippe ein Teil in der Ablage, um es zu drehen'),
+                ),
+              );
             },
           ),
         ],
@@ -239,7 +337,7 @@ class _BoosterButton extends StatelessWidget {
   const _BoosterButton({
     required this.icon,
     required this.label,
-    required this.cost,
+    required this.sub,
     required this.enabled,
     required this.active,
     required this.onTap,
@@ -247,7 +345,10 @@ class _BoosterButton extends StatelessWidget {
 
   final IconData icon;
   final String label;
-  final int cost;
+
+  /// Small line under the label (coin cost or rotation charges).
+  final String sub;
+
   final bool enabled;
   final bool active;
   final VoidCallback onTap;
@@ -272,7 +373,7 @@ class _BoosterButton extends StatelessWidget {
               const SizedBox(height: 2),
               Text(label, style: TextStyle(color: color, fontSize: 12)),
               Text(
-                '🪙$cost',
+                sub,
                 style: const TextStyle(
                   color: GridColors.textMuted,
                   fontSize: 11,
@@ -325,6 +426,7 @@ class _Header extends StatelessWidget {
     required this.score,
     required this.highscore,
     required this.combo,
+    required this.comboEndsAt,
     required this.fever,
     required this.isDaily,
     required this.feverColor,
@@ -333,6 +435,7 @@ class _Header extends StatelessWidget {
   final int score;
   final int highscore;
   final int combo;
+  final DateTime? comboEndsAt;
   final double fever;
   final bool isDaily;
   final Color feverColor;
@@ -340,7 +443,7 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      padding: const EdgeInsets.fromLTRB(8, 12, 20, 4),
       child: Column(
         children: [
           if (isDaily)
@@ -358,8 +461,25 @@ class _Header extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              _stat('PUNKTE', '$score'),
-              if (combo > 1) _ComboBadge(combo: combo, color: feverColor),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.home_outlined,
+                      color: GridColors.textMuted,
+                    ),
+                    tooltip: 'Hauptmenü',
+                    onPressed: () => Navigator.of(context).maybePop(),
+                  ),
+                  _stat('PUNKTE', '$score'),
+                ],
+              ),
+              if (combo > 1)
+                _ComboBadge(
+                  combo: combo,
+                  color: feverColor,
+                  endsAt: comboEndsAt,
+                ),
               _stat('BEST', '$highscore', alignEnd: true),
             ],
           ),
@@ -392,16 +512,22 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// Combo indicator that pulses each time the combo count changes.
+/// Combo indicator that pulses on each combo step and shows the time window
+/// draining away — when the bar empties, the combo is gone.
 class _ComboBadge extends StatelessWidget {
-  const _ComboBadge({required this.combo, required this.color});
+  const _ComboBadge({
+    required this.combo,
+    required this.color,
+    required this.endsAt,
+  });
 
   final int combo;
   final Color color;
+  final DateTime? endsAt;
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
+    final label = TweenAnimationBuilder<double>(
       key: ValueKey(combo),
       tween: Tween(begin: 1.35, end: 1.0),
       duration: const Duration(milliseconds: 240),
@@ -418,6 +544,41 @@ class _ComboBadge extends StatelessWidget {
           fontSize: 16,
         ),
       ),
+    );
+
+    final ends = endsAt;
+    if (ends == null) return label;
+    final remaining = ends.difference(DateTime.now());
+    if (remaining.isNegative) return const SizedBox.shrink();
+
+    return TweenAnimationBuilder<double>(
+      // Restart the countdown whenever a new clear extends the window.
+      key: ValueKey(ends),
+      tween: Tween(begin: 1.0, end: 0.0),
+      duration: remaining,
+      builder: (context, t, child) {
+        if (t <= 0) return const SizedBox.shrink();
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            child!,
+            const SizedBox(height: 3),
+            SizedBox(
+              width: 84,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(3),
+                child: LinearProgressIndicator(
+                  value: t,
+                  minHeight: 4,
+                  backgroundColor: GridColors.emptyCell,
+                  valueColor: AlwaysStoppedAnimation(color),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+      child: label,
     );
   }
 }

@@ -68,3 +68,65 @@ class AudioplayersAudio implements AudioService {
     }
   }
 }
+
+/// Looping background music. Kept separate from [AudioService] so SFX and
+/// music have independent toggles.
+///
+/// Browsers (the PWA path) block autoplay until a user gesture, so
+/// [ensureStarted] is called from tap handlers (e.g. the play button) and is
+/// safe to call repeatedly.
+abstract class MusicService {
+  /// Starts the loop if enabled and not already playing.
+  Future<void> ensureStarted();
+
+  set enabled(bool value);
+  bool get enabled;
+}
+
+/// No-op implementation for tests and headless contexts.
+class SilentMusic implements MusicService {
+  @override
+  bool enabled = true;
+
+  @override
+  Future<void> ensureStarted() async {}
+}
+
+/// Plays the self-made ambient loop (assets/audio/music.wav, see
+/// assets/CREDITS.md) via a dedicated looping [AudioPlayer].
+class AudioplayersMusic implements MusicService {
+  final AudioPlayer _player = AudioPlayer()
+    ..setReleaseMode(ReleaseMode.loop);
+
+  bool _enabled = true;
+  bool _started = false;
+
+  @override
+  bool get enabled => _enabled;
+
+  @override
+  set enabled(bool value) {
+    _enabled = value;
+    if (!value) {
+      _started = false;
+      _player.pause();
+    }
+  }
+
+  @override
+  Future<void> ensureStarted() async {
+    if (!_enabled || _started) return;
+    _started = true;
+    try {
+      await _player.play(AssetSource('audio/music.wav'), volume: 0.35);
+    } catch (_) {
+      // Autoplay may still be blocked (e.g. web before a gesture) — retry on
+      // the next call.
+      _started = false;
+    }
+  }
+
+  void dispose() {
+    _player.dispose();
+  }
+}

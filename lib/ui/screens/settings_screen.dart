@@ -35,6 +35,12 @@ class SettingsScreen extends ConsumerWidget {
             activeThumbColor: GridColors.placed,
           ),
           SwitchListTile(
+            title: const Text('Musik', style: _tileStyle),
+            value: settings.music,
+            onChanged: controller.setMusic,
+            activeThumbColor: GridColors.placed,
+          ),
+          SwitchListTile(
             title: const Text('Vibration', style: _tileStyle),
             value: settings.haptics,
             onChanged: controller.setHaptics,
