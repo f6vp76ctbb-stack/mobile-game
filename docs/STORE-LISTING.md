@@ -4,15 +4,22 @@ Fertige Texte zum Einfügen. Zeichenlimits sind pro Feld notiert. Zwei Sprachen:
 **DE** (Primärmarkt) und **EN** (International). Vor Live-Gang final gegen die
 aktuellen Store-Limits prüfen.
 
+- **App-Name:** Qubble
+- **Entwickler/Publisher:** Thinkube
+- **Bundle-ID / Application-ID:** `com.thinkube.qubble`
+
+> Namens-Check vor Launch (👤): „Qubble" und „Thinkube" in beiden Stores und
+> als Marke prüfen, bevor die Entwicklerkonten final auf diese Namen laufen.
+
 ---
 
 ## App-Name / Titel  (iOS 30, Play 30 Zeichen)
 
-- **DE:** `GridPop – Block Puzzle`  (22)
-- **EN:** `GridPop: Block Puzzle`  (21)
+- **DE:** `Qubble – Block Puzzle`  (22)
+- **EN:** `Qubble: Block Puzzle`  (21)
 
-> Namens-Check vor Launch: prüfen, ob „GridPop" in beiden Stores frei ist; sonst
-> Zusatz wie „GridPop Blocks". Bundle-ID bleibt unabhängig davon.
+> Namens-Check vor Launch: prüfen, ob „Qubble" in beiden Stores frei ist; sonst
+> Zusatz wie „Qubble Blocks". Bundle-ID bleibt unabhängig davon.
 
 ## Untertitel (iOS, 30 Zeichen)
 
@@ -39,7 +46,7 @@ aktuellen Store-Limits prüfen.
 ## Vollbeschreibung — Deutsch (max. 4000 Zeichen)
 
 ```
-GridPop ist das entspannte Block-Puzzle, das dich nicht mehr loslässt.
+Qubble ist das entspannte Block-Puzzle, das dich nicht mehr loslässt.
 
 Ziehe Blöcke auf das 8×8-Gitter, fülle Reihen und Spalten und lass sie mit
 einem befriedigenden Pop verschwinden. Einfach zu lernen, schwer zu meistern –
@@ -59,7 +66,7 @@ Keine nervigen Werbeunterbrechungen mitten im Spiel. Video-Belohnungen sind
 immer freiwillig. Wer mag, entfernt Werbung dauerhaft per einmaligem Kauf.
 
 Perfekt, wenn du Woodoku, Block Blast, Blockudoku oder 1010! magst –
-GridPop bringt dieses „nur noch eine Runde"-Gefühl mit eigenem Look und Feel.
+Qubble bringt dieses „nur noch eine Runde"-Gefühl mit eigenem Look und Feel.
 
 Setze den ersten Block. Räum das Gitter. Knack deinen Highscore.
 ```
@@ -67,7 +74,7 @@ Setze den ersten Block. Räum das Gitter. Knack deinen Highscore.
 ## Vollbeschreibung — English (max 4000 chars)
 
 ```
-GridPop is the relaxing block puzzle that's impossible to put down.
+Qubble is the relaxing block puzzle that's impossible to put down.
 
 Drag blocks onto the 8×8 grid, fill rows and columns, and watch them vanish
 with a satisfying pop. Easy to learn, hard to master — perfect for a quick
@@ -86,7 +93,7 @@ FAIR & RELAXING
 No annoying ad breaks mid-game. Video rewards are always optional. Prefer no
 ads at all? Remove them for good with a one-time purchase.
 
-Love Woodoku, Block Blast, Blockudoku or 1010!? GridPop delivers that
+Love Woodoku, Block Blast, Blockudoku or 1010!? Qubble delivers that
 "just one more round" feeling with its own look and feel.
 
 Place the first block. Clear the grid. Beat your high score.

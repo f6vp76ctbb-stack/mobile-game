@@ -1,6 +1,6 @@
-# GridPop — Block Puzzle (Flutter, iOS + Android)
+# Qubble — Block Puzzle (Flutter, iOS + Android)
 
-GridPop ist ein Block-Puzzle im Stil von Block Blast! / Woodoku: Blockformen
+Qubble ist ein Block-Puzzle im Stil von Block Blast! / Woodoku: Blockformen
 auf ein 8×8-Raster ziehen, volle Reihen und Spalten abräumen, Highscores jagen.
 Eine Codebase (Flutter) für iOS, Android und Web. Monetarisierung über AdMob
 (Interstitial + Rewarded) und In-App-Käufe. **Komplett offline** — kein Backend,

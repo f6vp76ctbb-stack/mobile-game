@@ -39,7 +39,7 @@ class GridPopApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'GridPop',
+      title: 'Qubble',
       debugShowCheckedModeBanner: false,
       theme: buildGridTheme(),
       home: const AppBootstrap(),

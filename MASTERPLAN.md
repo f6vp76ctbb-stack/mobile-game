@@ -1,12 +1,12 @@
-# Masterplan: „GridPop" — Block-Puzzle für App Store & Play Store
+# Masterplan: „Qubble" — Block-Puzzle für App Store & Play Store
 
-> Arbeitstitel: **GridPop** (finaler Name wird vor Launch per ASO-Recherche festgelegt)
+> Arbeitstitel: **Qubble** (finaler Name wird vor Launch per ASO-Recherche festgelegt)
 
 ---
 
 ## 1. Die Idee (und warum genau diese)
 
-**GridPop ist ein Block-Puzzle im Stil von Block Blast! / Woodoku:**
+**Qubble ist ein Block-Puzzle im Stil von Block Blast! / Woodoku:**
 Der Spieler zieht Blockformen (Tetromino-artige Teile) auf ein 8×8-Raster. Volle Reihen
 und Spalten werden abgeräumt und geben Punkte. Das Spiel endet, wenn kein Teil mehr
 passt. Endlos-Highscore + tägliche Challenge.
@@ -142,10 +142,11 @@ bis der Mensch sie als erledigt markiert.
       Cloud-Umgebung installiert und `flutter pub get` ausführt
       (SessionStart-Hook-Registrierung: siehe `docs/DEV-ENVIRONMENT.md`, braucht
       einmalige Nutzer-Freigabe)
-- [x] Flutter-Projekt anlegen (`flutter create`, Org-Platzhalter `com.gridpopgame`,
+- [x] Flutter-Projekt anlegen (`flutter create`, Org-Platzhalter `com.thinkube`,
       Projektname `gridpop`), Verzeichnisstruktur aus `CLAUDE.md`, strikte Lints
 - [x] CI-Workflow (GitHub Actions): `flutter analyze` + `flutter test` bei jedem Push
-- [ ] 👤 DU: Finalen App-Namen und Bundle-ID/Org festlegen (Claude macht ASO-Namensvorschläge)
+- [x] Finalen App-Namen und Bundle-ID/Org festlegen: App **Qubble**, Publisher
+      **Thinkube**, Bundle-ID `com.thinkube.qubble` (👤 finalen Marken-/Store-Check vor Launch)
 
 ### Phase 1 — MVP (Woche 1–2)
 - [x] Game-Engine (pure Dart): Board + Clear-Logik, Teile-Katalog, Generator, Scoring
@@ -206,7 +207,7 @@ bis der Mensch sie als erledigt markiert.
 iOS-/App-Store-Schritte kommen erst in Phase 5. Der Code läuft unverändert für beide.
 
 - [x] Android-Signing-Config (liest `key.properties`, fällt ohne Keystore auf
-      Debug-Keys zurück → baut immer), R8-Keep-Regeln bereit, Anzeigename „GridPop"
+      Debug-Keys zurück → baut immer), R8-Keep-Regeln bereit, Anzeigename „Qubble"
 - [x] Release-/Build-Checkliste (`docs/RELEASE.md`, Play-first) inkl. Keystore,
       appbundle, Screenshots, Steuer-Vorbereitung, Soft-Launch-Schritte
 - [ ] 👤 DU: Signing-Key erzeugen (`docs/RELEASE.md`), `flutter build appbundle`,
@@ -259,12 +260,12 @@ Verbindliche Zahlen/Specs: **Anhang C**. Reihenfolge = Priorität (Impact ÷ Auf
 
 **Tier 3 — Monetarisierungs-Vertiefung (erst nach Retention-Daten)**
 - [x] Sparschwein: füllt sich (+1/Reihe) beim Spielen, Kapazität wächst pro
-      Öffnung (max 3000), Öffnen per IAP `gridpop_piggy`, Home-Chip mit
+      Öffnung (max 3000), Öffnen per IAP `qubble_piggy`, Home-Chip mit
       Füll-Hinweis ab 80 % (C.5) — getestet
 - [x] Wochenend-Event: Sa/So verdoppelt Missions- + Daily-Münzen (uhrbasiert,
       offline), Home-Banner (C.7) — getestet
 - [x] Starter-Paket: einmaliges Angebot ab Runde 5, echtes 48-h-Fenster (kein
-      Fake-Reset), 1200 Münzen + Wood-Theme für 1,99 € (`gridpop_starter`),
+      Fake-Reset), 1200 Münzen + Wood-Theme für 1,99 € (`qubble_starter`),
       Game-Over-Karte (C.6) — getestet
 - [x] Block-Skins (Classic/Verlauf/Glanz/Kontur), per Münzen freischaltbar,
       Skins-Screen mit Vorschau; Board + Tray rendern den aktiven Skin — getestet
@@ -362,8 +363,8 @@ Teile werden **nicht** vom Spieler rotiert (genre-üblich) — Rotationen sind e
 - Persistenz-Keys: `highscore`, `coins`, `streak`, `lastDailyDate`, `adFree`,
   `activeTheme`, `settings.*` — zentral in `lib/services/storage.dart`
 - AdMob-Test-IDs im Debug-Build hart verdrahtet; echte IDs via `lib/monetization/ad_config.dart`
-- IAP-Produkt-IDs: `gridpop_remove_ads`, `gridpop_coins_s`, `gridpop_coins_m`,
-  `gridpop_coins_l`; ab Phase 6: `gridpop_starter`, `gridpop_piggy` (Anhang C)
+- IAP-Produkt-IDs: `qubble_remove_ads`, `qubble_coins_s`, `qubble_coins_m`,
+  `qubble_coins_l`; ab Phase 6: `qubble_starter`, `qubble_piggy` (Anhang C)
 
 ## Anhang B — Was nur DU erledigen kannst (Übersicht)
 
@@ -442,14 +443,14 @@ normal. Max. 1 Heilung pro 7 Tage (sonst verliert der Streak seine Bedeutung).
 - Füllung: +1 Münze pro geräumter Linie (zusätzlich zur normalen Ökonomie,
   landet **nur** im Schwein).
 - Kapazität: 500 (Stufe 1) → nach jedem Öffnen +500, max. 3000.
-- Öffnen: IAP `gridpop_piggy` (2,99 €) — schüttet den Inhalt aus.
+- Öffnen: IAP `qubble_piggy` (2,99 €) — schüttet den Inhalt aus.
 - UI: dezentes Icon auf Home mit Füllstand; Hinweis-Badge erst ab 80 % Füllung.
   **Nie** blockierend/Popup-Spam — Positionierung „entspannt" schützen.
 
 ### C.6 Starter-Paket
 
 - Trigger: einmalig nach Runde 5 (genug Bindung, früh genug für Conversion).
-- Inhalt: 1200 Münzen + Wood-Theme. Preis 1,99 € (`gridpop_starter`).
+- Inhalt: 1200 Münzen + Wood-Theme. Preis 1,99 € (`qubble_starter`).
 - Anzeige: eine Karte auf dem Game-Over-Screen + Eintrag im Shop, 48 h gültig
   (lokaler Timer), danach dauerhaft weg — echte Knappheit, kein Fake-Countdown-Reset.
 

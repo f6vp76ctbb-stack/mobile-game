@@ -1,8 +1,8 @@
-# CLAUDE.md — GridPop (Block-Puzzle, iOS + Android)
+# CLAUDE.md — Qubble (Block-Puzzle, iOS + Android)
 
 ## Projekt
 
-GridPop ist ein Block-Puzzle-Spiel (Genre: Block Blast!/Woodoku) für App Store und
+Qubble ist ein Block-Puzzle-Spiel (Genre: Block Blast!/Woodoku) für App Store und
 Play Store. Monetarisierung über AdMob (Interstitial + Rewarded) und In-App-Käufe.
 Vollständiger Produkt- und Phasenplan: siehe `MASTERPLAN.md` — dort steht auch die
 aktuelle Phase mit Checkliste. Vor jeder Arbeitssession dort den Stand prüfen und

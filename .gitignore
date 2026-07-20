@@ -43,3 +43,20 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Secrets & signing — NEVER commit these (repo may be public).
+# Only *.example templates are tracked.
+android/key.properties
+**/*.jks
+**/*.keystore
+**/*.p12
+**/*.p8
+**/*.pem
+**/*.mobileprovision
+.env
+.env.*
+!.env.example
+# Firebase / Google service config (contains project keys)
+**/google-services.json
+**/GoogleService-Info.plist
+lib/firebase_options.dart

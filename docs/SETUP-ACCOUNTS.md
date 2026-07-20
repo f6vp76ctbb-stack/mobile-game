@@ -81,10 +81,10 @@ Produkte in **beiden** Konsolen mit **exakt diesen IDs** anlegen
 
 | Produkt-ID | Typ | Vorschlag Preis |
 |---|---|---|
-| `gridpop_remove_ads` | Non-Consumable | 4,99 € |
-| `gridpop_coins_s` | Consumable | 0,99 € |
-| `gridpop_coins_m` | Consumable | 2,99 € |
-| `gridpop_coins_l` | Consumable | 7,99 € |
+| `qubble_remove_ads` | Non-Consumable | 4,99 € |
+| `qubble_coins_s` | Consumable | 0,99 € |
+| `qubble_coins_m` | Consumable | 2,99 € |
+| `qubble_coins_l` | Consumable | 7,99 € |
 
 - App Store Connect: **In-App-Käufe** → jeweils anlegen, Preis + Lokalisierung.
 - Play Console: **Monetarisierung → Produkte → In-App-Produkte**.

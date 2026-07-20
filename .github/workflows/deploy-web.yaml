@@ -1,0 +1,59 @@
+name: Deploy Web (GitHub Pages)
+
+# Builds the Flutter web version and publishes it to GitHub Pages so it can
+# be installed on a phone home screen as a PWA ("Add to Home Screen").
+# The published URL is https://<owner>.github.io/mobile-game/.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Allow only one concurrent deployment, skipping runs queued between the
+# run in-progress and latest queued. Do not cancel in-progress runs.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # base-href must match the Pages sub-path (/<repo-name>/).
+      # --no-web-resources-cdn bundles CanvasKit locally so the PWA works
+      # fully offline once added to the home screen.
+      - name: Build web
+        run: flutter build web --release --base-href /mobile-game/ --no-web-resources-cdn
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

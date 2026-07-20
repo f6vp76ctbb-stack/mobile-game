@@ -21,7 +21,7 @@ Future<Widget> _app(Widget home) async {
 void main() {
   testWidgets('home screen shows title and play button', (tester) async {
     await tester.pumpWidget(await _app(const HomeScreen()));
-    expect(find.text('GridPop'), findsOneWidget);
+    expect(find.text('Qubble'), findsOneWidget);
     expect(find.text('Spielen'), findsOneWidget);
     expect(find.textContaining('Bestwert'), findsOneWidget);
   });

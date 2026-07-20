@@ -1,4 +1,4 @@
-# Datenschutzerklärung – GridPop
+# Datenschutzerklärung – Qubble
 
 > **Hinweis für den Betreiber:** Diese Vorlage vor Veröffentlichung anpassen
 > (Platzhalter `[…]` ausfüllen) und unter einer öffentlichen URL hosten
@@ -8,7 +8,7 @@
 
 ## 1. Überblick
 
-GridPop ist ein Offline-Block-Puzzle. Das Spiel selbst benötigt **kein
+Qubble ist ein Offline-Block-Puzzle. Das Spiel selbst benötigt **kein
 Nutzerkonto und keinen eigenen Server**. Spielstände (Highscore, Münzen,
 Streak, Einstellungen, gekaufte Inhalte) werden **nur lokal auf deinem Gerät**
 gespeichert.
@@ -74,7 +74,7 @@ dieser URL abrufbar.
 
 ---
 
-*English summary available on request. GridPop stores game progress only locally
+*English summary available on request. Qubble stores game progress only locally
 on your device and has no account or backend. Third-party services: Google AdMob
 (ads, with GDPR consent via UMP), Firebase Analytics/Crashlytics (if enabled),
 and store-handled in-app purchases.*
