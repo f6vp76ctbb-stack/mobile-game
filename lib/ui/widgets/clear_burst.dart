@@ -27,9 +27,14 @@ class _ClearBurstState extends ConsumerState<ClearBurst>
 
   void _spawn(List<Offset> centers, Color color, {int lineCount = 1}) {
     // More lines → a much bigger celebration: more, faster, longer-lived
-    // particles per cleared cell.
+    // particles per cleared cell. Total is capped so multi-line clears stay
+    // smooth on weaker devices (web canvas jank at 400+ circles).
+    const maxParticles = 220;
     final intensity = 1.0 + (lineCount - 1) * 0.7;
-    final perCell = (7 * intensity).round();
+    var perCell = (7 * intensity).round();
+    if (centers.isNotEmpty && perCell * centers.length > maxParticles) {
+      perCell = (maxParticles / centers.length).ceil();
+    }
     final particles = <_Particle>[];
     for (final c in centers) {
       for (var i = 0; i < perCell; i++) {
