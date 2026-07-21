@@ -684,6 +684,12 @@ class GameController extends StateNotifier<GameSnapshot> {
     _levelsGainedThisRun = outcome.levelsGained.length;
     _levelUpCoins = outcome.coinsAwarded;
 
+    // Level-up chime + haptic pulse to reinforce the celebration.
+    if (outcome.leveledUp) {
+      _audio.play(Sfx.levelUp);
+      _haptics.feverBurst();
+    }
+
     // Grant the cosmetics the level-ups unlocked (only those not yet owned).
     final unlocked = <LevelReward>[];
     for (final reward in outcome.rewards) {

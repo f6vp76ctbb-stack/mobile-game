@@ -8,7 +8,7 @@ library;
 
 import 'package:audioplayers/audioplayers.dart';
 
-enum Sfx { place, clear, combo, feverBurst, gameOver }
+enum Sfx { place, clear, combo, feverBurst, gameOver, levelUp }
 
 abstract class AudioService {
   /// Plays [sfx]. [pitch] scales the playback rate (>1 = higher) for the combo
@@ -48,6 +48,7 @@ class AudioplayersAudio implements AudioService {
     Sfx.combo: 'audio/combo.wav',
     Sfx.feverBurst: 'audio/fever.wav',
     Sfx.gameOver: 'audio/gameover.wav',
+    Sfx.levelUp: 'audio/levelup.wav',
   };
 
   @override
