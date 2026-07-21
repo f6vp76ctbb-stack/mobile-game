@@ -23,7 +23,7 @@ void main() {
     await tester.pumpWidget(await _app(const HomeScreen()));
     expect(find.text('Qubble'), findsOneWidget);
     expect(find.text('Spielen'), findsOneWidget);
-    expect(find.textContaining('Bestwert'), findsOneWidget);
+    expect(find.text('BESTWERT'), findsOneWidget);
   });
 
   testWidgets('tapping Spielen navigates into the game', (tester) async {

@@ -18,6 +18,7 @@ class Puzzle {
     required this.start,
     required this.pieces,
     required this.minMoves,
+    required this.solution,
   });
 
   final int level;
@@ -26,6 +27,11 @@ class Puzzle {
 
   /// Fewest moves to empty the board (3-star target).
   final int minMoves;
+
+  /// A known-good origin for each piece (parallel to [pieces]): placing
+  /// `pieces[i]` at `solution[i]` in order empties the board. Powers cheap
+  /// verification and a potential hint feature.
+  final List<Cell> solution;
 }
 
 /// A bitboard split into two 32-bit halves (rows 0-3 in [lo], rows 4-7 in
@@ -150,13 +156,34 @@ class PuzzleSolver {
   /// Minimum moves to empty [start] by placing [pieces] in order, or null if
   /// impossible. Pieces must be placed in sequence; reaching an empty board
   /// ends the puzzle (remaining pieces are unused).
-  static int? minMovesToEmpty(Board start, List<Piece> pieces) {
+  ///
+  /// [budget] caps the number of search nodes so a pathological state can't
+  /// hang the UI; when the budget is exhausted the search reports "unknown"
+  /// as [budgetExceeded] (see [solve]) — callers that only need a yes/no
+  /// answer should treat that conservatively.
+  static int? minMovesToEmpty(Board start, List<Piece> pieces,
+      {int budget = 200000}) {
+    return solve(start, pieces, budget: budget).moves;
+  }
+
+  /// Full result of a bounded search: [moves] is the minimum (or null if
+  /// proven impossible), and [budgetExceeded] is true if the node budget ran
+  /// out before the search finished (so [moves] may be incomplete).
+  static PuzzleSolveResult solve(Board start, List<Piece> pieces,
+      {int budget = 200000}) {
     final placements = [for (final p in pieces) _placements(p)];
     final memo = <String, int?>{};
+    var nodes = 0;
+    var exceeded = false;
 
-    int? solve(Mask board, int idx) {
+    int? search(Mask board, int idx) {
       if (board.isEmpty) return 0;
       if (idx >= pieces.length) return null;
+      if (exceeded) return null;
+      if (++nodes > budget) {
+        exceeded = true;
+        return null;
+      }
       final key = '${board.lo}_${board.hi}_$idx';
       final cached = memo[key];
       if (cached != null || memo.containsKey(key)) return cached;
@@ -165,17 +192,27 @@ class PuzzleSolver {
       for (final mask in placements[idx]) {
         if (board.overlaps(mask)) continue; // overlap
         final next = BitBoard.applyPlacement(board, mask);
-        final sub = solve(next, idx + 1);
+        final sub = search(next, idx + 1);
         if (sub != null && (best == null || sub + 1 < best)) {
           best = sub + 1;
         }
       }
-      memo[key] = best;
+      // Don't memoize partial results produced after the budget blew.
+      if (!exceeded) memo[key] = best;
       return best;
     }
 
-    return solve(BitBoard.fromBoard(start), 0);
+    final moves = search(BitBoard.fromBoard(start), 0);
+    return PuzzleSolveResult(moves: moves, budgetExceeded: exceeded);
   }
+}
+
+/// Outcome of a bounded [PuzzleSolver.solve].
+class PuzzleSolveResult {
+  const PuzzleSolveResult({required this.moves, required this.budgetExceeded});
+
+  final int? moves;
+  final bool budgetExceeded;
 }
 
 /// Star rating and coin rewards for puzzle levels (MASTERPLAN.md C.4).
@@ -200,43 +237,90 @@ class PuzzleGenerator {
 
   /// Builds puzzle [level] deterministically. Guaranteed solvable by
   /// construction; the solver both verifies it and measures the minimum moves.
+  ///
+  /// Difficulty ramps with the level: more, taller bands and — from level 5 —
+  /// several holes per band, so a band only clears once every one of its
+  /// pieces is placed. That means more moves, a fuller board, and real
+  /// decisions (pieces of the same shape can fit multiple holes).
   static Puzzle generate(int level) {
     final rng = Random(seedBase + level);
     final catalog = buildCatalog()
-        .where((p) => p.height <= 3 && p.size >= 2)
+        .where((p) => p.height <= 3 && p.size >= 2 && p.size <= 5)
         .toList();
 
-    final targetLayers = (2 + level ~/ 8).clamp(2, 4);
+    // How many stacked bands, and how many piece-holes to carve out of each.
+    final bandCount = (2 + level ~/ 3).clamp(2, 5);
+    final holesPerBand = level < 5 ? 1 : 2;
+    const maxPieces = 10;
+
     final cells = List<bool>.filled(Board.size * Board.size, false);
     final pieces = <Piece>[];
+    final origins = <Cell>[]; // carved hole top-left, parallel to pieces
 
     var top = 0;
-    for (var layer = 0; layer < targetLayers; layer++) {
+    for (var band = 0; band < bandCount && pieces.length < maxPieces; band++) {
       // Leave at least the last row empty, so no column is ever fully filled
       // in the start board (a pre-full column would clear on the first move
       // and tear holes in the other bands, making the level unsolvable).
       final maxH = min(3, (Board.size - 1) - top);
       if (maxH < 1) break;
-      final candidates = catalog.where((p) => p.height <= maxH).toList();
-      if (candidates.isEmpty) break;
-      final piece = candidates[rng.nextInt(candidates.length)];
-      final h = piece.height;
-      final w = piece.width;
-      final colOffset = rng.nextInt(Board.size - w + 1);
+      final h = 1 + rng.nextInt(maxH);
 
-      // Fill this band's rows completely, then carve out the piece shape.
+      // Fill this band's rows completely, then carve out the holes.
       for (var r = top; r < top + h; r++) {
         for (var c = 0; c < Board.size; c++) {
           cells[r * Board.size + c] = true;
         }
       }
-      for (final cell in piece.cells) {
-        cells[(top + cell.row) * Board.size + (colOffset + cell.col)] = false;
+
+      final bandCandidates = catalog.where((p) => p.height <= h).toList();
+      var carved = 0;
+      for (var attempt = 0;
+          attempt < 40 &&
+              carved < holesPerBand &&
+              pieces.length < maxPieces;
+          attempt++) {
+        final piece = bandCandidates[rng.nextInt(bandCandidates.length)];
+        final rowOff = top + rng.nextInt(h - piece.height + 1);
+        final colOff = rng.nextInt(Board.size - piece.width + 1);
+        // Only carve where every target cell is still filled (no overlap with
+        // an earlier hole in this band).
+        final fits = piece.cells.every((cell) =>
+            cells[(rowOff + cell.row) * Board.size + (colOff + cell.col)]);
+        if (!fits) continue;
+        for (final cell in piece.cells) {
+          cells[(rowOff + cell.row) * Board.size + (colOff + cell.col)] = false;
+        }
+        pieces.add(piece);
+        origins.add(Cell(rowOff, colOff));
+        carved += 1;
       }
-      pieces.add(piece);
+
+      // Guarantee at least one hole so the band is always clearable.
+      if (carved == 0) {
+        final piece = bandCandidates.first;
+        for (final cell in piece.cells) {
+          cells[(top + cell.row) * Board.size + cell.col] = false;
+        }
+        pieces.add(piece);
+        origins.add(Cell(top, 0));
+      }
+
       top += h;
-      if (top >= Board.size) break;
+      if (top >= Board.size - 1) break;
     }
+
+    // Shuffle piece + origin together so the solution order isn't simply
+    // top-to-bottom (keeps the piece↔origin pairing intact).
+    final order = [for (var i = 0; i < pieces.length; i++) i]..shuffle(rng);
+    final shuffledPieces = [for (final i in order) pieces[i]];
+    final shuffledOrigins = [for (final i in order) origins[i]];
+    pieces
+      ..clear()
+      ..addAll(shuffledPieces);
+    origins
+      ..clear()
+      ..addAll(shuffledOrigins);
 
     final start = Board.fromAscii([
       for (var r = 0; r < Board.size; r++)
@@ -246,14 +330,37 @@ class PuzzleGenerator {
         ]),
     ]);
 
-    final minMoves = PuzzleSolver.minMovesToEmpty(start, pieces);
-    assert(minMoves != null, 'constructed puzzle $level must be solvable');
+    // By construction every band clears once its holes are filled, and the
+    // holes exactly tile the empty cells — so the board empties in exactly one
+    // move per piece. minMoves is therefore the piece count. The assert
+    // cheaply replays the recorded [solution] to confirm it empties the board
+    // (no exponential solver needed).
+    assert(
+      _replayEmpties(start, pieces, origins),
+      'constructed puzzle $level does not empty via its solution',
+    );
 
     return Puzzle(
       level: level,
       start: start,
       pieces: pieces,
-      minMoves: minMoves ?? pieces.length,
+      minMoves: pieces.length,
+      solution: origins,
     );
+  }
+
+  /// Places each piece at its solution origin, in order, and returns whether
+  /// the board ends up empty.
+  static bool _replayEmpties(
+    Board start,
+    List<Piece> pieces,
+    List<Cell> origins,
+  ) {
+    var board = start;
+    for (var i = 0; i < pieces.length; i++) {
+      if (!board.canPlace(pieces[i], origins[i])) return false;
+      board = board.place(pieces[i], origins[i]).board;
+    }
+    return board.isEmpty;
   }
 }

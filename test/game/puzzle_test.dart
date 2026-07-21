@@ -133,19 +133,30 @@ void main() {
     });
   });
 
+  // Replays a puzzle's recorded solution and returns whether it empties.
+  bool solutionEmpties(Puzzle p) {
+    var board = p.start;
+    for (var i = 0; i < p.pieces.length; i++) {
+      if (!board.canPlace(p.pieces[i], p.solution[i])) return false;
+      board = board.place(p.pieces[i], p.solution[i]).board;
+    }
+    return board.isEmpty;
+  }
+
   group('generator', () {
-    test('levels 0..49 are solvable and non-trivial', () {
+    test('levels 0..49 are solvable (via recorded solution) and non-trivial',
+        () {
       for (var level = 0; level < 50; level++) {
         final p = PuzzleGenerator.generate(level);
         expect(p.pieces, isNotEmpty, reason: 'level $level has no pieces');
+        expect(p.solution.length, p.pieces.length,
+            reason: 'level $level solution mismatch');
         expect(p.start.filledCount, greaterThan(0),
             reason: 'level $level board is empty');
-        expect(
-          PuzzleSolver.minMovesToEmpty(p.start, p.pieces),
-          isNotNull,
-          reason: 'level $level is unsolvable',
-        );
-        expect(p.minMoves, greaterThan(0));
+        expect(solutionEmpties(p), isTrue,
+            reason: 'level $level solution does not empty the board');
+        // minMoves is exactly one move per piece.
+        expect(p.minMoves, p.pieces.length);
       }
     });
 
@@ -166,9 +177,18 @@ void main() {
     });
 
     test('the constructed solution actually empties the board', () {
-      final p = PuzzleGenerator.generate(3);
-      // Placing each piece into its band (found by the solver) reaches empty.
-      expect(PuzzleSolver.minMovesToEmpty(p.start, p.pieces), isNotNull);
+      for (final level in [3, 10, 25, 49]) {
+        final p = PuzzleGenerator.generate(level);
+        expect(solutionEmpties(p), isTrue, reason: 'level $level');
+      }
+    });
+
+    test('harder levels need more moves than the first ones', () {
+      // Later levels carry more pieces (more holes / bands).
+      expect(
+        PuzzleGenerator.generate(20).pieces.length,
+        greaterThan(PuzzleGenerator.generate(0).pieces.length),
+      );
     });
   });
 }
