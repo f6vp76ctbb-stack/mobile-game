@@ -92,6 +92,7 @@ class GameSnapshot {
     required this.rotationCharges,
     required this.rotationFree,
     required this.runActive,
+    required this.profileName,
   });
 
   final Board board;
@@ -173,6 +174,9 @@ class GameSnapshot {
   /// True while a run is in progress (pieces placed, not yet game over) — the
   /// home screen shows "Weiterspielen" instead of restarting.
   final bool runActive;
+
+  /// Name of the active local profile (shown on the home screen).
+  final String profileName;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -306,6 +310,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationCharges: GameSession.startRotationCharges,
       rotationFree: storage.playerLevel <= 2,
       runActive: false,
+      profileName: storage.activeProfile.name,
     );
   }
 
@@ -679,6 +684,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationCharges: _session.rotationCharges,
       rotationFree: _session.freeRotation,
       runActive: _session.placements > 0 && !_session.isGameOver,
+      profileName: _storage.activeProfile.name,
     );
   }
 

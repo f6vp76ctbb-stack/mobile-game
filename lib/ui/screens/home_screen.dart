@@ -11,6 +11,7 @@ import '../state/game_controller.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 import 'missions_screen.dart';
+import 'profiles_screen.dart';
 import 'puzzle_levels_screen.dart';
 import 'settings_screen.dart';
 import 'shop_screen.dart';
@@ -116,6 +117,20 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
+                      IconButton(
+                        icon: const Icon(
+                          Icons.people_outline,
+                          color: GridColors.textPrimary,
+                        ),
+                        tooltip: 'Profile',
+                        onPressed: () async {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => const ProfilesScreen(),
+                            ),
+                          );
+                        },
+                      ),
                     ],
                   ),
                   Row(
@@ -146,7 +161,33 @@ class HomeScreen extends ConsumerWidget {
                 'Block Puzzle',
                 style: TextStyle(color: GridColors.textMuted, fontSize: 18),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 12),
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ProfilesScreen(),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person,
+                        size: 16, color: GridColors.textMuted),
+                    const SizedBox(width: 6),
+                    Text(
+                      snap.profileName,
+                      style: const TextStyle(
+                        color: GridColors.textPrimary,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const Icon(Icons.expand_more,
+                        size: 16, color: GridColors.textMuted),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Bestwert: ${snap.highscore}',
                 style: const TextStyle(
