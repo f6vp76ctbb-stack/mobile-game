@@ -45,6 +45,7 @@ class Storage {
   static const _kAppOpenCount = 'appOpenCount';
   static const _kPlayerName = 'playerName';
   static const _kLastSubmittedScore = 'lastSubmittedScore';
+  static const _kAchievements = 'achievements';
 
   static const int startingCoins = 100;
 
@@ -241,4 +242,11 @@ class Storage {
   int get appOpenCount => _prefs.getInt(_kAppOpenCount) ?? 0;
   Future<void> setAppOpenCount(int value) =>
       _prefs.setInt(_kAppOpenCount, value);
+
+  /// Ids of unlocked achievements.
+  Set<String> get unlockedAchievements =>
+      (_prefs.getStringList(_kAchievements) ?? const []).toSet();
+
+  Future<void> setUnlockedAchievements(Set<String> ids) =>
+      _prefs.setStringList(_kAchievements, ids.toList());
 }

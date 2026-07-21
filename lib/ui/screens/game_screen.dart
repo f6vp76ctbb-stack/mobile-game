@@ -698,6 +698,18 @@ class _GameOverOverlay extends ConsumerWidget {
                   ),
                 ),
               ),
+            for (final a in snap.achievementsUnlockedThisRun)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '🏅 Erfolg: ${a.title}',
+                  style: const TextStyle(
+                    color: GridColors.fever,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             if (snap.starterOfferActive) ...[
               const SizedBox(height: 20),
               _StarterCard(hoursLeft: snap.starterHoursLeft),

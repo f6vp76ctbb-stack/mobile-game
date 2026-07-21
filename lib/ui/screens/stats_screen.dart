@@ -6,9 +6,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/achievements.dart';
 import '../../game/leveling.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
+import 'achievements_screen.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -66,7 +68,56 @@ class StatsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 16),
           _PuzzleCard(solved: puzzlesSolved, stars: totalStars),
+          const SizedBox(height: 16),
+          _AchievementsLink(
+            unlocked: storage.unlockedAchievements.length,
+            total: Achievements.catalog.length,
+          ),
         ],
+      ),
+    );
+  }
+}
+
+class _AchievementsLink extends StatelessWidget {
+  const _AchievementsLink({required this.unlocked, required this.total});
+
+  final int unlocked;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: () => Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => const AchievementsScreen()),
+      ),
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: GridColors.boardBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GridColors.gridLine),
+        ),
+        child: Row(
+          children: [
+            const Text('🏅', style: TextStyle(fontSize: 24)),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text('Erfolge',
+                  style: TextStyle(
+                    color: GridColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  )),
+            ),
+            Text('$unlocked / $total',
+                style: const TextStyle(
+                    color: GridColors.textMuted, fontSize: 14)),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right, color: GridColors.textMuted),
+          ],
+        ),
       ),
     );
   }

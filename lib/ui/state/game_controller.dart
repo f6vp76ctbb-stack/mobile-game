@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/achievements.dart';
 import '../../game/board.dart';
 import '../../game/daily.dart';
 import '../../game/game_session.dart';
@@ -102,6 +103,7 @@ class GameSnapshot {
     required this.playerName,
     required this.lastSubmittedScore,
     required this.rewardsUnlockedThisRun,
+    required this.achievementsUnlockedThisRun,
   });
 
   final Board board;
@@ -194,6 +196,9 @@ class GameSnapshot {
   /// Cosmetics (themes/skins) unlocked by level-ups during this run — shown in
   /// the game-over celebration.
   final List<LevelReward> rewardsUnlockedThisRun;
+
+  /// Achievements newly unlocked by this run (game-over celebration).
+  final List<Achievement> achievementsUnlockedThisRun;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -267,6 +272,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _levelsGainedThisRun = 0;
   int _levelUpCoins = 0;
   List<LevelReward> _rewardsThisRun = const [];
+  List<Achievement> _achievementsThisRun = const [];
   List<String> _completedMissions = const [];
   late bool _onboarding = !_storage.onboardingDone;
   int _onboardingStep = 0;
@@ -341,6 +347,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       playerName: storage.playerName,
       lastSubmittedScore: storage.lastSubmittedScore,
       rewardsUnlockedThisRun: const [],
+      achievementsUnlockedThisRun: const [],
     );
   }
 
@@ -490,6 +497,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _levelsGainedThisRun = 0;
     _levelUpCoins = 0;
     _rewardsThisRun = const [];
+    _achievementsThisRun = const [];
     _completedMissions = const [];
     _streak = _storage.streak;
   }
@@ -705,6 +713,28 @@ class GameController extends StateNotifier<GameSnapshot> {
     _coinsEarnedThisRun = earned;
     _isNewHighscore = await _storage.submitScore(_session.score);
 
+    // Achievements: evaluate against the now-updated aggregates.
+    final life = _storage.lifetimeStats;
+    final progress = AchievementProgress(
+      games: life.games,
+      highscore: _storage.highscore,
+      totalLines: life.totalLines,
+      bestCombo: life.bestCombo,
+      level: _storage.playerLevel,
+      streak: _storage.streak,
+      puzzlesSolved: _storage.puzzleStars.length,
+      totalPieces: life.totalPieces,
+    );
+    final already = _storage.unlockedAchievements;
+    final fresh = Achievements.newlyUnlocked(progress, already);
+    if (fresh.isNotEmpty) {
+      await _storage.setUnlockedAchievements(
+        {...already, for (final a in fresh) a.id},
+      );
+      _achievementsThisRun = fresh;
+      _audio.play(Sfx.levelUp, pitch: 1.25);
+    }
+
     if (mounted) _emit();
   }
 
@@ -750,6 +780,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       playerName: _storage.playerName,
       lastSubmittedScore: _storage.lastSubmittedScore,
       rewardsUnlockedThisRun: _rewardsThisRun,
+      achievementsUnlockedThisRun: _achievementsThisRun,
     );
   }
 
