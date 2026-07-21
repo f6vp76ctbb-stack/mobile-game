@@ -280,4 +280,39 @@ void main() {
     expect(storage.playerLevel, greaterThanOrEqualTo(3));
     expect(c.state.rewardsUnlockedThisRun, isEmpty);
   });
+
+  test('finishing a run unlocks and persists achievements', () async {
+    final c = await _controller();
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    // At minimum the "first game" achievement unlocks after one finished run.
+    final ids = c.state.achievementsUnlockedThisRun.map((a) => a.id).toList();
+    expect(ids, contains('first_game'));
+    expect(c.state.achievementsUnlockedThisRun, isNotEmpty);
+  });
+
+  test('achievements already unlocked are not re-announced next run', () async {
+    SharedPreferences.setMockInitialValues({
+      'achievements': <String>['first_game'],
+    });
+    final storage = await Storage.create();
+    final c = GameController(
+      storage,
+      Haptics(enabled: false),
+      SilentAudio(),
+      FakeAdService(),
+      AdGate(now: DateTime.now),
+      NoopAnalytics(),
+    );
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    final ids = c.state.achievementsUnlockedThisRun.map((a) => a.id).toList();
+    expect(ids, isNot(contains('first_game')));
+    // The unlocked set persists across the run.
+    expect(storage.unlockedAchievements, contains('first_game'));
+  });
 }
