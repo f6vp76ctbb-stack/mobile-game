@@ -4,9 +4,12 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/block_skin.dart';
 import '../state/game_controller.dart';
+import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
+import '../widgets/mini_board_preview.dart';
 
 class ThemesScreen extends ConsumerWidget {
   const ThemesScreen({super.key});
@@ -15,6 +18,7 @@ class ThemesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeState = ref.watch(themeControllerProvider);
     final coins = ref.watch(gameControllerProvider).coins;
+    final skinStyle = ref.watch(activeSkinProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -31,6 +35,7 @@ class ThemesScreen extends ConsumerWidget {
           final active = themeState.activeId == entry.id;
           return _ThemeTile(
             entry: entry,
+            skinStyle: skinStyle,
             owned: owned,
             active: active,
             onTap: () async {
@@ -57,12 +62,14 @@ class ThemesScreen extends ConsumerWidget {
 class _ThemeTile extends StatelessWidget {
   const _ThemeTile({
     required this.entry,
+    required this.skinStyle,
     required this.owned,
     required this.active,
     required this.onTap,
   });
 
   final ThemeEntry entry;
+  final BlockSkinStyle skinStyle;
   final bool owned;
   final bool active;
   final VoidCallback onTap;
@@ -85,7 +92,7 @@ class _ThemeTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            _Swatches(theme: t),
+            MiniBoardPreview(theme: t, style: skinStyle, size: 64),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -120,36 +127,6 @@ class _ThemeTile extends StatelessWidget {
               const Icon(Icons.lock_outline, color: GridColors.textMuted),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _Swatches extends StatelessWidget {
-  const _Swatches({required this.theme});
-
-  final GameTheme theme;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = [theme.placed, ...theme.traySlots];
-    return SizedBox(
-      width: 52,
-      height: 52,
-      child: Wrap(
-        spacing: 4,
-        runSpacing: 4,
-        children: [
-          for (final c in colors.take(4))
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                color: c,
-                borderRadius: BorderRadius.circular(6),
-              ),
-            ),
-        ],
       ),
     );
   }
