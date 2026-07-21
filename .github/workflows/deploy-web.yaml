@@ -7,6 +7,12 @@ name: Deploy Web (GitHub Pages)
 on:
   push:
     branches: [main]
+    # The leaderboard/feedback Actions commit these; they don't change the app,
+    # so don't trigger a full rebuild+redeploy.
+    paths-ignore:
+      - 'leaderboard.json'
+      - 'FEEDBACK.md'
+      - '**/*.md'
   workflow_dispatch:
 
 # Allow only one concurrent deployment, skipping runs queued between the

@@ -11,6 +11,7 @@ import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
 import 'game_screen.dart';
+import 'leaderboard_screen.dart';
 import 'missions_screen.dart';
 import 'puzzle_levels_screen.dart';
 import 'settings_screen.dart';
@@ -264,14 +265,32 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
               const SizedBox(height: 14),
-              _SecondaryButton(
-                icon: Icons.extension_outlined,
-                label: 'Rätsel-Modus',
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const PuzzleLevelsScreen(),
+              Row(
+                children: [
+                  Expanded(
+                    child: _SecondaryButton(
+                      icon: Icons.emoji_events_outlined,
+                      label: 'Bestenliste',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const LeaderboardScreen(),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _SecondaryButton(
+                      icon: Icons.extension_outlined,
+                      label: 'Rätsel-Modus',
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => const PuzzleLevelsScreen(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 14),
               Row(

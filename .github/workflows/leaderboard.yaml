@@ -1,0 +1,114 @@
+name: Update leaderboard
+
+# Turns "score" issues (opened by anyone) into leaderboard entries. The app
+# can't write to the repo directly, so it opens a prefilled issue carrying a
+# machine-readable marker:
+#   <!-- qubble-score v1 name="Max" score="12345" -->
+# This job validates it, keeps the best score per name in leaderboard.json,
+# commits, and closes the issue. No secrets in the client.
+
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: leaderboard-json
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    # Cheap pre-filter; the Python step does the real validation.
+    if: contains(github.event.issue.body, 'qubble-score')
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply score to leaderboard.json
+        id: apply
+        env:
+          BODY: ${{ github.event.issue.body }}
+        run: |
+          python3 - <<'PY'
+          import json, os, re, sys
+
+          body = os.environ.get("BODY", "")
+          m = re.search(
+              r'qubble-score\s+v1\s+name="([^"]{2,14})"\s+score="(\d{1,9})"',
+              body,
+          )
+          if not m:
+              print("No valid marker; skipping.")
+              sys.exit(0)
+
+          name = m.group(1).strip()
+          # Restrict to a safe character set to keep the board tidy.
+          if not re.fullmatch(r'[A-Za-z0-9 _\-]{2,14}', name):
+              print("Name failed validation; skipping.")
+              sys.exit(0)
+          score = int(m.group(2))
+          if score <= 0 or score > 100000000:
+              print("Score out of range; skipping.")
+              sys.exit(0)
+
+          path = "leaderboard.json"
+          try:
+              with open(path) as f:
+                  data = json.load(f)
+          except (FileNotFoundError, json.JSONDecodeError):
+              data = {}
+          entries = data.get("entries")
+          if not isinstance(entries, list):
+              entries = []
+
+          # Keep the best score per name.
+          best = {}
+          for e in entries:
+              if isinstance(e, dict) and isinstance(e.get("name"), str):
+                  s = e.get("score")
+                  if isinstance(s, (int, float)):
+                      best[e["name"]] = max(best.get(e["name"], 0), int(s))
+          if score > best.get(name, 0):
+              best[name] = score
+
+          merged = [{"name": n, "score": s} for n, s in best.items()]
+          merged.sort(key=lambda e: e["score"], reverse=True)
+          merged = merged[:100]
+
+          with open(path, "w") as f:
+              json.dump({"entries": merged}, f, indent=2, ensure_ascii=False)
+              f.write("\n")
+
+          rank = next(
+              (i + 1 for i, e in enumerate(merged) if e["name"] == name), None
+          )
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write(f"name={name}\n")
+              out.write(f"score={score}\n")
+              out.write(f"rank={rank}\n")
+          print(f"Applied {name} = {score} (rank {rank}).")
+          PY
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- leaderboard.json; then
+            echo "No change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add leaderboard.json
+          git commit -m "Leaderboard: ${{ steps.apply.outputs.name }} = ${{ steps.apply.outputs.score }} (issue #${{ github.event.issue.number }})"
+          git push
+
+      - name: Acknowledge and close the issue
+        if: steps.apply.outputs.name != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue comment "${{ github.event.issue.number }}" --body \
+            "🏆 Eingetragen: **${{ steps.apply.outputs.name }}** mit **${{ steps.apply.outputs.score }}** (Platz ${{ steps.apply.outputs.rank }}). Danke fürs Mitspielen!"
+          gh issue close "${{ github.event.issue.number }}" --reason completed

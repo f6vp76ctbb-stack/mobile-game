@@ -21,6 +21,7 @@ import '../../monetization/iap.dart';
 import '../../services/analytics.dart';
 import '../../services/audio.dart';
 import '../../services/haptics.dart';
+import '../../services/leaderboard.dart';
 import '../../services/storage.dart';
 import 'skin_controller.dart';
 import 'theme_controller.dart';
@@ -52,6 +53,10 @@ final adGateProvider = Provider<AdGate>((ref) {
 /// IAP service — [FakeIap] by default (tests/dev); main overrides with the real
 /// store-backed one.
 final iapServiceProvider = Provider<IapService>((ref) => FakeIap());
+
+/// Shared leaderboard reader (public repo JSON).
+final leaderboardServiceProvider =
+    Provider<LeaderboardService>((ref) => LeaderboardService());
 
 /// Immutable view of the current run for the widget tree.
 @immutable
@@ -95,6 +100,7 @@ class GameSnapshot {
     required this.rotationFree,
     required this.runActive,
     required this.playerName,
+    required this.lastSubmittedScore,
     required this.rewardsUnlockedThisRun,
   });
 
@@ -180,6 +186,10 @@ class GameSnapshot {
 
   /// The player's display name (leaderboard identity). Empty until entered.
   final String playerName;
+
+  /// Highest score already submitted to the shared leaderboard (so the UI
+  /// only offers to submit a genuine new best).
+  final int lastSubmittedScore;
 
   /// Cosmetics (themes/skins) unlocked by level-ups during this run — shown in
   /// the game-over celebration.
@@ -329,6 +339,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationFree: storage.playerLevel <= 2,
       runActive: false,
       playerName: storage.playerName,
+      lastSubmittedScore: storage.lastSubmittedScore,
       rewardsUnlockedThisRun: const [],
     );
   }
@@ -407,6 +418,15 @@ class GameController extends StateNotifier<GameSnapshot> {
   Future<void> setPlayerName(String name) async {
     await _storage.setPlayerName(name);
     _emit();
+  }
+
+  /// Records that [score] was submitted to the shared leaderboard, so the UI
+  /// stops offering to submit it again.
+  Future<void> markScoreSubmitted(int score) async {
+    if (score > _storage.lastSubmittedScore) {
+      await _storage.setLastSubmittedScore(score);
+      _emit();
+    }
   }
 
   /// Adds coins (e.g. from a consumable IAP) and refreshes the display.
@@ -722,6 +742,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationFree: _session.freeRotation,
       runActive: _session.placements > 0 && !_session.isGameOver,
       playerName: _storage.playerName,
+      lastSubmittedScore: _storage.lastSubmittedScore,
       rewardsUnlockedThisRun: _rewardsThisRun,
     );
   }
