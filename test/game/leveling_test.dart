@@ -56,15 +56,51 @@ void main() {
       );
     });
 
-    test('every 5th level counts a skin unlock', () {
-      // Push from level 4 to level 5.
+    test('reaching a milestone level yields its cosmetic reward', () {
+      // Push from level 4 to level 5 — the gradient skin unlocks at 5.
       final o = LevelSystem.applyXp(
         level: 4,
         xpIntoLevel: 0,
         gainedXp: LevelSystem.xpForNext(4),
       );
       expect(o.level, 5);
-      expect(o.skinsUnlocked, 1);
+      expect(o.rewards, hasLength(1));
+      expect(o.rewards.single.id, 'gradient');
+      expect(o.rewards.single.kind, LevelRewardKind.skin);
+    });
+
+    test('a non-milestone level-up yields no cosmetic', () {
+      // Level 1 -> 2 is not on the reward track.
+      final o = LevelSystem.applyXp(level: 1, xpIntoLevel: 0, gainedXp: 150);
+      expect(o.level, 2);
+      expect(o.rewards, isEmpty);
+    });
+
+    test('jumping past several milestones collects each reward once', () {
+      // From level 2, dump enough XP to blow past levels 3 (neon) and 5
+      // (gradient) — level 4 has no reward.
+      var xp = 0;
+      for (var l = 2; l < 6; l++) {
+        xp += LevelSystem.xpForNext(l);
+      }
+      final o = LevelSystem.applyXp(level: 2, xpIntoLevel: 0, gainedXp: xp);
+      expect(o.level, 6);
+      expect(o.rewards.map((r) => r.id), ['neon', 'gradient']);
+    });
+  });
+
+  group('reward track', () {
+    test('nextReward returns the first milestone above the level', () {
+      expect(LevelSystem.nextReward(1)!.level, 3);
+      expect(LevelSystem.nextReward(3)!.level, 5);
+      expect(LevelSystem.nextReward(19)!.level, 20);
+      expect(LevelSystem.nextReward(20), isNull);
+    });
+
+    test('every reward id is unique and non-empty', () {
+      final ids = LevelSystem.rewardTrack.map((r) => r.id).toList();
+      expect(ids.toSet(), hasLength(ids.length));
+      expect(ids.every((id) => id.isNotEmpty), isTrue);
     });
   });
 }

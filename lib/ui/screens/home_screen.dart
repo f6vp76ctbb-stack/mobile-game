@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/leveling.dart';
 import '../../game/piggy_bank.dart';
 import '../../game/streak.dart';
 import '../../monetization/iap.dart';
@@ -475,6 +476,18 @@ class _LevelBadge extends StatelessWidget {
               valueColor: AlwaysStoppedAnimation(GridColors.traySlots[0]),
             ),
           ),
+          if (LevelSystem.nextReward(level) case final next?) ...[
+            const SizedBox(height: 6),
+            Text(
+              '${next.kind == LevelRewardKind.theme ? '🎨' : '🧊'} '
+              'Level ${next.level}: ${next.name}',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: GridColors.textMuted,
+                fontSize: 12,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -22,6 +22,8 @@ import '../../services/analytics.dart';
 import '../../services/audio.dart';
 import '../../services/haptics.dart';
 import '../../services/storage.dart';
+import 'skin_controller.dart';
+import 'theme_controller.dart';
 
 /// Provided once at startup (overridden in main after async init).
 final storageProvider = Provider<Storage>(
@@ -93,6 +95,7 @@ class GameSnapshot {
     required this.rotationFree,
     required this.runActive,
     required this.profileName,
+    required this.rewardsUnlockedThisRun,
   });
 
   final Board board;
@@ -177,6 +180,10 @@ class GameSnapshot {
 
   /// Name of the active local profile (shown on the home screen).
   final String profileName;
+
+  /// Cosmetics (themes/skins) unlocked by level-ups during this run — shown in
+  /// the game-over celebration.
+  final List<LevelReward> rewardsUnlockedThisRun;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -196,6 +203,11 @@ final gameControllerProvider =
     ref.read(adServiceProvider),
     ref.read(adGateProvider),
     ref.read(analyticsProvider),
+    onCosmeticsGranted: () {
+      // Level-up unlocks changed the owned themes/skins — rebuild the caches.
+      ref.invalidate(themeControllerProvider);
+      ref.invalidate(skinControllerProvider);
+    },
   );
 });
 
@@ -208,6 +220,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     this._adGate,
     this._analytics, {
     int? seed,
+    this.onCosmeticsGranted,
   })  : _missions = MissionEngine(progress: _storage.missionProgress),
         _session = GameSession.newGame(
           seed: seed ?? _randomSeed(),
@@ -216,6 +229,10 @@ class GameController extends StateNotifier<GameSnapshot> {
         super(_initialSnapshot(_storage)) {
     _emit();
   }
+
+  /// Invoked after a run unlocks themes/skins via level-up, so the UI caches
+  /// (theme/skin controllers) can refresh. Null in tests.
+  final void Function()? onCosmeticsGranted;
 
   /// Rotation is free while the player is still learning (level <= 2) — in
   /// endless mode only; the Daily Challenge is competitive, so everyone plays
@@ -239,6 +256,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _streak = 0;
   int _levelsGainedThisRun = 0;
   int _levelUpCoins = 0;
+  List<LevelReward> _rewardsThisRun = const [];
   List<String> _completedMissions = const [];
   late bool _onboarding = !_storage.onboardingDone;
   int _onboardingStep = 0;
@@ -311,6 +329,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationFree: storage.playerLevel <= 2,
       runActive: false,
       profileName: storage.activeProfile.name,
+      rewardsUnlockedThisRun: const [],
     );
   }
 
@@ -444,6 +463,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _coinsDoubled = false;
     _levelsGainedThisRun = 0;
     _levelUpCoins = 0;
+    _rewardsThisRun = const [];
     _completedMissions = const [];
     _streak = _storage.streak;
   }
@@ -638,6 +658,17 @@ class GameController extends StateNotifier<GameSnapshot> {
     _levelsGainedThisRun = outcome.levelsGained.length;
     _levelUpCoins = outcome.coinsAwarded;
 
+    // Grant the cosmetics the level-ups unlocked (only those not yet owned).
+    final unlocked = <LevelReward>[];
+    for (final reward in outcome.rewards) {
+      final isNew = reward.kind == LevelRewardKind.theme
+          ? await _storage.addUnlockedTheme(reward.id)
+          : await _storage.addUnlockedSkin(reward.id);
+      if (isNew) unlocked.add(reward);
+    }
+    _rewardsThisRun = unlocked;
+    if (unlocked.isNotEmpty) onCosmeticsGranted?.call();
+
     if (earned > 0) await _storage.addCoins(earned);
     _coinsEarnedThisRun = earned;
     _isNewHighscore = await _storage.submitScore(_session.score);
@@ -685,6 +716,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationFree: _session.freeRotation,
       runActive: _session.placements > 0 && !_session.isGameOver,
       profileName: _storage.activeProfile.name,
+      rewardsUnlockedThisRun: _rewardsThisRun,
     );
   }
 

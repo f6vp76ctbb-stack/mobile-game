@@ -9,7 +9,6 @@ class LevelSystem {
 
   static const int baseCost = 100;
   static const int costPerLevel = 50;
-  static const int skinEveryLevels = 5;
 
   /// XP required to advance from [level] to [level] + 1.
   static int xpForNext(int level) => baseCost + costPerLevel * level;
@@ -23,7 +22,7 @@ class LevelSystem {
   }
 
   /// Applies [gainedXp] to a (level, xpIntoLevel) state and returns the new
-  /// state plus any level-ups.
+  /// state plus any level-ups and the cosmetics they unlock.
   static LevelOutcome applyXp({
     required int level,
     required int xpIntoLevel,
@@ -44,9 +43,80 @@ class LevelSystem {
       xpIntoLevel: xp,
       levelsGained: gained,
       coinsAwarded: coins,
-      skinsUnlocked: gained.where((l) => l % skinEveryLevels == 0).length,
+      rewards: rewardsForLevels(gained),
     );
   }
+
+  /// Cosmetic milestones unlocked purely by levelling up (no coins needed).
+  /// Ids match [kThemeCatalog] / [kSkinCatalog]. This is the "earn by playing"
+  /// track that runs alongside the coin shop.
+  static const List<LevelReward> rewardTrack = [
+    LevelReward(
+        level: 3, kind: LevelRewardKind.theme, id: 'neon', name: 'Neon-Theme'),
+    LevelReward(
+        level: 5,
+        kind: LevelRewardKind.skin,
+        id: 'gradient',
+        name: 'Verlauf-Skin'),
+    LevelReward(
+        level: 8,
+        kind: LevelRewardKind.theme,
+        id: 'ocean',
+        name: 'Ocean-Theme'),
+    LevelReward(
+        level: 12,
+        kind: LevelRewardKind.skin,
+        id: 'glossy',
+        name: 'Glanz-Skin'),
+    LevelReward(
+        level: 16,
+        kind: LevelRewardKind.theme,
+        id: 'wood',
+        name: 'Wood-Theme'),
+    LevelReward(
+        level: 20,
+        kind: LevelRewardKind.skin,
+        id: 'outline',
+        name: 'Kontur-Skin'),
+  ];
+
+  /// The rewards whose milestone level appears in [levels].
+  static List<LevelReward> rewardsForLevels(Iterable<int> levels) {
+    final set = levels.toSet();
+    return [
+      for (final r in rewardTrack)
+        if (set.contains(r.level)) r,
+    ];
+  }
+
+  /// The next upcoming reward strictly above [level], or null past the track.
+  static LevelReward? nextReward(int level) {
+    for (final r in rewardTrack) {
+      if (r.level > level) return r;
+    }
+    return null;
+  }
+}
+
+/// What a level-up milestone unlocks.
+enum LevelRewardKind { theme, skin }
+
+class LevelReward {
+  const LevelReward({
+    required this.level,
+    required this.kind,
+    required this.id,
+    required this.name,
+  });
+
+  final int level;
+  final LevelRewardKind kind;
+
+  /// Catalog id of the theme/skin to unlock.
+  final String id;
+
+  /// Human-readable label for the celebration UI.
+  final String name;
 }
 
 class LevelOutcome {
@@ -55,14 +125,16 @@ class LevelOutcome {
     required this.xpIntoLevel,
     required this.levelsGained,
     required this.coinsAwarded,
-    required this.skinsUnlocked,
+    required this.rewards,
   });
 
   final int level;
   final int xpIntoLevel;
   final List<int> levelsGained;
   final int coinsAwarded;
-  final int skinsUnlocked;
+
+  /// Cosmetics unlocked by the level-ups in this outcome.
+  final List<LevelReward> rewards;
 
   bool get leveledUp => levelsGained.isNotEmpty;
 }

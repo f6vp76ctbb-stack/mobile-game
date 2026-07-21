@@ -281,6 +281,14 @@ class Storage {
   Future<void> setUnlockedThemes(Set<String> ids) =>
       _prefs.setStringList(_k(_kUnlockedThemes), ids.toList());
 
+  /// Adds [id] to the owned themes. Returns true if it was newly unlocked.
+  Future<bool> addUnlockedTheme(String id) async {
+    final current = unlockedThemes;
+    if (current.contains(id)) return false;
+    await setUnlockedThemes({...current, id});
+    return true;
+  }
+
   String get activeSkin => _prefs.getString(_k(_kActiveSkin)) ?? 'classic';
   Future<void> setActiveSkin(String id) =>
       _prefs.setString(_k(_kActiveSkin), id);
@@ -292,6 +300,14 @@ class Storage {
 
   Future<void> setUnlockedSkins(Set<String> ids) =>
       _prefs.setStringList(_k(_kUnlockedSkins), ids.toList());
+
+  /// Adds [id] to the owned skins. Returns true if it was newly unlocked.
+  Future<bool> addUnlockedSkin(String id) async {
+    final current = unlockedSkins;
+    if (current.contains(id)) return false;
+    await setUnlockedSkins({...current, id});
+    return true;
+  }
 
   // ---------------------------------------------------------------------------
   // Device-global state (settings, purchases, notification bookkeeping)
