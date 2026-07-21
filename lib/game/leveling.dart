@@ -78,6 +78,16 @@ class LevelSystem {
         kind: LevelRewardKind.skin,
         id: 'outline',
         name: 'Kontur-Skin'),
+    LevelReward(
+        level: 24,
+        kind: LevelRewardKind.theme,
+        id: 'sunset',
+        name: 'Sunset-Theme'),
+    LevelReward(
+        level: 28,
+        kind: LevelRewardKind.theme,
+        id: 'forest',
+        name: 'Forest-Theme'),
   ];
 
   /// The rewards whose milestone level appears in [levels].

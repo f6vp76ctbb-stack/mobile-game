@@ -179,6 +179,36 @@ const List<ThemeEntry> kThemeCatalog = [
       fever: Color(0xFFFFD27F),
     ),
   ),
+  ThemeEntry(
+    id: 'sunset',
+    name: 'Sunset',
+    cost: 800,
+    theme: GameTheme(
+      background: Color(0xFF1E1030),
+      boardBackground: Color(0xFF2A1743),
+      emptyCell: Color(0xFF3A2158),
+      placed: Color(0xFFFF7E5F),
+      traySlots: [Color(0xFFFF7E5F), Color(0xFFFEB47B), Color(0xFFFF5E9C)],
+      validPreview: Color(0x66FF7E5F),
+      invalidPreview: Color(0x66FF5D5D),
+      fever: Color(0xFFFFD166),
+    ),
+  ),
+  ThemeEntry(
+    id: 'forest',
+    name: 'Forest',
+    cost: 800,
+    theme: GameTheme(
+      background: Color(0xFF0C1F14),
+      boardBackground: Color(0xFF12301F),
+      emptyCell: Color(0xFF1B4029),
+      placed: Color(0xFF7BE382),
+      traySlots: [Color(0xFF7BE382), Color(0xFF4FB477), Color(0xFFB8F2A0)],
+      validPreview: Color(0x667BE382),
+      invalidPreview: Color(0x66FF6B6B),
+      fever: Color(0xFFFFD166),
+    ),
+  ),
 ];
 
 GameTheme themeById(String id) {
