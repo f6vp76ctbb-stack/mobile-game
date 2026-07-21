@@ -65,14 +65,57 @@ Einnahmen also zeitnah anmelden. Im Zweifel kurz Finanzamt/Steuerberater fragen.
 
 ## 3. Firebase (Analytics + Crashlytics)
 
-1. Projekt anlegen: https://console.firebase.google.com/ → Android- und
-   iOS-App mit den echten Bundle-IDs registrieren.
-2. Config-Dateien herunterladen und ins Repo legen:
-   - Android: `google-services.json` → `android/app/`
-   - iOS: `GoogleService-Info.plist` → `ios/Runner/`
-3. Sag mir Bescheid, sobald die Dateien liegen — dann binde ich das
-   Firebase-Analytics-Backend an das bestehende `Analytics`-Interface an
-   (aktuell läuft `DebugAnalytics`, das die Funnel-Events nur ausgibt).
+**Vorab: das Google-Konto.** Für Firebase reicht ein **normales, kostenloses
+Google-Konto**. Ein eingetragenes Unternehmen brauchst du nicht:
+
+- Fragt die Konto-Erstellung nach einem **Organisations-/Unternehmensnamen**,
+  trag einfach **„Thinkube"** ein (unser Publisher-Name). Das Feld ist nur ein
+  Label — es wird nichts geprüft, du gehst keine Verpflichtung ein.
+- **Achtung, falsche Tür:** Wirst du nach einer **Domain**, einem **Abo/Tarif**
+  (z. B. „Business Starter") oder **Zahlungsdaten** gefragt, bist du im
+  **Google-Workspace**-Anmeldeprozess gelandet — das ist ein Bezahlprodukt und
+  für uns unnötig. Abbrechen und stattdessen unter
+  https://accounts.google.com/signup ein normales Konto anlegen.
+- In der Firebase/Cloud-Konsole erscheint das Projekt dann unter
+  „**Keine Organisation**" — das ist völlig normal und richtig so.
+
+**Projekt anlegen (einmalig, ~10 Minuten):**
+
+1. https://console.firebase.google.com/ → **Projekt hinzufügen**.
+2. Projektname: **Qubble** (die automatisch erzeugte Projekt-ID wie
+   `qubble-a1b2c` einfach übernehmen).
+3. **Google Analytics: aktivieren** (Ja) — das ist unser Analytics-Backend.
+   - Analytics-Standort: **Deutschland**.
+   - Analytics-Konto: „Default Account for Firebase" übernehmen.
+4. Es gilt automatisch der **Spark-Tarif (kostenlos)** — Analytics und
+   Crashlytics sind darin komplett enthalten. **Keine Kreditkarte nötig,
+   nicht auf „Blaze" upgraden.**
+
+**Android-App registrieren:**
+
+5. In der Projektübersicht auf das **Android-Symbol** → App registrieren.
+   - Paketname: **`com.thinkube.qubble`** — exakt so, Tippfehler lassen sich
+     später nicht korrigieren (nur App löschen + neu anlegen).
+   - Nickname: „Qubble Android". **SHA-1 leer lassen** (erst für
+     Play-Games/Sign-In nötig, nicht für Analytics/Crashlytics).
+6. **`google-services.json` herunterladen.** Die restlichen Schritte des
+   Assistenten („SDK hinzufügen" etc.) **überspringen** — das erledigt Claude
+   im Code.
+7. Die Datei **NICHT ins Repo committen** (Repo ist öffentlich; sie steht
+   bereits in `.gitignore`). Stattdessen:
+   - lokal nach `android/app/google-services.json` legen (dort erwartet sie
+     der Release-Build auf deinem Rechner), **und**
+   - den Datei-Inhalt Claude in der Session schicken (einfach einfügen) —
+     dann verdrahtet Claude Firebase Analytics + Crashlytics an das bestehende
+     `Analytics`-Interface (aktuell läuft `DebugAnalytics`).
+8. *(später/optional)* **iOS-App** genauso registrieren (Bundle-ID
+   `com.thinkube.qubble`) → `GoogleService-Info.plist` → lokal nach
+   `ios/Runner/`. Erst beim App-Store-Gang nötig.
+
+In der Firebase-Konsole musst du sonst **nichts** einstellen — kein
+Realtime-Database/Firestore, keine Authentication (wir haben bewusst kein
+Backend). Sollte die konto-freie Bestenliste kommen, wäre das ein eigener,
+späterer Schritt.
 
 ## 4. In-App-Käufe (IAP)
 
