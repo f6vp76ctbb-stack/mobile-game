@@ -293,6 +293,68 @@ Energie-System (killt die „entspannt"-Positionierung), Multiplayer/Clans
 (bräuchte Server), Season Pass (zu früh — erst ab stabiler D30-Basis), Lootboxen
 (Review-/Rechtsrisiko).
 
+### Phase 7 — Release-Politur (geplant Juli 2026; für autonome Sessions)
+
+Ziel: Das Spiel zum Release **richtig gut** machen (Nutzer-Auftrag). Jeder
+Punkt ist eigenständig und ohne Nutzer-Input umsetzbar (offline, testbar);
+verbindliche Detail-Specs stehen in **Anhang D**. Reihenfolge = Priorität —
+Sessions arbeiten Blöcke strikt von oben nach unten ab, ein Block pro
+PR-Zyklus (Commit → PR → Merge, wie etabliert). Vor jedem Commit:
+`flutter analyze` + `flutter test` grün; neue Logik test-first.
+
+**Block 1 — Onboarding & erste Runde (D.1)**
+- [ ] Kontextuelle Coach-Hints: einmalige Hinweise beim ersten Combo
+      (Countdown erklären), ersten Fieber, erster Rotation (Ladungen) und
+      beim ersten leistbaren Booster — je einmal pro Gerät, persistiert
+- [ ] „Wie spielt man?"-Screen: kompakte Regel-Übersicht (Platzieren, Clears,
+      Combo-Timer, Fieber, Booster, Daily) aus reinen Widgets; erreichbar
+      über Einstellungen UND ?-Icon auf dem Home-Screen
+- [ ] Sanfte erste Runde: verlängerte Generator-Frühphase für die allererste
+      Endlos-Runde (D.1.3) — seed-bar, pure Dart, getestet
+
+**Block 2 — Englische Lokalisierung (D.2)**
+- [ ] `intl`/ARB-Infrastruktur: `flutter_localizations` + `l10n.yaml`,
+      `app_de.arb` als Quelle, ALLE Nutzer-Strings extrahieren
+- [ ] `app_en.arb` vollständig übersetzen (Ton: freundlich-knapp wie DE)
+- [ ] Sprachwahl: System-Locale als Default + manueller Schalter (System/DE/EN)
+      in den Einstellungen, persistiert
+
+**Block 3 — Daily-Challenge-Politur (D.3)**
+- [ ] Gespielte Daily-Tage persistieren (`dailyDatesPlayed`, gekappt) und
+      Daily-Bereich zum eigenen Screen ausbauen: Monats-Kalender mit
+      Häkchen-Tagen, Streak, Daily-Bestwert
+- [ ] Teilen-Button am Daily-Game-Over: Emoji-Ergebnis-Text (D.3.2) via
+      `share_plus` — viraler Loop ohne Server
+- [ ] Home: Countdown „Nächstes Daily in HH:MM" wenn heute schon gespielt
+
+**Block 4 — Ökonomie- & Fairness-Absicherung (D.4)**
+- [ ] Ökonomie-Simulationstest: Greedy-Bot über ≥ 50 Seeds misst Ø
+      Münzen/Runde; Test erzwingt den Zielkorridor aus D.4.1 (bei Verstoß
+      Konstanten bewusst nachziehen, nicht den Test aufweichen)
+- [ ] Fairness-Report-Test: Ø Züge bis Game Over über ≥ 100 Seeds mit
+      Untergrenze (D.4.2) — schützt vor Generator-Regressionen
+
+**Block 5 — Komfort & Zugänglichkeit (D.5)**
+- [ ] „Reduzierte Effekte"-Schalter in den Einstellungen: weniger Partikel,
+      kein Screen-Shake, kein Glow-Blur (ältere Geräte + Reizempfindlichkeit)
+- [ ] Theme-Kontrast-Test: automatischer Test prüft Mindestkontraste aller
+      Themes (D.5.2) — Werte bei Verstoß anpassen
+- [ ] Haptik-Intensität wählbar: Aus / Leicht / Stark (D.5.3)
+
+**Block 6 — Technik-Härtung (D.6)**
+- [ ] Widget-Tests für die Monetarisierungs-Flows: Game-Over (Revive-Button
+      aktiv/ausgegraut/verbraucht), Shop (Supporter owned), Sparschwein-Dialoge
+      (leer/teils/voll)
+- [ ] Web-Performance-Pass: `RepaintBoundary` um Board/Partikel/Tray,
+      const-Audit der heißen Widgets; Ergebnis im PR dokumentieren
+- [ ] Landscape-/Tablet-Check: Board-MaxWidth, Game-/Home-Layout ab 600 dp
+      Breite; Widget-Tests mit großer Surface
+
+**👤-gebunden (NICHT von autonomen Sessions startbar):**
+Firebase-Anbindung (braucht `google-services.json` vom Nutzer),
+Play-Games-Achievements, Screenshots/Signing/Upload, geschlossener Test
+(12 Tester / 14 Tage — `docs/SETUP-ACCOUNTS.md` §7).
+
 ### KPI-Ziele (Soft Launch)
 
 | Metrik | Minimalziel | Gut |
@@ -507,3 +569,119 @@ normal. Max. 1 Heilung pro 7 Tage (sonst verliert der Streak seine Bedeutung).
 | Rewarded/DAU („verdoppeln" + Revive + Lucky) | ≥ 1,2 Views |
 | Anteil Spieler mit ≥ 1 Booster-Einsatz/Woche | ≥ 25 % |
 | Starter-Pack-Conversion (von Sehern) | ≥ 2 % |
+
+---
+
+## Anhang D — Spezifikation Phase 7 (verbindlich)
+
+### D.1 Onboarding & erste Runde
+
+**D.1.1 Kontextuelle Coach-Hints.** Einmalige, dezente Hinweis-Banner
+(gleicher Stil wie die bestehenden Onboarding-Hints), ausgelöst durch das
+erste Auftreten des jeweiligen Moments; danach nie wieder:
+
+| Storage-Key | Auslöser | Text (DE) |
+|---|---|---|
+| `hint.combo` | erste aktive Combo | „Combo! Räume innerhalb von 10 s weiter, sonst läuft sie ab ⏱" |
+| `hint.fever` | Fieber-Meter erstmals voll | „FIEBER! Doppelte Punkte, solange es glüht 🔥" |
+| `hint.rotation` | erste Rotation per Tipp | „Drehen kostet eine Ladung — Clears füllen sie wieder auf" |
+| `hint.booster` | erster Moment mit Guthaben ≥ Undo-Preis im Spiel | „Tipp: Unten kannst du Booster einsetzen 🪙" |
+
+Logik (welcher Hint fällig ist) als pure-Dart-Helfer + Unit-Tests; die Keys
+zentral in `storage.dart`.
+
+**D.1.2 „Wie spielt man?"-Screen.** Statischer Screen, Abschnitte mit
+Icon + 2–3 Zeilen: Platzieren, Reihen/Spalten räumen, Combo-Timer, Fieber,
+Booster (Preise aus `BoosterCosts` referenzieren, nicht hartkodieren), Daily
+& Streak, Sparschwein. Keine Bilder-Assets (nur Icons/eigene Painter) —
+lokalisierbar halten (Block 2).
+
+**D.1.3 Sanfte erste Runde.** `GameSession` erhält Parameter
+`earlyPhaseMoves` (Default 10 = Status quo, Anhang A.2 Regel 3). Beim
+allerersten Endlos-Run (`lifetimeStats.games == 0`) übergibt der Controller
+20. Daily bleibt IMMER Standard (kompetitiv, gleiche Bedingungen). Tests:
+Gewichtung greift in Zug 11–20 nur im Erste-Runde-Modus.
+
+### D.2 Lokalisierung
+
+- Standard-Flutter-Weg: `l10n.yaml`, ARB im `lib/l10n/`, generierte
+  `AppLocalizations`. `app_de.arb` ist die Quelle der Wahrheit.
+- ALLE nutzersichtbaren Strings (Screens, Dialoge, Snackbars, Buttons,
+  Notification-Texte) — Grep-Abnahme: kein deutsches Literal mehr in
+  `lib/ui/` außerhalb der ARB-Dateien.
+- Spielernamen, Zahlen, Emojis bleiben unübersetzt; Datumsformate via
+  `intl` (`DateFormat.yMMMd(locale)`).
+- Sprachwahl: `settings.locale` ∈ {`system`, `de`, `en`}; Default `system`.
+- Store-Texte EN existieren bereits (`docs/STORE-LISTING.md`) — Wortlaut
+  für App-Strings daran anlehnen.
+
+### D.3 Daily-Politur
+
+**D.3.1 Kalender.** Persistenz: `dailyDatesPlayed` als String-Liste von
+Date-Keys (`YYYY-MM-DD`), beim Daily-Abschluss ergänzt, auf die letzten
+**70 Einträge** gekappt (Anzeige braucht max. laufenden + Vormonat).
+Screen: Monatsraster (Mo–So), gespielte Tage = Häkchen in Theme-Farbe,
+heute umrandet; darunter Streak (🔥 n) und Daily-Bestwert (neuer
+Storage-Key `dailyHighscore`). Kalender-Logik (Wochen eines Monats,
+Markierungen) pure Dart + getestet.
+
+**D.3.2 Teilen.** Button „Ergebnis teilen" am Daily-Game-Over (nur Daily).
+Text-Format (kein Bild, kein Server):
+
+```
+Qubble Daily 21.07.2026
+🧩 1.234 Punkte · 🔥 5 Tage
+🟩🟩🟩⬜⬜
+qubble.app → https://f6vp76ctbb-stack.github.io/mobile-game/
+```
+
+Die 5 Quadrate = Score-Stufen (je 500 Punkte ein 🟩, max 5). Formatierung
+pure Dart (`daily_share.dart`) + Tests; Versand via `share_plus` (BSD-3,
+in `assets/CREDITS.md` NICHT nötig — kein Asset). Auf Web: Fallback
+Zwischenablage + Snackbar.
+
+**D.3.3 Countdown.** Auf der Daily-Karte, wenn heute gespielt:
+„Nächstes Daily in HH:MM" (Mitternacht lokal; tickt minütlich nur bei
+sichtbarem Home).
+
+### D.4 Ökonomie- & Fairness-Absicherung
+
+**D.4.1 Ökonomie-Korridor.** Testbot (immer erster legaler Zug, wie in
+`monetization_test.dart`) über ≥ 50 Seeds im Endlos-Modus. Gemessen wird
+der Durchschnitt der pro Runde verdienten Münzen (Live-Münzen inkl.
+All-Clear-Bonus, OHNE Missionen/Daily/Level-Up). Verbindlicher Korridor:
+**15–60 Münzen/Runde** (Booster-Preise 50–200 sollen nach 2–5 Runden
+erreichbar sein, aber nicht geschenkt). Liegt der Wert außerhalb →
+`kCoinsPerLine`/`kAllClearCoins`/Booster-Preise anpassen und die Änderung
+im MASTERPLAN (A.3/C.1) nachziehen. Der Test dokumentiert den Messwert in
+der Ausgabe.
+
+**D.4.2 Fairness-Untergrenze.** Gleicher Bot, ≥ 100 Seeds: Ø Züge bis
+Game Over **≥ 15** und 10.-Perzentil **≥ 8**. Schützt Rettungsregel &
+Frühphasen-Gewichtung gegen Regressionen.
+
+### D.5 Komfort & Zugänglichkeit
+
+**D.5.1 Reduzierte Effekte.** `settings.reducedEffects` (Default false).
+Wirkung: Partikelzahl ×0,4 (Clear-Bursts, Menü-Partikel, Konfetti), kein
+Screen-Shake, Glow-/Blur-Effekte durch einfache Strokes ersetzt.
+Zentral als Getter am Settings-Controller, Painter fragen ihn ab.
+
+**D.5.2 Kontrast-Test.** Für jedes Theme in `kThemeCatalog` (per
+`computeLuminance`): Kontrastverhältnis `textPrimary` vs. `background`
+≥ 4,5:1; `placed` vs. `emptyCell` ≥ 2,0:1; `fever` vs. `boardBackground`
+≥ 2,0:1. Verstöße → Farbwerte des Themes anpassen (nicht den Test).
+
+**D.5.3 Haptik-Intensität.** `settings.hapticsLevel` ∈ {off, light,
+strong}; ersetzt den Bool (Migration: true→strong, false→off). „Leicht"
+mappt schwere Impacts auf leichte. `Haptics` bleibt einzige Anlaufstelle.
+
+### D.6 Technik-Härtung
+
+- Widget-Tests (Block 6) nutzen die bestehenden Fakes; Sparschwein-Dialoge
+  über `SharedPreferences.setMockInitialValues` in die drei Zustände setzen.
+- Performance: `RepaintBoundary` um `BoardView`, Partikel-Layer und Tray;
+  danach `flutter build web --release` + Headless-Boot als Smoke-Check.
+- Landscape/Tablet: Breakpoint 600 dp; Board zentriert mit
+  `maxWidth = min(Breite, 480)`; Widget-Test mit `tester.view.physicalSize`
+  in Portrait + Landscape ohne Overflow-Exceptions.
