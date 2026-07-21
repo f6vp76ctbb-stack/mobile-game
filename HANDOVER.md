@@ -94,9 +94,9 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   L12 Glanz, L16 Wood, L20 Kontur, L24 Sunset, L28 Forest, L32 Relief,
   L36 Glow, L40 Streifen. Level-Up: animierte Karte (Game-Over) + Chime
   (`levelup.wav`) + Haptik. Home zeigt nächstes Belohnungsziel.
-- **6 Themes** (classic, neon, ocean, wood, sunset, forest) / **7 Skins**
-  (solid, gradient, glossy, outline, bevel, glow, stripe — Rendering in
-  `cell_style.dart`).
+- **7 Themes** (classic, neon, ocean, wood, sunset, forest + Aurora exklusiv
+  im Unterstützer-Paket) / **8 Skins** (solid, gradient, glossy, outline,
+  bevel, glow, stripe + Kristall exklusiv — Rendering in `cell_style.dart`).
 - **Erfolge**: 17 Stück, lokal, `achievements.dart` (Metrik ≥ Schwelle);
   Screen über Statistik → „Erfolge"; frisch freigeschaltete am Game-Over.
 - **Rätsel-Modus**: Level konstruktiv generiert (Bänder + ausgestanzte
@@ -202,10 +202,12 @@ auf Nutzerwunsch wieder ENTFERNT** (ein Name pro Gerät statt Multi-Profil).
   (Vorlagen in `docs/`), Screenshots, Signing-Key, Store-Uploads.
   iOS-Build braucht einen Mac.
 
-**Sinnvolle nächste Code-Schritte (vorgeschlagen, nicht beauftragt):**
-- Onboarding-Feinschliff (geführte erste Runde)
+**Nächste Code-Schritte (BEAUFTRAGT, Juli 2026):** `MASTERPLAN.md`
+**Phase 7 — Release-Politur** abarbeiten (Blöcke 1–6 strikt der Reihe nach,
+ein Block pro PR-Zyklus; verbindliche Specs in Anhang D). Vom Nutzer
+ausdrücklich gewünscht: „komplett überprüfen, was wir grundlegend verbessern
+können, damit das Spiel zum Release richtig gut wird."
 - ~~Shop-Vorschau verbessern (Mini-Board-Preview für Themes/Skins)~~ ✅ PR #17
-- Daily-Challenge-Politur; ggf. eigene Daily-Bestenliste
 - `FEEDBACK.md` regelmäßig prüfen (Feedback-Issues des Nutzers)
 
 ## 9. Wichtige Dateien-Landkarte
