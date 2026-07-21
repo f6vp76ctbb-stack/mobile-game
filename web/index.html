@@ -31,6 +31,48 @@
 
   <title>Qubble</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    PWA auto-update. Installed iOS home-screen apps otherwise keep serving the
+    cached build forever (the service worker never sees the tab close). We poll
+    for a new worker, ask it to activate immediately (the SW is patched at
+    deploy time to honour SKIP_WAITING), and reload once it takes over.
+  -->
+  <script>
+    (function () {
+      if (!('serviceWorker' in navigator)) return;
+      var reloading = false;
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      });
+      function promote(reg) {
+        if (reg && reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      }
+      function watch(reg) {
+        if (!reg) return;
+        promote(reg);
+        reg.addEventListener('updatefound', function () {
+          var sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', function () {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              promote(reg);
+            }
+          });
+        });
+      }
+      navigator.serviceWorker.ready.then(function (reg) {
+        watch(reg);
+        reg.update();
+        // Re-check whenever the app returns to the foreground (PWA resume).
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible') reg.update();
+        });
+      });
+    })();
+  </script>
 </head>
 <body>
   <!--

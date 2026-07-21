@@ -1,15 +1,8 @@
-/// Local persistence for GridPop (no backend). Wraps shared_preferences.
+/// Local persistence for Qubble. Wraps shared_preferences.
 ///
-/// Keys follow MASTERPLAN.md Anhang A.5.
-///
-/// ## Local profiles
-///
-/// Several players can share a device via local profiles. Progress keys
-/// (coins, level, highscore, themes, …) are namespaced per profile; the
-/// default profile (id 0) uses the legacy unprefixed keys, so pre-profile
-/// progress carries over without migration. Device-level state stays global:
-/// settings, notifications, and real-money purchase flags (ad-free, starter
-/// pack) — purchases belong to the device/store account, not a profile.
+/// Keys follow MASTERPLAN.md Anhang A.5. There is a single player identity per
+/// device (see [playerName]); progress is stored under flat keys. Real-money
+/// purchase flags (ad-free, starter pack) belong to the device/store account.
 library;
 
 import 'dart:convert';
@@ -19,27 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../game/piggy_bank.dart';
 import '../game/stats.dart';
 
-/// One local player profile (offline, device-only).
-class PlayerProfile {
-  const PlayerProfile({required this.id, required this.name});
-
-  final int id;
-  final String name;
-
-  Map<String, dynamic> toJson() => {'id': id, 'name': name};
-
-  static PlayerProfile fromJson(Map<String, dynamic> json) => PlayerProfile(
-        id: (json['id'] as num).toInt(),
-        name: json['name'] as String,
-      );
-}
-
 class Storage {
   Storage(this._prefs);
 
   final SharedPreferences _prefs;
 
-  // Per-profile keys (namespaced via [_k]).
   static const _kHighscore = 'highscore';
   static const _kCoins = 'coins';
   static const _kStreak = 'streak';
@@ -57,29 +34,6 @@ class Storage {
   static const _kPlayerLevel = 'playerLevel';
   static const _kPiggyCoins = 'piggyCoins';
   static const _kPiggyCapacity = 'piggyCapacity';
-
-  /// Every per-profile key, used to wipe a profile on delete.
-  static const List<String> _profileKeys = [
-    _kHighscore,
-    _kCoins,
-    _kStreak,
-    _kLastDailyDate,
-    _kActiveTheme,
-    _kUnlockedThemes,
-    _kActiveSkin,
-    _kUnlockedSkins,
-    _kMissionProgress,
-    _kPuzzleStars,
-    _kLifetimeStats,
-    _kOnboardingDone,
-    _kLastStreakRepair,
-    _kXp,
-    _kPlayerLevel,
-    _kPiggyCoins,
-    _kPiggyCapacity,
-  ];
-
-  // Device-global keys.
   static const _kAdFree = 'adFree';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
@@ -89,98 +43,36 @@ class Storage {
   static const _kStarterPurchased = 'starterPurchased';
   static const _kLastActiveMillis = 'lastActiveMillis';
   static const _kAppOpenCount = 'appOpenCount';
-  static const _kProfiles = 'profiles';
-  static const _kActiveProfile = 'activeProfile';
+  static const _kPlayerName = 'playerName';
+  static const _kLastSubmittedScore = 'lastSubmittedScore';
 
   static const int startingCoins = 100;
-  static const String defaultProfileName = 'Spieler 1';
 
   static Future<Storage> create() async {
     return Storage(await SharedPreferences.getInstance());
   }
 
   // ---------------------------------------------------------------------------
-  // Profiles
+  // Player identity (single per device; leaderboard name)
 
-  List<PlayerProfile> get profiles {
-    final raw = _prefs.getString(_kProfiles);
-    if (raw == null) {
-      return const [PlayerProfile(id: 0, name: defaultProfileName)];
-    }
-    final decoded = jsonDecode(raw) as List<dynamic>;
-    return [
-      for (final e in decoded)
-        PlayerProfile.fromJson(e as Map<String, dynamic>),
-    ];
-  }
+  /// The player's display name. Empty until entered on first launch.
+  String get playerName => _prefs.getString(_kPlayerName) ?? '';
+  Future<void> setPlayerName(String value) =>
+      _prefs.setString(_kPlayerName, value.trim());
 
-  Future<void> _saveProfiles(List<PlayerProfile> list) => _prefs.setString(
-        _kProfiles,
-        jsonEncode([for (final p in list) p.toJson()]),
-      );
+  bool get hasPlayerName => playerName.isNotEmpty;
 
-  int get activeProfileId => _prefs.getInt(_kActiveProfile) ?? 0;
-
-  PlayerProfile get activeProfile => profiles.firstWhere(
-        (p) => p.id == activeProfileId,
-        orElse: () => profiles.first,
-      );
-
-  Future<void> setActiveProfile(int id) =>
-      _prefs.setInt(_kActiveProfile, id);
-
-  /// Creates a profile with a fresh id and returns it.
-  Future<PlayerProfile> addProfile(String name) async {
-    final list = profiles;
-    final nextId =
-        list.map((p) => p.id).fold(0, (a, b) => a > b ? a : b) + 1;
-    final profile = PlayerProfile(id: nextId, name: name);
-    await _saveProfiles([...list, profile]);
-    return profile;
-  }
-
-  Future<void> renameProfile(int id, String name) async {
-    await _saveProfiles([
-      for (final p in profiles)
-        p.id == id ? PlayerProfile(id: id, name: name) : p,
-    ]);
-  }
-
-  /// Deletes a profile and wipes its stored progress. The last remaining
-  /// profile cannot be deleted; deleting the active one switches to the first
-  /// remaining profile.
-  Future<bool> deleteProfile(int id) async {
-    final list = profiles;
-    if (list.length <= 1) return false;
-    final remaining = [
-      for (final p in list)
-        if (p.id != id) p,
-    ];
-    if (remaining.length == list.length) return false;
-
-    for (final key in _profileKeys) {
-      await _prefs.remove(_keyFor(id, key));
-    }
-    await _saveProfiles(remaining);
-    if (activeProfileId == id) {
-      await setActiveProfile(remaining.first.id);
-    }
-    return true;
-  }
-
-  /// Namespaces [key] for [profileId]. Profile 0 keeps the legacy unprefixed
-  /// keys so existing progress survives the introduction of profiles.
-  static String _keyFor(int profileId, String key) =>
-      profileId == 0 ? key : 'p$profileId.$key';
-
-  String _k(String key) => _keyFor(activeProfileId, key);
+  /// The highest score already pushed to the shared leaderboard, so the app
+  /// only prompts to submit when a run beats it.
+  int get lastSubmittedScore => _prefs.getInt(_kLastSubmittedScore) ?? 0;
+  Future<void> setLastSubmittedScore(int value) =>
+      _prefs.setInt(_kLastSubmittedScore, value);
 
   // ---------------------------------------------------------------------------
-  // Per-profile progress
+  // Progress
 
-  int get highscore => _prefs.getInt(_k(_kHighscore)) ?? 0;
-  Future<void> setHighscore(int value) =>
-      _prefs.setInt(_k(_kHighscore), value);
+  int get highscore => _prefs.getInt(_kHighscore) ?? 0;
+  Future<void> setHighscore(int value) => _prefs.setInt(_kHighscore, value);
 
   /// Records [score] if it beats the stored highscore. Returns true if it was
   /// a new record.
@@ -192,8 +84,8 @@ class Storage {
     return false;
   }
 
-  int get coins => _prefs.getInt(_k(_kCoins)) ?? startingCoins;
-  Future<void> setCoins(int value) => _prefs.setInt(_k(_kCoins), value);
+  int get coins => _prefs.getInt(_kCoins) ?? startingCoins;
+  Future<void> setCoins(int value) => _prefs.setInt(_kCoins, value);
 
   /// Adds [delta] coins (never drops below zero) and returns the new balance.
   Future<int> addCoins(int delta) async {
@@ -203,18 +95,18 @@ class Storage {
   }
 
   Map<String, int> get missionProgress {
-    final raw = _prefs.getString(_k(_kMissionProgress));
+    final raw = _prefs.getString(_kMissionProgress);
     if (raw == null) return {};
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     return decoded.map((k, v) => MapEntry(k, (v as num).toInt()));
   }
 
   Future<void> setMissionProgress(Map<String, int> progress) =>
-      _prefs.setString(_k(_kMissionProgress), jsonEncode(progress));
+      _prefs.setString(_kMissionProgress, jsonEncode(progress));
 
   /// Best stars per puzzle level (level -> stars).
   Map<int, int> get puzzleStars {
-    final raw = _prefs.getString(_k(_kPuzzleStars));
+    final raw = _prefs.getString(_kPuzzleStars);
     if (raw == null) return {};
     final decoded = jsonDecode(raw) as Map<String, dynamic>;
     return decoded.map((k, v) => MapEntry(int.parse(k), (v as num).toInt()));
@@ -222,64 +114,62 @@ class Storage {
 
   Future<void> setPuzzleStars(Map<int, int> stars) {
     final encoded = stars.map((k, v) => MapEntry(k.toString(), v));
-    return _prefs.setString(_k(_kPuzzleStars), jsonEncode(encoded));
+    return _prefs.setString(_kPuzzleStars, jsonEncode(encoded));
   }
 
   LifetimeStats get lifetimeStats {
-    final raw = _prefs.getString(_k(_kLifetimeStats));
+    final raw = _prefs.getString(_kLifetimeStats);
     if (raw == null) return const LifetimeStats();
     return LifetimeStats.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
   Future<void> setLifetimeStats(LifetimeStats stats) =>
-      _prefs.setString(_k(_kLifetimeStats), jsonEncode(stats.toJson()));
+      _prefs.setString(_kLifetimeStats, jsonEncode(stats.toJson()));
 
-  int get streak => _prefs.getInt(_k(_kStreak)) ?? 0;
-  Future<void> setStreak(int value) => _prefs.setInt(_k(_kStreak), value);
+  int get streak => _prefs.getInt(_kStreak) ?? 0;
+  Future<void> setStreak(int value) => _prefs.setInt(_kStreak, value);
 
-  int get playerLevel => _prefs.getInt(_k(_kPlayerLevel)) ?? 1;
+  int get playerLevel => _prefs.getInt(_kPlayerLevel) ?? 1;
   Future<void> setPlayerLevel(int value) =>
-      _prefs.setInt(_k(_kPlayerLevel), value);
+      _prefs.setInt(_kPlayerLevel, value);
 
-  int get xp => _prefs.getInt(_k(_kXp)) ?? 0;
-  Future<void> setXp(int value) => _prefs.setInt(_k(_kXp), value);
+  int get xp => _prefs.getInt(_kXp) ?? 0;
+  Future<void> setXp(int value) => _prefs.setInt(_kXp, value);
 
   PiggyBank get piggyBank => PiggyBank(
-        coins: _prefs.getInt(_k(_kPiggyCoins)) ?? 0,
-        capacity:
-            _prefs.getInt(_k(_kPiggyCapacity)) ?? PiggyBank.baseCapacity,
+        coins: _prefs.getInt(_kPiggyCoins) ?? 0,
+        capacity: _prefs.getInt(_kPiggyCapacity) ?? PiggyBank.baseCapacity,
       );
 
   Future<void> setPiggyBank(PiggyBank piggy) async {
-    await _prefs.setInt(_k(_kPiggyCoins), piggy.coins);
-    await _prefs.setInt(_k(_kPiggyCapacity), piggy.capacity);
+    await _prefs.setInt(_kPiggyCoins, piggy.coins);
+    await _prefs.setInt(_kPiggyCapacity, piggy.capacity);
   }
 
-  String? get lastDailyDate => _prefs.getString(_k(_kLastDailyDate));
+  String? get lastDailyDate => _prefs.getString(_kLastDailyDate);
   Future<void> setLastDailyDate(String key) =>
-      _prefs.setString(_k(_kLastDailyDate), key);
+      _prefs.setString(_kLastDailyDate, key);
 
-  String? get lastStreakRepairDate =>
-      _prefs.getString(_k(_kLastStreakRepair));
+  String? get lastStreakRepairDate => _prefs.getString(_kLastStreakRepair);
   Future<void> setLastStreakRepairDate(String key) =>
-      _prefs.setString(_k(_kLastStreakRepair), key);
+      _prefs.setString(_kLastStreakRepair, key);
 
-  bool get onboardingDone => _prefs.getBool(_k(_kOnboardingDone)) ?? false;
+  bool get onboardingDone => _prefs.getBool(_kOnboardingDone) ?? false;
   Future<void> setOnboardingDone(bool value) =>
-      _prefs.setBool(_k(_kOnboardingDone), value);
+      _prefs.setBool(_kOnboardingDone, value);
 
-  String get activeTheme => _prefs.getString(_k(_kActiveTheme)) ?? 'classic';
+  String get activeTheme => _prefs.getString(_kActiveTheme) ?? 'classic';
   Future<void> setActiveTheme(String id) =>
-      _prefs.setString(_k(_kActiveTheme), id);
+      _prefs.setString(_kActiveTheme, id);
 
   /// Theme ids the player owns. 'classic' is always included.
   Set<String> get unlockedThemes {
-    final list = _prefs.getStringList(_k(_kUnlockedThemes)) ?? const [];
+    final list = _prefs.getStringList(_kUnlockedThemes) ?? const [];
     return {'classic', ...list};
   }
 
   Future<void> setUnlockedThemes(Set<String> ids) =>
-      _prefs.setStringList(_k(_kUnlockedThemes), ids.toList());
+      _prefs.setStringList(_kUnlockedThemes, ids.toList());
 
   /// Adds [id] to the owned themes. Returns true if it was newly unlocked.
   Future<bool> addUnlockedTheme(String id) async {
@@ -289,17 +179,17 @@ class Storage {
     return true;
   }
 
-  String get activeSkin => _prefs.getString(_k(_kActiveSkin)) ?? 'classic';
+  String get activeSkin => _prefs.getString(_kActiveSkin) ?? 'classic';
   Future<void> setActiveSkin(String id) =>
-      _prefs.setString(_k(_kActiveSkin), id);
+      _prefs.setString(_kActiveSkin, id);
 
   Set<String> get unlockedSkins {
-    final list = _prefs.getStringList(_k(_kUnlockedSkins)) ?? const [];
+    final list = _prefs.getStringList(_kUnlockedSkins) ?? const [];
     return {'classic', ...list};
   }
 
   Future<void> setUnlockedSkins(Set<String> ids) =>
-      _prefs.setStringList(_k(_kUnlockedSkins), ids.toList());
+      _prefs.setStringList(_kUnlockedSkins, ids.toList());
 
   /// Adds [id] to the owned skins. Returns true if it was newly unlocked.
   Future<bool> addUnlockedSkin(String id) async {

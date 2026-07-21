@@ -12,7 +12,6 @@ import '../state/game_controller.dart';
 import '../theme.dart';
 import 'game_screen.dart';
 import 'missions_screen.dart';
-import 'profiles_screen.dart';
 import 'puzzle_levels_screen.dart';
 import 'settings_screen.dart';
 import 'shop_screen.dart';
@@ -27,6 +26,45 @@ class HomeScreen extends ConsumerWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const GameScreen()),
     );
+  }
+
+  /// Lets the player rename themselves (leaderboard identity).
+  Future<void> _editName(
+    BuildContext context,
+    WidgetRef ref,
+    String current,
+  ) async {
+    final controller = TextEditingController(text: current);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GridColors.boardBackground,
+        title: const Text('Dein Name',
+            style: TextStyle(color: GridColors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 14,
+          textCapitalization: TextCapitalization.words,
+          style: const TextStyle(color: GridColors.textPrimary),
+          decoration: const InputDecoration(hintText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    if (name != null && name.length >= 2) {
+      await ref.read(gameControllerProvider.notifier).setPlayerName(name);
+    }
   }
 
   void _handlePiggy(BuildContext context, WidgetRef ref, int coins) {
@@ -118,20 +156,6 @@ class HomeScreen extends ConsumerWidget {
                           ),
                         ),
                       ),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.people_outline,
-                          color: GridColors.textPrimary,
-                        ),
-                        tooltip: 'Profile',
-                        onPressed: () async {
-                          await Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) => const ProfilesScreen(),
-                            ),
-                          );
-                        },
-                      ),
                     ],
                   ),
                   Row(
@@ -164,11 +188,7 @@ class HomeScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 12),
               GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const ProfilesScreen(),
-                  ),
-                ),
+                onTap: () => _editName(context, ref, snap.playerName),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -176,15 +196,16 @@ class HomeScreen extends ConsumerWidget {
                         size: 16, color: GridColors.textMuted),
                     const SizedBox(width: 6),
                     Text(
-                      snap.profileName,
+                      snap.playerName,
                       style: const TextStyle(
                         color: GridColors.textPrimary,
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Icon(Icons.expand_more,
-                        size: 16, color: GridColors.textMuted),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.edit,
+                        size: 14, color: GridColors.textMuted),
                   ],
                 ),
               ),

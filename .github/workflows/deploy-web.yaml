@@ -39,6 +39,20 @@ jobs:
       - name: Build web
         run: flutter build web --release --base-href /mobile-game/ --no-web-resources-cdn
 
+      # Flutter's service worker doesn't honour SKIP_WAITING, so a new build
+      # stays "waiting" forever on an installed iOS PWA. Append a message
+      # handler so index.html can activate the new worker immediately.
+      - name: Enable instant service-worker updates
+        run: |
+          cat >> build/web/flutter_service_worker.js <<'EOF'
+
+          self.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'SKIP_WAITING') {
+              self.skipWaiting();
+            }
+          });
+          EOF
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 

@@ -94,7 +94,7 @@ class GameSnapshot {
     required this.rotationCharges,
     required this.rotationFree,
     required this.runActive,
-    required this.profileName,
+    required this.playerName,
     required this.rewardsUnlockedThisRun,
   });
 
@@ -178,8 +178,8 @@ class GameSnapshot {
   /// home screen shows "Weiterspielen" instead of restarting.
   final bool runActive;
 
-  /// Name of the active local profile (shown on the home screen).
-  final String profileName;
+  /// The player's display name (leaderboard identity). Empty until entered.
+  final String playerName;
 
   /// Cosmetics (themes/skins) unlocked by level-ups during this run — shown in
   /// the game-over celebration.
@@ -328,7 +328,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationCharges: GameSession.startRotationCharges,
       rotationFree: storage.playerLevel <= 2,
       runActive: false,
-      profileName: storage.activeProfile.name,
+      playerName: storage.playerName,
       rewardsUnlockedThisRun: const [],
     );
   }
@@ -401,6 +401,12 @@ class GameController extends StateNotifier<GameSnapshot> {
       _emit();
     }
     return earned;
+  }
+
+  /// Sets the player's display name (leaderboard identity) and refreshes.
+  Future<void> setPlayerName(String name) async {
+    await _storage.setPlayerName(name);
+    _emit();
   }
 
   /// Adds coins (e.g. from a consumable IAP) and refreshes the display.
@@ -715,7 +721,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       rotationCharges: _session.rotationCharges,
       rotationFree: _session.freeRotation,
       runActive: _session.placements > 0 && !_session.isGameOver,
-      profileName: _storage.activeProfile.name,
+      playerName: _storage.playerName,
       rewardsUnlockedThisRun: _rewardsThisRun,
     );
   }
