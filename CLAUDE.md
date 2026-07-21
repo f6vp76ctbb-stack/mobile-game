@@ -1,5 +1,9 @@
 # CLAUDE.md — Qubble (Block-Puzzle, iOS + Android)
 
+> **Neue Session? Zuerst `HANDOVER.md` lesen** — vollständige Übergabe mit
+> Projektstand, Architektur-Entscheidungen, Web/PWA-Fallstricken, Pipelines
+> (Feedback/Bestenliste), offenen Punkten und Nutzer-Feedback-Historie.
+
 ## Projekt
 
 Qubble ist ein Block-Puzzle-Spiel (Genre: Block Blast!/Woodoku) für App Store und
