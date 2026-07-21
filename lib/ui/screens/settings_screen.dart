@@ -8,6 +8,7 @@ import '../state/game_controller.dart';
 import '../state/notifications_controller.dart';
 import '../state/settings_controller.dart';
 import '../theme.dart';
+import 'feedback_screen.dart';
 import 'shop_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -130,6 +131,21 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 );
               }
             },
+          ),
+          const _SectionLabel('Mithelfen'),
+          ListTile(
+            leading: const Icon(Icons.feedback_outlined,
+                color: GridColors.textPrimary),
+            title: const Text('Feedback geben', style: _tileStyle),
+            subtitle: const Text(
+              'Ideen & Fehler melden (via GitHub)',
+              style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+            ),
+            trailing:
+                const Icon(Icons.chevron_right, color: GridColors.textMuted),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const FeedbackScreen()),
+            ),
           ),
           const _SectionLabel('Rechtliches'),
           ListTile(
