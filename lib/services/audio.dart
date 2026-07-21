@@ -119,7 +119,7 @@ class AudioplayersMusic implements MusicService {
     if (!_enabled || _started) return;
     _started = true;
     try {
-      await _player.play(AssetSource('audio/music.wav'), volume: 0.35);
+      await _player.play(AssetSource('audio/music.wav'), volume: 0.24);
     } catch (_) {
       // Autoplay may still be blocked (e.g. web before a gesture) — retry on
       // the next call.
