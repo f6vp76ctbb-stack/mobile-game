@@ -30,7 +30,7 @@ void main() {
       final ids = LevelSystem.rewardTrack.map((r) => r.id).toSet();
       expect(ids, containsAll(['sunset', 'forest']));
       expect(LevelSystem.nextReward(20)!.id, 'sunset');
-      expect(LevelSystem.nextReward(28), isNull);
+      expect(LevelSystem.nextReward(40), isNull);
     });
   });
 }

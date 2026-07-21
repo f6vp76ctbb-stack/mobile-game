@@ -95,7 +95,8 @@ void main() {
       expect(LevelSystem.nextReward(3)!.level, 5);
       expect(LevelSystem.nextReward(19)!.level, 20);
       expect(LevelSystem.nextReward(20)!.level, 24);
-      expect(LevelSystem.nextReward(28), isNull);
+      expect(LevelSystem.nextReward(28)!.level, 32);
+      expect(LevelSystem.nextReward(40), isNull);
     });
 
     test('every reward id is unique and non-empty', () {

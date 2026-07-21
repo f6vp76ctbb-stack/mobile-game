@@ -8,6 +8,9 @@ import '../../game/block_skin.dart';
 Color _darken(Color c, double amount) =>
     Color.lerp(c, Colors.black, amount) ?? c;
 
+Color _lighten(Color c, double amount) =>
+    Color.lerp(c, Colors.white, amount) ?? c;
+
 /// Paints a single filled cell in [rect] using [color] and the given [style].
 void paintCell(
   Canvas canvas,
@@ -48,5 +51,53 @@ void paintCell(
           ..strokeWidth = 2
           ..color = color,
       );
+    case BlockSkinStyle.bevel:
+      // Raised 3D tile: dark base, lighter inset face, top highlight strip.
+      canvas.drawRRect(rrect, Paint()..color = _darken(color, 0.35));
+      final inset = rect.deflate(rect.width * 0.14);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(inset, Radius.circular(radius * 0.7)),
+        Paint()..color = color,
+      );
+      final topHi = Rect.fromLTWH(
+          inset.left, inset.top, inset.width, inset.height * 0.28);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(topHi, Radius.circular(radius * 0.7)),
+        Paint()..color = _lighten(color, 0.28),
+      );
+    case BlockSkinStyle.glow:
+      // Dark core with a bright, blurred neon border.
+      canvas.drawRRect(rrect, Paint()..color = _darken(color, 0.62));
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..color = color
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
+      );
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.5
+          ..color = _lighten(color, 0.3),
+      );
+    case BlockSkinStyle.stripe:
+      canvas.drawRRect(rrect, Paint()..color = color);
+      canvas.save();
+      canvas.clipRRect(rrect);
+      final stripe = Paint()
+        ..color = _darken(color, 0.22)
+        ..strokeWidth = rect.width * 0.16
+        ..style = PaintingStyle.stroke;
+      for (var d = -rect.height; d < rect.width; d += rect.width * 0.34) {
+        canvas.drawLine(
+          Offset(rect.left + d, rect.bottom),
+          Offset(rect.left + d + rect.height, rect.top),
+          stripe,
+        );
+      }
+      canvas.restore();
   }
 }

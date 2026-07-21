@@ -4,7 +4,7 @@
 /// the active theme's colour). Cosmetic only; unlockable with coins.
 library;
 
-enum BlockSkinStyle { solid, gradient, glossy, outline }
+enum BlockSkinStyle { solid, gradient, glossy, outline, bevel, glow, stripe }
 
 class BlockSkin {
   const BlockSkin({
@@ -48,6 +48,24 @@ const List<BlockSkin> kSkinCatalog = [
     name: 'Kontur',
     cost: 500,
     style: BlockSkinStyle.outline,
+  ),
+  BlockSkin(
+    id: 'bevel',
+    name: 'Relief',
+    cost: 600,
+    style: BlockSkinStyle.bevel,
+  ),
+  BlockSkin(
+    id: 'glow',
+    name: 'Glow',
+    cost: 700,
+    style: BlockSkinStyle.glow,
+  ),
+  BlockSkin(
+    id: 'stripe',
+    name: 'Streifen',
+    cost: 600,
+    style: BlockSkinStyle.stripe,
   ),
 ];
 
