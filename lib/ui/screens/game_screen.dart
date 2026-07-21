@@ -711,17 +711,25 @@ class _GameOverOverlay extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: 28),
-            // Rewarded revive — always voluntary, always grants the reward.
-            FilledButton.tonal(
-              onPressed: () => controller.reviveWithAd(),
-              child: const Text('▶  Weiterspielen (Video ansehen)'),
-            ),
-            const SizedBox(height: 12),
+            // "Nochmal" is the primary, always-free action. The rewarded
+            // revive is optional and deliberately less prominent, so it never
+            // feels like you must watch a video to keep playing.
             FilledButton(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(52),
+                textStyle:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               onPressed: () => controller.newGameWithInterstitial(),
-              child: const Text('Nochmal'),
+              child: const Text('Nochmal spielen'),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              onPressed: () => controller.reviveWithAd(),
+              icon: const Icon(Icons.play_circle_outline, size: 18),
+              label: const Text('Weiterspielen (Video, optional)'),
+              style: TextButton.styleFrom(foregroundColor: GridColors.fever),
+            ),
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Hauptmenü'),

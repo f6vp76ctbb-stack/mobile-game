@@ -110,9 +110,15 @@ class PuzzleController extends StateNotifier<PuzzleState> {
 
     // The level is failed the moment it can no longer be emptied with the
     // remaining pieces (detected by the solver, not just "no placement fits").
+    // The solver is bounded; if it runs out of budget we don't declare a
+    // failure (better to let the player keep trying than to false-positive).
     final remaining = state.pieces.sublist(index);
-    final failed =
-        !solved && PuzzleSolver.minMovesToEmpty(board, remaining) == null;
+    final solveResult = solved
+        ? const PuzzleSolveResult(moves: 0, budgetExceeded: false)
+        : PuzzleSolver.solve(board, remaining, budget: 60000);
+    final failed = !solved &&
+        !solveResult.budgetExceeded &&
+        solveResult.moves == null;
 
     var stars = 0;
     var coins = 0;

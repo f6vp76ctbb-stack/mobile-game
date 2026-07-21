@@ -117,13 +117,20 @@ class HomeScreen extends ConsumerWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
+          // Scrolls when the content is taller than the screen (small phones,
+          // landscape), while the Spacers still center it when there's room.
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Column(
                     children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
                       IconButton(
                         icon: const Icon(
                           Icons.shopping_bag_outlined,
@@ -172,64 +179,62 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const Spacer(),
+              const Spacer(flex: 2),
+              // Compact brand + profile (deliberately understated).
               const Text(
                 'Qubble',
                 style: TextStyle(
                   color: GridColors.textPrimary,
-                  fontSize: 52,
+                  fontSize: 30,
                   fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
+                  letterSpacing: 1.2,
                 ),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'Block Puzzle',
-                style: TextStyle(color: GridColors.textMuted, fontSize: 18),
-              ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               GestureDetector(
                 onTap: () => _editName(context, ref, snap.playerName),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.person,
-                        size: 16, color: GridColors.textMuted),
-                    const SizedBox(width: 6),
+                        size: 13, color: GridColors.textMuted),
+                    const SizedBox(width: 5),
                     Text(
                       snap.playerName,
                       style: const TextStyle(
-                        color: GridColors.textPrimary,
-                        fontSize: 15,
+                        color: GridColors.textMuted,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: 3),
                     const Icon(Icons.edit,
-                        size: 14, color: GridColors.textMuted),
+                        size: 12, color: GridColors.textMuted),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Bestwert: ${snap.highscore}',
-                style: const TextStyle(
-                  color: GridColors.placed,
-                  fontSize: 20,
+              const Spacer(flex: 3),
+              // Prominent best score, right above the play button.
+              const Text(
+                'BESTWERT',
+                style: TextStyle(
+                  color: GridColors.textMuted,
+                  fontSize: 13,
+                  letterSpacing: 2,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              const SizedBox(height: 18),
-              _LevelBadge(
-                level: snap.playerLevel,
-                xp: snap.xpIntoLevel,
-                xpForNext: snap.xpForNextLevel,
+              const SizedBox(height: 2),
+              Text(
+                '${snap.highscore}',
+                style: const TextStyle(
+                  color: GridColors.placed,
+                  fontSize: 52,
+                  fontWeight: FontWeight.bold,
+                  height: 1.0,
+                ),
               ),
-              if (snap.weekendActive) ...[
-                const SizedBox(height: 14),
-                const _WeekendBanner(),
-              ],
-              const Spacer(),
+              const SizedBox(height: 20),
               _PrimaryButton(
                 // A running game resumes instead of silently restarting.
                 label: snap.runActive ? 'Weiterspielen' : 'Spielen',
@@ -251,6 +256,16 @@ class HomeScreen extends ConsumerWidget {
                     style: TextStyle(color: GridColors.textMuted),
                   ),
                 ),
+              const SizedBox(height: 12),
+              _LevelBadge(
+                level: snap.playerLevel,
+                xp: snap.xpIntoLevel,
+                xpForNext: snap.xpForNextLevel,
+              ),
+              if (snap.weekendActive) ...[
+                const SizedBox(height: 12),
+                const _WeekendBanner(),
+              ],
               const SizedBox(height: 14),
               if (snap.streakRepairAvailable) ...[
                 _StreakRepairBanner(streak: snap.streak),
@@ -332,8 +347,12 @@ class HomeScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const Spacer(),
-            ],
+                      const Spacer(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
         ),
       ),
@@ -612,15 +631,37 @@ class _SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OutlinedButton.icon(
+    // Vertical layout (icon over label) so narrow half-width buttons never
+    // wrap the text; the label scales down to fit if needed.
+    return OutlinedButton(
       style: OutlinedButton.styleFrom(
-        minimumSize: const Size.fromHeight(52),
+        minimumSize: const Size.fromHeight(60),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         foregroundColor: GridColors.textPrimary,
         side: const BorderSide(color: GridColors.gridLine),
       ),
-      icon: Icon(icon),
-      label: Text(label),
       onPressed: onPressed,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 22),
+          const SizedBox(height: 4),
+          SizedBox(
+            width: double.infinity,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
