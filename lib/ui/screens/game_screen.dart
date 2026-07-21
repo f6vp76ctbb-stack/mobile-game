@@ -4,6 +4,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../game/leveling.dart';
 import '../../game/piece.dart';
 import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
@@ -642,16 +643,11 @@ class _GameOverOverlay extends ConsumerWidget {
               ),
             if (snap.levelsGainedThisRun > 0)
               Padding(
-                padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  snap.levelsGainedThisRun == 1
-                      ? 'Level ${snap.playerLevel} erreicht! ⭐'
-                      : '${snap.levelsGainedThisRun} Level aufgestiegen! ⭐',
-                  style: const TextStyle(
-                    color: GridColors.placed,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                padding: const EdgeInsets.only(top: 12),
+                child: _LevelUpCard(
+                  level: snap.playerLevel,
+                  levelsGained: snap.levelsGainedThisRun,
+                  rewards: snap.rewardsUnlockedThisRun,
                 ),
               ),
             if (snap.isDaily && snap.streak > 0)
@@ -722,6 +718,113 @@ class _GameOverOverlay extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Animated level-up celebration on the game-over screen: a badge that pops
+/// and glows, plus any cosmetics the new level(s) unlocked.
+class _LevelUpCard extends StatefulWidget {
+  const _LevelUpCard({
+    required this.level,
+    required this.levelsGained,
+    required this.rewards,
+  });
+
+  final int level;
+  final int levelsGained;
+  final List<LevelReward> rewards;
+
+  @override
+  State<_LevelUpCard> createState() => _LevelUpCardState();
+}
+
+class _LevelUpCardState extends State<_LevelUpCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..forward();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final title = widget.levelsGained == 1
+        ? 'Level ${widget.level} erreicht!'
+        : '${widget.levelsGained} Level aufgestiegen — Level ${widget.level}!';
+
+    return AnimatedBuilder(
+      animation: _c,
+      builder: (context, child) {
+        // Pop in with an overshoot, then settle; the glow pulses once.
+        final pop = Curves.elasticOut.transform(_c.value.clamp(0.0, 1.0));
+        final glow = (1.0 - (_c.value - 0.5).abs() * 2).clamp(0.0, 1.0);
+        return Transform.scale(
+          scale: 0.6 + 0.4 * pop,
+          child: Container(
+            width: 300,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFFFFB03A), Color(0xFFFF7A59)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFFB03A).withValues(alpha: glow * 0.7),
+                  blurRadius: 26 * glow,
+                  spreadRadius: 2 * glow,
+                ),
+              ],
+            ),
+            child: child,
+          ),
+        );
+      },
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('⭐', style: TextStyle(fontSize: 22)),
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (widget.rewards.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            for (final r in widget.rewards)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '${r.kind == LevelRewardKind.theme ? '🎨' : '🧊'} '
+                  'Freigeschaltet: ${r.name}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+          ],
+        ],
       ),
     );
   }

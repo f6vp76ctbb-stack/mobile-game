@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/game/board.dart';
+import 'package:gridpop/game/leveling.dart';
 import 'package:gridpop/game/piece.dart';
 import 'package:gridpop/monetization/ad_gate.dart';
 import 'package:gridpop/monetization/ads.dart';
@@ -224,5 +225,59 @@ void main() {
     final before = c.state.score;
     c.place(0, const Cell(100, 100));
     expect(c.state.score, before);
+  });
+
+  test('reaching a milestone level unlocks its cosmetic reward', () async {
+    // One XP shy of level 3 (neon theme milestone); any run earns >=1 XP.
+    SharedPreferences.setMockInitialValues({
+      'playerLevel': 2,
+      'xp': LevelSystem.xpForNext(2) - 1,
+    });
+    final storage = await Storage.create();
+    var cosmeticsCallbackFired = false;
+    final c = GameController(
+      storage,
+      Haptics(enabled: false),
+      SilentAudio(),
+      FakeAdService(),
+      AdGate(now: DateTime.now),
+      NoopAnalytics(),
+      onCosmeticsGranted: () => cosmeticsCallbackFired = true,
+    );
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    expect(storage.playerLevel, greaterThanOrEqualTo(3));
+    expect(storage.unlockedThemes, contains('neon'));
+    expect(
+      c.state.rewardsUnlockedThisRun.map((r) => r.id),
+      contains('neon'),
+    );
+    expect(cosmeticsCallbackFired, isTrue);
+  });
+
+  test('an already-owned reward is not re-announced', () async {
+    SharedPreferences.setMockInitialValues({
+      'playerLevel': 2,
+      'xp': LevelSystem.xpForNext(2) - 1,
+      'unlockedThemes': <String>['neon'],
+    });
+    final storage = await Storage.create();
+    final c = GameController(
+      storage,
+      Haptics(enabled: false),
+      SilentAudio(),
+      FakeAdService(),
+      AdGate(now: DateTime.now),
+      NoopAnalytics(),
+    );
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    // Crossed level 3 but already owned neon → nothing new to announce.
+    expect(storage.playerLevel, greaterThanOrEqualTo(3));
+    expect(c.state.rewardsUnlockedThisRun, isEmpty);
   });
 }
