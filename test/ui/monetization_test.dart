@@ -311,6 +311,17 @@ void main() {
       expect(delivered, [IapProducts.supporter, IapProducts.coinsM]);
     });
 
+    test('LockedIap (public web) never delivers anything', () async {
+      final delivered = <String>[];
+      final iap = LockedIap();
+      await iap.initialize(delivered.add);
+      await iap.buy(IapProducts.supporter);
+      await iap.buy(IapProducts.coinsL);
+      expect(delivered, isEmpty);
+      expect(iap.products, isEmpty);
+      expect(iap.available, isFalse);
+    });
+
     test('coin amounts are defined for every consumable pack', () {
       for (final id in [
         IapProducts.coinsS,

@@ -121,6 +121,30 @@ class FakeIap implements IapService {
   Future<void> restore() async {}
 }
 
+/// Locked storefront for the public web/PWA release build: no products, and
+/// [buy] never delivers. The web demo must not hand out entitlements or coins
+/// for free — that would let players cheat the shared leaderboard (the same
+/// class of problem as admin access). Native builds use [StoreIap]; debug web
+/// builds may use [FakeIap] for development.
+class LockedIap implements IapService {
+  @override
+  bool get available => false;
+
+  @override
+  List<ShopProduct> get products => const [];
+
+  @override
+  Future<void> initialize(
+    FutureOr<void> Function(String productId) onDeliver,
+  ) async {}
+
+  @override
+  Future<void> buy(String productId) async {}
+
+  @override
+  Future<void> restore() async {}
+}
+
 class StoreIap implements IapService {
   final InAppPurchase _iap = InAppPurchase.instance;
   StreamSubscription<List<PurchaseDetails>>? _sub;

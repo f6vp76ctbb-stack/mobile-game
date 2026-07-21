@@ -148,6 +148,9 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   **noch nicht entschieden**.
 - **Admin-Modus (Test)**: In Einstellungen 7× auf die Fußzeile
   („Qubble • Offline Block Puzzle") tippen → Münzen +1.000/+10.000/auf 0.
+  **Nur in Debug-Builds** (doppelt verriegelt: `kDebugMode` in der UI +
+  `kReleaseMode`-No-op im Controller) — Spieler dürfen NIE Cheats bekommen.
+  Ebenso: öffentlicher Web-Build nutzt `LockedIap` (keine Gratis-Käufe).
 
 ## 6. Web/PWA-Besonderheiten (wichtig!)
 

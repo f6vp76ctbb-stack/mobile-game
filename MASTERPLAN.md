@@ -302,6 +302,14 @@ Sessions arbeiten Blöcke strikt von oben nach unten ab, ein Block pro
 PR-Zyklus (Commit → PR → Merge, wie etabliert). Vor jedem Commit:
 `flutter analyze` + `flutter test` grün; neue Logik test-first.
 
+**Block 0 — Release-Härtung ✅ (Juli 2026 erledigt)**
+- [x] Admin-Modus (7-Tap, Münz-Cheats) debug-only: `kDebugMode`-Riegel im
+      Settings-Screen + hartes No-op von `setCoinsForTest` im Release-Build
+- [x] Öffentliche Web-PWA: `LockedIap` statt `FakeIap` — keine Produkte,
+      keine Gratis-Lieferung (Bestenlisten-Fairness); Shop erklärt
+      „Käufe nur in der App". Debug-Web behält `FakeIap` fürs Entwickeln
+- [x] Release-Countdown-Tabelle (Code- + 👤-Spur verzahnt) in `docs/RELEASE.md`
+
 **Block 1 — Onboarding & erste Runde (D.1)**
 - [ ] Kontextuelle Coach-Hints: einmalige Hinweise beim ersten Combo
       (Countdown erklären), ersten Fieber, erster Rotation (Ladungen) und

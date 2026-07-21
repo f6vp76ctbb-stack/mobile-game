@@ -31,6 +31,23 @@ class ShopScreen extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
+          // Locked storefront (public web/PWA): purchases only exist in the
+          // store apps, so the web demo can't hand out anything for free.
+          if (products.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: GridColors.boardBackground,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: GridColors.gridLine),
+              ),
+              child: const Text(
+                'Käufe gibt es nur in der App aus dem Play Store. Diese '
+                'Web-Version ist eine kostenlose Demo — spielen kannst du '
+                'hier trotzdem alles.',
+                style: TextStyle(color: GridColors.textMuted, fontSize: 14),
+              ),
+            ),
           for (final p in products)
             Padding(
               padding: const EdgeInsets.only(bottom: 14),

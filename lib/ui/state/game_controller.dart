@@ -459,8 +459,10 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
   /// Sets the coin balance directly — only reachable from the hidden admin
-  /// (test) section in the settings.
+  /// (test) section in the settings. Hard no-op in release builds: players
+  /// must never get coin cheats, even if a UI guard ever slips.
   Future<void> setCoinsForTest(int value) async {
+    if (kReleaseMode) return;
     await _storage.setCoins(value.clamp(0, 1 << 31));
     _emit();
   }

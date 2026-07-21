@@ -1,6 +1,7 @@
 /// Settings: sound/haptics toggles, ad-free/restore, privacy, about.
 library;
 
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -20,11 +21,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// Hidden admin/test mode: unlocked by tapping the footer 7 times.
+  /// DEBUG BUILDS ONLY — release players must never get coin cheats
+  /// (kDebugMode guard here plus a second one in [GameController.setCoinsForTest]).
   static const int _adminTapTarget = 7;
   int _footerTaps = 0;
   bool _adminUnlocked = false;
 
   void _onFooterTap() {
+    if (!kDebugMode) return;
     if (_adminUnlocked) return;
     setState(() => _footerTaps += 1);
     if (_footerTaps >= _adminTapTarget) {
@@ -165,7 +169,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             title: const Text('Impressum', style: _tileStyle),
             onTap: () => _showImpressum(context),
           ),
-          if (_adminUnlocked) ...[
+          if (kDebugMode && _adminUnlocked) ...[
             const _SectionLabel('Admin (Test)'),
             ListTile(
               leading: const Icon(Icons.paid_outlined,
