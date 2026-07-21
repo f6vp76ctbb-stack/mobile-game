@@ -88,6 +88,21 @@ class LevelSystem {
         kind: LevelRewardKind.theme,
         id: 'forest',
         name: 'Forest-Theme'),
+    LevelReward(
+        level: 32,
+        kind: LevelRewardKind.skin,
+        id: 'bevel',
+        name: 'Relief-Skin'),
+    LevelReward(
+        level: 36,
+        kind: LevelRewardKind.skin,
+        id: 'glow',
+        name: 'Glow-Skin'),
+    LevelReward(
+        level: 40,
+        kind: LevelRewardKind.skin,
+        id: 'stripe',
+        name: 'Streifen-Skin'),
   ];
 
   /// The rewards whose milestone level appears in [levels].
