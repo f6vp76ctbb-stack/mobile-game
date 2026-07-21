@@ -21,7 +21,7 @@ minimalen Kosten.
 | Bundle-/Application-ID | `com.thinkube.qubble` |
 | Interner Dart-Paketname | `gridpop` (**absichtlich** nicht umbenannt — unsichtbar für Nutzer, Imports heißen `package:gridpop/...`) |
 | Repo | `f6vp76ctbb-stack/mobile-game` (öffentlich!) |
-| Arbeitsbranch | `claude/app-store-game-idea-jn0blw` |
+| Arbeitsbranch | `claude/handover-continuation-ir2f40` (vorher `claude/app-store-game-idea-jn0blw`) |
 | Live-URL (PWA) | https://f6vp76ctbb-stack.github.io/mobile-game/ |
 
 **Namens-Check (👤 offen):** „Qubble"/„Thinkube" wirkten bei Recherche frei;
@@ -33,7 +33,7 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   `export PATH="$HOME/.flutter-sdk/bin:$PATH"`. Falls es fehlt:
   `scripts/setup.sh`.
 - Vor jedem Commit: `flutter analyze` (0 issues) + `flutter test` (aktuell
-  **243 Tests grün**). Web-Check: `flutter build web --release
+  **245 Tests grün**). Web-Check: `flutter build web --release
   --no-web-resources-cdn`, optional Headless-Boot via `playwright-core`
   (Chromium unter `/opt/pw-browsers/chromium`, `--no-sandbox`).
 - **Deploy-Pipeline:** Arbeit auf dem Arbeitsbranch → Commit → Push → PR
@@ -195,7 +195,7 @@ auf Nutzerwunsch wieder ENTFERNT** (ein Name pro Gerät statt Multi-Profil).
 
 **Sinnvolle nächste Code-Schritte (vorgeschlagen, nicht beauftragt):**
 - Onboarding-Feinschliff (geführte erste Runde)
-- Shop-Vorschau verbessern (Mini-Board-Preview für Themes/Skins)
+- ~~Shop-Vorschau verbessern (Mini-Board-Preview für Themes/Skins)~~ ✅ PR #17
 - Daily-Challenge-Politur; ggf. eigene Daily-Bestenliste
 - `FEEDBACK.md` regelmäßig prüfen (Feedback-Issues des Nutzers)
 
@@ -214,10 +214,12 @@ auf Nutzerwunsch wieder ENTFERNT** (ein Name pro Gerät statt Multi-Profil).
 
 ## 10. Zahlen zum Stand
 
-- **243 Tests grün**, `flutter analyze` sauber (Stand: letzter Merge PR #15)
+- **245 Tests grün**, `flutter analyze` sauber (Stand: letzter Merge PR #17)
 - Merged PRs dieser Session: #3 Rename+Deploy, #4 Playtest-Fixes/Features,
   #5 Admin+Partikel-Cap, #6 (Profile, später entfernt), #7 Belohnungsspur,
   #8 Feedback+Fade, #9 Name+Leaderboard+PWA-Update, #10 Freund-Feedback,
   #11 Menü-Partikel, #12 Level-Up-Sound+2 Themes, #13 Erfolge,
   #14 3 Skins, #15 Web-Restart+Live-Münzen+Musik
+- Folge-Session (Juli 2026): #17 Mini-Board-Previews für Theme-/Skin-Shop
+  (gemeinsames `MiniBoardPreview`-Widget, `test/widget/store_preview_test.dart`)
 - Flutter stable 3.44.x / Dart 3.12.x; Riverpod 2.x (immutable Snapshots)
