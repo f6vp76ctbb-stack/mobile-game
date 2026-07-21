@@ -74,6 +74,11 @@ test/             # Spiegelt lib/game/ — Logik hat Vorrang bei Testabdeckung
   (`supporterOnly`) ist nie für Münzen erhältlich.
 - Vor dem ersten Ad-Request: UMP-Consent-Flow (DSGVO) durchlaufen.
 - In Debug-Builds ausschließlich AdMob-Test-Ad-Unit-IDs verwenden.
+- **Spieler bekommen NIE Cheat-/Admin-Zugriff:** Admin-/Test-Funktionen
+  (Münz-Cheats etc.) sind doppelt mit `kDebugMode`/`kReleaseMode` verriegelt
+  (UI + Controller). Der öffentliche Web-Build nutzt `LockedIap` — er darf
+  niemals Käufe/Münzen gratis ausliefern (Bestenlisten-Fairness). Diese
+  Riegel dürfen nicht entfernt oder aufgeweicht werden.
 
 ## Umgebung (Cloud-Sessions)
 

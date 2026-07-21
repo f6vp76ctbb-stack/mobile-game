@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -29,8 +29,12 @@ Future<void> main() async {
         musicProvider.overrideWithValue(AudioplayersMusic()),
         adServiceProvider
             .overrideWithValue(kIsWeb ? FakeAdService() : GoogleAdService()),
-        iapServiceProvider
-            .overrideWithValue(kIsWeb ? FakeIap() : StoreIap()),
+        // Web: the released PWA must never deliver purchases for free
+        // (leaderboard fairness) — LockedIap has no products and never
+        // delivers. FakeIap only in local debug web builds for development.
+        iapServiceProvider.overrideWithValue(
+          kIsWeb ? (kDebugMode ? FakeIap() : LockedIap()) : StoreIap(),
+        ),
         // Firebase backend lands once config files exist; DebugAnalytics prints
         // the funnel in the meantime (see docs/SETUP-ACCOUNTS.md).
         analyticsProvider.overrideWithValue(DebugAnalytics()),
