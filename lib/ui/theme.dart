@@ -42,7 +42,36 @@ ThemeData buildGridTheme() {
       bodyColor: GridColors.textPrimary,
       displayColor: GridColors.textPrimary,
     ),
+    // The default Material "zoom" page transition composites shadows/clips
+    // every frame and janks badly on Flutter web. A plain cross-fade is cheap
+    // and smooth on every platform.
+    pageTransitionsTheme: PageTransitionsTheme(
+      builders: {
+        for (final platform in TargetPlatform.values)
+          platform: const _FadePageTransitionsBuilder(),
+      },
+    ),
   );
+}
+
+/// A lightweight fade page transition used on all platforms (see
+/// [buildGridTheme]).
+class _FadePageTransitionsBuilder extends PageTransitionsBuilder {
+  const _FadePageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    return FadeTransition(
+      opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+      child: child,
+    );
+  }
 }
 
 /// A swappable board palette. Chrome text stays on [GridColors] (all themes

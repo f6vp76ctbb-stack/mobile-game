@@ -1,0 +1,61 @@
+name: Collect feedback
+
+# Appends feedback issues (label `feedback`, opened by the repo owner) to
+# FEEDBACK.md. The app can't write to the repo directly — it only opens a
+# prefilled issue — so this Action closes the loop server-side with the
+# built-in GITHUB_TOKEN (no secrets in the client).
+
+on:
+  issues:
+    types: [opened, labeled]
+
+# Serialize so concurrent feedback issues don't race on the file/commit.
+concurrency:
+  group: feedback-md
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    # Only the owner's issues carrying the `feedback` label — ignore public spam.
+    if: >
+      github.event.issue.user.login == github.repository_owner &&
+      contains(join(github.event.issue.labels.*.name, ','), 'feedback')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Append issue to FEEDBACK.md
+        env:
+          NUM: ${{ github.event.issue.number }}
+          TITLE: ${{ github.event.issue.title }}
+          BODY: ${{ github.event.issue.body }}
+          URL: ${{ github.event.issue.html_url }}
+          CREATED: ${{ github.event.issue.created_at }}
+        run: |
+          # Dedup: 'opened' and 'labeled' can both fire for one issue.
+          if grep -q "issue #${NUM})" FEEDBACK.md 2>/dev/null; then
+            echo "Issue #${NUM} already recorded — skipping."
+            exit 0
+          fi
+          # Values come from env vars (never eval'd), so issue text can't inject
+          # shell commands.
+          {
+            printf '\n## %s (issue #%s)\n' "$TITLE" "$NUM"
+            printf '_%s · %s_\n\n' "$CREATED" "$URL"
+            printf '%s\n\n---\n' "$BODY"
+          } >> FEEDBACK.md
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- FEEDBACK.md; then
+            echo "No change."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add FEEDBACK.md
+          git commit -m "Add feedback from issue #${{ github.event.issue.number }}"
+          git push
