@@ -10,6 +10,7 @@ import '../monetization/iap.dart';
 import '../services/analytics.dart';
 import '../services/notification_planner.dart';
 import 'screens/home_screen.dart';
+import 'screens/name_entry_screen.dart';
 import 'state/game_controller.dart';
 import 'state/notifications_controller.dart';
 import 'state/settings_controller.dart';
@@ -121,5 +122,15 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
   }
 
   @override
-  Widget build(BuildContext context) => const HomeScreen();
+  Widget build(BuildContext context) {
+    // A name is required before playing (leaderboard identity).
+    final hasName = ref.watch(gameControllerProvider).playerName.isNotEmpty;
+    if (!hasName) {
+      return NameEntryScreen(
+        onSubmit: (name) =>
+            ref.read(gameControllerProvider.notifier).setPlayerName(name),
+      );
+    }
+    return const HomeScreen();
+  }
 }
