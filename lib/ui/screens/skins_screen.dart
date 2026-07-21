@@ -8,7 +8,7 @@ import '../../game/block_skin.dart';
 import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
-import '../widgets/cell_style.dart';
+import '../widgets/mini_board_preview.dart';
 
 class SkinsScreen extends ConsumerWidget {
   const SkinsScreen({super.key});
@@ -16,7 +16,7 @@ class SkinsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(skinControllerProvider);
-    final accent = ref.watch(activeThemeProvider).placed;
+    final theme = ref.watch(activeThemeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -33,7 +33,7 @@ class SkinsScreen extends ConsumerWidget {
           final active = state.activeId == skin.id;
           return _SkinTile(
             skin: skin,
-            accent: accent,
+            theme: theme,
             owned: owned,
             active: active,
             onTap: () async {
@@ -56,20 +56,21 @@ class SkinsScreen extends ConsumerWidget {
 class _SkinTile extends StatelessWidget {
   const _SkinTile({
     required this.skin,
-    required this.accent,
+    required this.theme,
     required this.owned,
     required this.active,
     required this.onTap,
   });
 
   final BlockSkin skin;
-  final Color accent;
+  final GameTheme theme;
   final bool owned;
   final bool active;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final accent = theme.placed;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(14),
@@ -85,13 +86,7 @@ class _SkinTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            SizedBox(
-              width: 84,
-              height: 28,
-              child: CustomPaint(
-                painter: _SkinPreview(style: skin.style, color: accent),
-              ),
-            ),
+            MiniBoardPreview(theme: theme, style: skin.style, size: 64),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -129,25 +124,4 @@ class _SkinTile extends StatelessWidget {
       ),
     );
   }
-}
-
-class _SkinPreview extends CustomPainter {
-  _SkinPreview({required this.style, required this.color});
-
-  final BlockSkinStyle style;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const count = 3;
-    final cell = size.height;
-    for (var i = 0; i < count; i++) {
-      final rect = Rect.fromLTWH(i * (cell + 4), 0, cell, cell);
-      paintCell(canvas, rect, cell * 0.22, color, style);
-    }
-  }
-
-  @override
-  bool shouldRepaint(_SkinPreview old) =>
-      old.style != style || old.color != color;
 }
