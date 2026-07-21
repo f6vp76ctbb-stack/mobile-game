@@ -1,4 +1,4 @@
-/// Shop: remove-ads (non-consumable) and coin packs (consumable) + restore.
+/// Shop: supporter pack (non-consumable) and coin packs (consumable) + restore.
 library;
 
 import 'package:flutter/material.dart';
@@ -14,7 +14,7 @@ class ShopScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final iap = ref.watch(iapServiceProvider);
-    final adFree = ref.watch(gameControllerProvider).adFree;
+    final supporter = ref.watch(gameControllerProvider).supporter;
     final products = iap.products;
 
     return Scaffold(
@@ -36,15 +36,17 @@ class ShopScreen extends ConsumerWidget {
               padding: const EdgeInsets.only(bottom: 14),
               child: _ProductTile(
                 product: p,
-                owned: p.id == IapProducts.removeAds && adFree,
+                owned: p.id == IapProducts.supporter && supporter,
                 onBuy: () => iap.buy(p.id),
               ),
             ),
           const SizedBox(height: 8),
           const Text(
-            'Käufe sind an dein Store-Konto gebunden und lassen sich jederzeit '
-            'wiederherstellen. „Werbefrei“ entfernt Interstitials — freiwillige '
-            'Video-Belohnungen bleiben erhalten.',
+            'Qubble zeigt keine erzwungene Werbung — kaufen musst du hier '
+            'nichts. Das Unterstützer-Paket (Aurora-Theme, Kristall-Skin, '
+            '1.500 Münzen, ❤️-Abzeichen) ist ein Dankeschön fürs Unterstützen. '
+            'Käufe sind an dein Store-Konto gebunden und jederzeit '
+            'wiederherstellbar.',
             style: TextStyle(color: GridColors.textMuted, fontSize: 13),
           ),
         ],
@@ -76,18 +78,32 @@ class _ProductTile extends StatelessWidget {
       child: Row(
         children: [
           Text(
-            product.id == IapProducts.removeAds ? '🚫' : '🪙',
+            product.id == IapProducts.supporter ? '❤️' : '🪙',
             style: const TextStyle(fontSize: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
-            child: Text(
-              product.title,
-              style: const TextStyle(
-                color: GridColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.title,
+                  style: const TextStyle(
+                    color: GridColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (product.id == IapProducts.supporter)
+                  const Padding(
+                    padding: EdgeInsets.only(top: 2),
+                    child: Text(
+                      'Aurora-Theme + Kristall-Skin + 1.500 Münzen',
+                      style:
+                          TextStyle(color: GridColors.textMuted, fontSize: 12),
+                    ),
+                  ),
+              ],
             ),
           ),
           if (owned)

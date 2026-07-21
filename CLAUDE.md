@@ -59,12 +59,19 @@ test/             # Spiegelt lib/game/ — Logik hat Vorrang bei Testabdeckung
 - Keine Assets mit unklarer Lizenz — nur selbst erstellt oder CC0 (Kenney.nl,
   freesound.org); Quelle in `assets/CREDITS.md` festhalten.
 
-## Monetarisierungs-Regeln (nicht verhandelbar)
+## Monetarisierungs-Regeln (nicht verhandelbar; Stand Juli 2026)
 
-- Interstitials: frühestens nach Runde 3, max. 1 pro 90 s. Capping-Logik liegt
-  zentral in `lib/monetization/ad_gate.dart` — nirgendwo direkt Ads zeigen.
-- Rewarded Ads sind immer freiwillig und geben immer die versprochene Belohnung.
-- „Werbefrei"-IAP entfernt Interstitials/Banner, behält aber Rewarded-Optionen.
+- **Keine erzwungene Werbung.** Keine Interstitials, keine Banner — nirgends.
+  Spielen (auch Neustart und Weiterspielen) erfordert NIE ein Video.
+- **Rewarded Ads nur als freiwilliger Bonus** (Münzen verdoppeln, Lucky Block,
+  Streak-Reparatur, Sparschwein früher öffnen, Rätsel-Extra-Zug). Immer
+  optional, geben immer die versprochene Belohnung.
+- Revive („Weiterspielen") kostet Münzen (`BoosterCosts.revive`), nie Werbung.
+- Das Sparschwein ist eine Belohnung: voll = gratis ausschütten; vorzeitig
+  öffnen optional per Bonus-Video. Es ist KEIN Kaufprodukt.
+- IAP: Unterstützer-Paket (`qubble_supporter`, non-consumable: exklusives
+  Theme + Skin + Münzen + ❤️), Münzpakete, Starter-Paket. Exklusive Kosmetik
+  (`supporterOnly`) ist nie für Münzen erhältlich.
 - Vor dem ersten Ad-Request: UMP-Consent-Flow (DSGVO) durchlaufen.
 - In Debug-Builds ausschließlich AdMob-Test-Ad-Unit-IDs verwenden.
 

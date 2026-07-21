@@ -85,5 +85,6 @@ Optional Code-Shrinking (kleinere App): in `android/app/build.gradle.kts`
 - [ ] Release-Build startet, spielbar, keine Debug-Banner.
 - [ ] Echte Ads laden im Release (Test-Gerät als AdMob-Testgerät registrieren,
       um nicht auf Live-Ads zu klicken).
-- [ ] Kauf „Werbefrei" entfernt Interstitials; „Wiederherstellen" funktioniert.
+- [ ] Unterstützer-Paket liefert Aurora-Theme + Kristall-Skin + 1.500 Münzen
+      + ❤️; „Wiederherstellen" funktioniert.
 - [ ] Absturz-frei in einer 10-Minuten-Session.

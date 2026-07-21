@@ -21,6 +21,12 @@ void main() {
     expect(p.fillFraction, 1.0);
   });
 
+  test('is full exactly at capacity (free-open condition)', () {
+    expect(PiggyBank.initial().addLines(499).isFull, isFalse);
+    expect(PiggyBank.initial().addLines(500).isFull, isTrue);
+    expect(PiggyBank.initial().addLines(999).isFull, isTrue); // capped
+  });
+
   test('hint shows only at/above 80% full', () {
     final almost = PiggyBank.initial().addLines(399); // 79.8%
     expect(almost.showHint, isFalse);

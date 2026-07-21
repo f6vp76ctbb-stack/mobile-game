@@ -1,8 +1,9 @@
 /// Pure-Dart piggy bank logic (MASTERPLAN.md C.5). No Flutter imports.
 ///
 /// Fills with +1 coin per cleared line during play (separate from the normal
-/// coin balance). Emptying it is a consumable IAP. Capacity grows each time it
-/// is opened, up to a cap.
+/// coin balance). A FULL bank can be emptied for free; a partially filled one
+/// can optionally be opened early by watching a rewarded video. Never a
+/// purchase. Capacity grows each time it is opened, up to a cap.
 library;
 
 class PiggyBank {
@@ -25,6 +26,9 @@ class PiggyBank {
   double get fillFraction => capacity == 0 ? 0 : (coins / capacity).clamp(0, 1);
   bool get showHint => fillFraction >= hintThreshold;
   bool get isEmpty => coins == 0;
+
+  /// A full bank pays out for free (tap to collect).
+  bool get isFull => coins >= capacity;
 
   /// Adds [lines] worth of coins, capped at [capacity].
   PiggyBank addLines(int lines) {

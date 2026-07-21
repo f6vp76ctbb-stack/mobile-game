@@ -49,7 +49,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final settings = ref.watch(settingsControllerProvider);
     final controller = ref.read(settingsControllerProvider.notifier);
     final snap = ref.watch(gameControllerProvider);
-    final adFree = snap.adFree;
+    final supporter = snap.supporter;
     final iap = ref.read(iapServiceProvider);
 
     return Scaffold(
@@ -105,15 +105,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             },
           ),
           const _SectionLabel('Käufe'),
-          if (adFree)
+          if (supporter)
             const ListTile(
-              leading: Icon(Icons.check_circle, color: GridColors.placed),
-              title: Text('Werbung entfernt', style: _tileStyle),
+              leading: Icon(Icons.favorite, color: GridColors.placed),
+              title: Text('Unterstützer — danke! ❤️', style: _tileStyle),
             )
           else
             ListTile(
-              leading: const Icon(Icons.block, color: GridColors.textPrimary),
-              title: const Text('Werbefrei kaufen', style: _tileStyle),
+              leading:
+                  const Icon(Icons.favorite_outline, color: GridColors.textPrimary),
+              title: const Text('Unterstützer-Paket', style: _tileStyle),
+              subtitle: const Text(
+                'Exklusives Theme & Skin + 1.500 Münzen',
+                style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+              ),
               trailing: const Icon(Icons.chevron_right,
                   color: GridColors.textMuted),
               onTap: () => Navigator.of(context).push(

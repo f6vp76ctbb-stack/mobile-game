@@ -19,27 +19,29 @@ Personenbezogene Daten werden nur im Rahmen der unten genannten Drittdienste
 ## 2. Lokale Speicherung
 
 Auf dem Gerät gespeichert (via `shared_preferences`): Highscore, Münzstand,
-Daily-Streak, aktives Theme, freigeschaltete Themes, „Werbefrei"-Status,
-Einstellungen. Diese Daten verlassen das Gerät nicht und werden beim
-Deinstallieren gelöscht.
+Daily-Streak, aktives Theme, freigeschaltete Themes/Skins, Kauf-Status
+(z. B. Unterstützer-Paket), Einstellungen. Diese Daten verlassen das Gerät
+nicht und werden beim Deinstallieren gelöscht.
 
 ## 3. Werbung (Google AdMob)
 
-Zur Finanzierung zeigt die App Werbung über Google AdMob (Google Ireland Ltd.).
-AdMob kann Geräte-/Werbe-Identifier und Nutzungsdaten verarbeiten, um Anzeigen
-auszuliefern und zu messen.
+Die App zeigt **keine erzwungene Werbung**. Das einzige Werbeformat sind
+**freiwillige belohnte Videos** (Bonus-Videos), die du aktiv startest und die
+dafür eine Belohnung im Spiel geben. Diese laufen über Google AdMob
+(Google Ireland Ltd.). AdMob kann dabei Geräte-/Werbe-Identifier und
+Nutzungsdaten verarbeiten, um Anzeigen auszuliefern und zu messen.
 
 - **Einwilligung (EU/EWR/UK):** Vor der ersten Anzeige durchläufst du einen
   Consent-Dialog (Google UMP). Ohne Einwilligung werden – soweit möglich – nur
   nicht-personalisierte Anzeigen ausgeliefert.
-- **Belohnte Videos** sind stets freiwillig.
 - Google-Datenschutz: https://policies.google.com/privacy
 - Personalisierung verwalten: über den in der App/Store verfügbaren Consent-Flow.
 
-## 4. Käufe entfernen Werbung
+## 4. Käufe
 
-Mit dem Kauf „Werbefrei" werden Interstitial-/Banner-Anzeigen deaktiviert.
-Freiwillige belohnte Videos bleiben verfügbar.
+Alle Käufe (Unterstützer-Paket, Münzpakete, Starter-Paket) sind optional und
+werden über den jeweiligen App-Store abgewickelt; die App selbst erhält keine
+Zahlungsdaten.
 
 ## 5. Analyse & Absturzberichte (Firebase)
 

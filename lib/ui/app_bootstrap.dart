@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../game/starter_offer.dart';
+import '../game/supporter_pack.dart';
 import '../monetization/iap.dart';
 import '../services/analytics.dart';
 import '../services/notification_planner.dart';
@@ -14,6 +15,7 @@ import 'screens/name_entry_screen.dart';
 import 'state/game_controller.dart';
 import 'state/notifications_controller.dart';
 import 'state/settings_controller.dart';
+import 'state/skin_controller.dart';
 import 'state/theme_controller.dart';
 
 class AppBootstrap extends ConsumerStatefulWidget {
@@ -103,10 +105,15 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
   /// Applies a purchased/restored entitlement. Idempotent.
   Future<void> _deliver(String productId) async {
     final controller = ref.read(gameControllerProvider.notifier);
-    if (productId == IapProducts.removeAds) {
-      await controller.applyAdFree();
-    } else if (productId == IapProducts.piggy) {
-      await controller.openPiggy();
+    if (productId == IapProducts.supporter) {
+      await controller.grantCoins(SupporterPack.coins);
+      await ref
+          .read(themeControllerProvider.notifier)
+          .grantTheme(SupporterPack.themeId);
+      await ref
+          .read(skinControllerProvider.notifier)
+          .grantSkin(SupporterPack.skinId);
+      await controller.applySupporter();
     } else if (productId == IapProducts.starter) {
       await controller.grantCoins(StarterOffer.coins);
       await ref

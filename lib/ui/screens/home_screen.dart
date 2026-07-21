@@ -7,7 +7,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/leveling.dart';
 import '../../game/piggy_bank.dart';
 import '../../game/streak.dart';
-import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
@@ -70,8 +69,8 @@ class HomeScreen extends ConsumerWidget {
     }
   }
 
-  void _handlePiggy(BuildContext context, WidgetRef ref, int coins) {
-    if (coins <= 0) {
+  void _handlePiggy(BuildContext context, WidgetRef ref, PiggyBank piggy) {
+    if (piggy.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -81,29 +80,63 @@ class HomeScreen extends ConsumerWidget {
       );
       return;
     }
+    final controller = ref.read(gameControllerProvider.notifier);
+    if (piggy.isFull) {
+      // A full bank pays out for free — the piggy is a reward, not a purchase.
+      showDialog<void>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          backgroundColor: GridColors.boardBackground,
+          title: const Text(
+            'Sparschwein ist voll! 🎉',
+            style: TextStyle(color: GridColors.textPrimary),
+          ),
+          content: Text(
+            'Hol dir 🪙 ${piggy.coins} Münzen — gratis.',
+            style: const TextStyle(color: GridColors.textMuted),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Später'),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop();
+                controller.openPiggy();
+              },
+              child: const Text('Abholen'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
         backgroundColor: GridColors.boardBackground,
         title: const Text(
-          'Sparschwein öffnen?',
+          'Sparschwein',
           style: TextStyle(color: GridColors.textPrimary),
         ),
         content: Text(
-          'Hol dir 🪙 $coins Münzen für 2,99 €.',
+          '🪙 ${piggy.coins} von ${piggy.capacity} gesammelt.\n\n'
+          'Ist es voll, kannst du es gratis ausschütten — oder du öffnest es '
+          'jetzt schon mit einem Bonus-Video.',
           style: const TextStyle(color: GridColors.textMuted),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Abbrechen'),
+            child: const Text('Weiter sparen'),
           ),
           FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              ref.read(iapServiceProvider).buy(IapProducts.piggy);
+              controller.openPiggyWithAd();
             },
-            child: const Text('Öffnen'),
+            child: const Text('▶  Jetzt öffnen'),
           ),
         ],
       ),
@@ -179,7 +212,14 @@ class HomeScreen extends ConsumerWidget {
                       _PiggyChip(
                         coins: snap.piggyCoins,
                         capacity: snap.piggyCapacity,
-                        onTap: () => _handlePiggy(context, ref, snap.piggyCoins),
+                        onTap: () => _handlePiggy(
+                          context,
+                          ref,
+                          PiggyBank(
+                            coins: snap.piggyCoins,
+                            capacity: snap.piggyCapacity,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 10),
                       _CoinPill(coins: snap.coins),
@@ -208,7 +248,10 @@ class HomeScreen extends ConsumerWidget {
                         size: 13, color: GridColors.textMuted),
                     const SizedBox(width: 5),
                     Text(
-                      snap.playerName,
+                      // Supporters get a small heart next to their name.
+                      snap.supporter
+                          ? '${snap.playerName} ❤️'
+                          : snap.playerName,
                       style: const TextStyle(
                         color: GridColors.textMuted,
                         fontSize: 13,

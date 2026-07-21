@@ -45,29 +45,40 @@ genau dafür ist dieser Plan da.
 
 ---
 
-## 2. Monetarisierung
+## 2. Monetarisierung (überarbeitet Juli 2026: „fair & werbearm")
 
-**Ziel-Mix: ~80 % Werbung, ~20 % In-App-Käufe** (genre-typisch).
+**Bewusste Positionierung gegen den Genre-Standard:** Block Blast & Co.
+verdienen fast alles über erzwungene Interstitials. Qubble macht das Gegenteil
+— **keine erzwungene Werbung, nie**. Werbung ist immer ein freiwilliger Bonus.
+Das kostet kurzfristig Werbe-Umsatz, ist aber unser Alleinstellungsmerkmal
+(Reviews, Retention, Weiterempfehlung) und die explizite Produktentscheidung
+des Eigentümers.
 
-### Werbung (AdMob, später ggf. Mediation)
+### Werbung (AdMob — NUR Rewarded, alle freiwillig)
 
-| Format | Platzierung | Regel |
+| Platzierung | Wann | Regel |
 |---|---|---|
-| Interstitial | Nach Game Over, vor neuer Runde | Frühestens ab Runde 3, max. 1 pro 90 Sekunden — nicht die Retention töten |
-| Rewarded Video | „Revive" nach Game Over (Board wird teilweise geleert) | Kernstück — höchste eCPMs, freiwillig |
-| Rewarded Video | „Lucky Block" (Wunsch-Teil ziehen) | 1× pro Runde |
-| Banner | Optional, nur im Hauptmenü | Erst nach Launch testen, im Spiel selbst NIE |
+| „Münzen verdoppeln" | Game-Over, wenn Münzen verdient | 1× pro Runde |
+| „Lucky Block" (neue Teile) | Im Spiel | freiwillig |
+| Streak-Reparatur | Alternative zu 150 Münzen | max. 1×/7 Tage |
+| Sparschwein früher öffnen | Alternative zum Gratis-Öffnen bei voll | freiwillig |
+| Rätsel-Extra-Zug | Im Rätsel-Modus | 1× pro Level |
+
+**Verboten:** Interstitials, Banner, „Video um weiterzuspielen". Revive kostet
+Münzen (200), nie Werbung.
 
 ### In-App-Käufe
 
 | Produkt | Preis | Typ |
 |---|---|---|
-| **Werbefrei** (behält Rewarded-Optionen!) | 4,99 € | Non-Consumable — der wichtigste IAP im Genre |
+| **Unterstützer-Paket** (Aurora-Theme + Kristall-Skin + 1.500 Münzen + ❤️-Abzeichen) | 4,99 € | Non-Consumable — ehrliches „Ich mag das Spiel"-Angebot |
 | Münzpaket S/M/L | 0,99 / 2,99 / 7,99 € | Consumable |
-| Starter-Paket (einmalig, ab Runde 5) | 1,99 € | Consumable — 1200 Münzen + Wood-Theme (Anhang C.6) |
-| Sparschwein öffnen | 2,99 € | Consumable — füllt sich beim Spielen (Anhang C.5) |
+| Starter-Paket (einmalig, ab Runde 5, 48h) | 1,99 € | Consumable — 1200 Münzen + Wood-Theme (Anhang C.6) |
 | Münzen kaufen: Revive, Undo, Teil-Tausch, Board-Bombe | — | Booster-Ökonomie |
-| Themes (Holz, Neon, Pastell, Dark) | via Münzen | Kosmetik, treibt Münz-Nachfrage |
+| Themes/Skins | via Münzen | Kosmetik, treibt Münz-Nachfrage |
+
+Das Sparschwein ist seit Juli 2026 **kein IAP mehr**, sondern eine Belohnung
+(voll = gratis ausschütten, optional per Bonus-Video früher; Anhang C.5).
 
 ---
 
@@ -178,13 +189,17 @@ bis der Mensch sie als erledigt markiert.
 
 ### Phase 3 — Monetarisierung & Stores (Woche 5–6)
 - [x] Anleitung für alle 👤-Schritte geschrieben (`docs/SETUP-ACCOUNTS.md`)
-- [x] AdMob-Integration (Interstitial + Rewarded) mit zentralem Frequency Capping
-      (`ad_gate.dart`, ab Runde 3 / max 1 pro 90 s) — Debug nutzt Test-IDs; getestet
-- [x] Rewarded-Flows: „Revive" (Board-Mitte) und „Lucky Block" (neue Teile) als
-      echte Rewarded-Ads; Belohnung immer freiwillig + garantiert — getestet
+- [x] AdMob-Integration — Debug nutzt Test-IDs; getestet.
+      *(Juli 2026 überarbeitet: Interstitials + `ad_gate.dart` komplett
+      entfernt — nur noch freiwillige Rewarded-Videos, siehe Abschnitt 2)*
+- [x] Rewarded-Flows („Lucky Block", Münzen verdoppeln, Streak-Reparatur,
+      Sparschwein, Rätsel-Extra-Zug); Belohnung immer freiwillig + garantiert
+      — getestet. *(Revive kostet seit Juli 2026 Münzen statt Video)*
 - [x] UMP/DSGVO-Consent-Flow vor dem ersten Ad-Request (`GoogleAdService`)
-- [x] IAP-Code (Werbefrei non-consumable + Münzpakete consumable), Restore,
-      Shop-Screen, Delivery-Handler; „Werbefrei" behält Rewarded — getestet
+- [x] IAP-Code (Unterstützer-Paket non-consumable + Münzpakete consumable),
+      Restore, Shop-Screen, Delivery-Handler — getestet.
+      *(Juli 2026: „Werbefrei" durch Unterstützer-Paket ersetzt — es gibt
+      keine erzwungene Werbung mehr, die man entfernen müsste)*
 - [x] Analytics-Funnel-Events (game_start, round_complete, reach_round_3,
       daily_played, rewarded_watched, interstitial_shown, purchase) an
       `Analytics`-Interface angebunden (`DebugAnalytics` aktiv)
@@ -341,7 +356,7 @@ Teile werden **nicht** vom Spieler rotiert (genre-üblich) — Rotationen sind e
 | Posten | Wert |
 |---|---|
 | Startguthaben | 100 Münzen |
-| Revive (Board-Mitte 4×4 wird geleert, 1× pro Runde) | Rewarded Ad ODER 200 Münzen |
+| Revive (Board-Mitte 4×4 wird geleert, 1× pro Runde) | 200 Münzen (nie Werbung) |
 | Undo (letzter Zug) | 50 Münzen |
 | Teil-Tausch (3 neue Teile) | 75 Münzen |
 | Lucky Block (Wunsch-Teil) | Rewarded Ad, 1× pro Runde |
@@ -363,8 +378,10 @@ Teile werden **nicht** vom Spieler rotiert (genre-üblich) — Rotationen sind e
 - Persistenz-Keys: `highscore`, `coins`, `streak`, `lastDailyDate`, `adFree`,
   `activeTheme`, `settings.*` — zentral in `lib/services/storage.dart`
 - AdMob-Test-IDs im Debug-Build hart verdrahtet; echte IDs via `lib/monetization/ad_config.dart`
-- IAP-Produkt-IDs: `qubble_remove_ads`, `qubble_coins_s`, `qubble_coins_m`,
-  `qubble_coins_l`; ab Phase 6: `qubble_starter`, `qubble_piggy` (Anhang C)
+  (nur EIN Format: Rewarded)
+- IAP-Produkt-IDs: `qubble_supporter`, `qubble_coins_s`, `qubble_coins_m`,
+  `qubble_coins_l`, `qubble_starter` (Anhang C; `qubble_remove_ads` und
+  `qubble_piggy` wurden im Juli-2026-Rework ersatzlos gestrichen)
 
 ## Anhang B — Was nur DU erledigen kannst (Übersicht)
 
@@ -438,12 +455,13 @@ normal. Max. 1 Heilung pro 7 Tage (sonst verliert der Streak seine Bedeutung).
   „Extra-Zug" (einmal pro Level).
 - Kein Content-Aufwand: unendlich viele Level aus dem Generator.
 
-### C.5 Sparschwein
+### C.5 Sparschwein (überarbeitet Juli 2026: Belohnung statt Kauf)
 
 - Füllung: +1 Münze pro geräumter Linie (zusätzlich zur normalen Ökonomie,
   landet **nur** im Schwein).
 - Kapazität: 500 (Stufe 1) → nach jedem Öffnen +500, max. 3000.
-- Öffnen: IAP `qubble_piggy` (2,99 €) — schüttet den Inhalt aus.
+- Öffnen: **voll = gratis ausschütten** (Antippen). Nicht voll = optional per
+  Bonus-Video vorzeitig öffnen. Kein IAP.
 - UI: dezentes Icon auf Home mit Füllstand; Hinweis-Badge erst ab 80 % Füllung.
   **Nie** blockierend/Popup-Spam — Positionierung „entspannt" schützen.
 

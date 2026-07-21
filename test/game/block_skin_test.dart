@@ -9,10 +9,16 @@ void main() {
     expect(classic.cost, 0);
   });
 
-  test('paid skins have positive costs', () {
-    for (final s in kSkinCatalog.where((s) => s.id != kDefaultSkinId)) {
+  test('paid skins have positive costs; supporter skins are never sold', () {
+    for (final s in kSkinCatalog.where(
+      (s) => s.id != kDefaultSkinId && !s.supporterOnly,
+    )) {
       expect(s.cost, greaterThan(0));
     }
+    // Supporter-only skins exist and carry no coin price.
+    final crystal = kSkinCatalog.singleWhere((s) => s.id == 'crystal');
+    expect(crystal.supporterOnly, isTrue);
+    expect(crystal.cost, 0);
   });
 
   test('skinStyleById resolves known ids and falls back for unknown', () {

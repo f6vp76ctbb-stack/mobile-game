@@ -99,5 +99,33 @@ void paintCell(
         );
       }
       canvas.restore();
+    case BlockSkinStyle.crystal:
+      // Faceted gem: diagonal gradient base, a bright triangular facet in the
+      // upper-left, and a fine light border.
+      final shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [_lighten(color, 0.18), _darken(color, 0.35)],
+      ).createShader(rect);
+      canvas.drawRRect(rrect, Paint()..shader = shader);
+      canvas.save();
+      canvas.clipRRect(rrect);
+      final facet = Path()
+        ..moveTo(rect.left, rect.top)
+        ..lineTo(rect.right, rect.top)
+        ..lineTo(rect.left, rect.bottom)
+        ..close();
+      canvas.drawPath(
+        facet,
+        Paint()..color = Colors.white.withValues(alpha: 0.18),
+      );
+      canvas.restore();
+      canvas.drawRRect(
+        rrect,
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..color = _lighten(color, 0.4),
+      );
   }
 }

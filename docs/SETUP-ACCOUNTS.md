@@ -45,16 +45,25 @@ Einnahmen also zeitnah anmelden. Im Zweifel kurz Finanzamt/Steuerberater fragen.
   https://developer.apple.com/programs/ (99 €/Jahr). Erst nötig, wenn du auch
   in den App Store willst.
 
-## 2. AdMob (Werbung)
+## 2. AdMob (Werbung — nur freiwillige Bonus-Videos)
+
+> Qubble zeigt **keine erzwungene Werbung** (keine Interstitials, keine
+> Banner). Das einzige Format ist das freiwillige **Rewarded Video** — du
+> brauchst also pro Plattform nur EINEN Anzeigenblock.
 
 1. Konto anlegen: https://admob.google.com/ → **Apps** → **App hinzufügen**
    (zuerst **Android**; die iOS-App später, wenn du in den App Store gehst).
-2. Pro App die **App-ID** kopieren (Format `ca-app-pub-XXXX~XXXX`) und ersetzen:
+   - Frage „Ist die App in einem App-Store gelistet?" → **Nein** wählen (die
+     App ist ja noch nicht veröffentlicht). Das ist der normale Weg — AdMob
+     legt die App trotzdem an; die Store-Verknüpfung holst du nach dem
+     Play-Store-Launch nach (AdMob erinnert dich daran).
+2. Die **App-ID** kopieren (Format `ca-app-pub-XXXX~XXXX`) und ersetzen:
    - Android: `android/app/src/main/AndroidManifest.xml` → `com.google.android.gms.ads.APPLICATION_ID`
    - iOS: `ios/Runner/Info.plist` → `GADApplicationIdentifier`
-3. Je App zwei **Anzeigenblöcke** erstellen: **Interstitial** und **Rewarded**.
-   Die Unit-IDs (`ca-app-pub-XXXX/XXXX`) eintragen in
-   `lib/monetization/ad_config.dart` (die `REPLACE_ME_*`-Konstanten).
+3. **Einen Anzeigenblock** erstellen: Typ **Rewarded** (Belohnung z. B.
+   „Münzen/1"— der Wert ist egal, unser Code steuert die Belohnung selbst).
+   Die Unit-ID (`ca-app-pub-XXXX/XXXX`) eintragen in
+   `lib/monetization/ad_config.dart` (`REPLACE_ME_REWARDED_ANDROID`).
 4. **UMP / DSGVO-Meldung** einrichten: AdMob → **Datenschutz & Meldungen** →
    Einwilligungsmeldung (GDPR) für EU erstellen. Der Code ruft den Consent-Flow
    automatisch vor dem ersten Ad-Request auf (`GoogleAdService._requestConsent`).
@@ -124,10 +133,11 @@ Produkte in **beiden** Konsolen mit **exakt diesen IDs** anlegen
 
 | Produkt-ID | Typ | Vorschlag Preis |
 |---|---|---|
-| `qubble_remove_ads` | Non-Consumable | 4,99 € |
+| `qubble_supporter` | Non-Consumable | 4,99 € (Unterstützer-Paket: Aurora-Theme + Kristall-Skin + 1.500 Münzen + ❤️) |
 | `qubble_coins_s` | Consumable | 0,99 € |
 | `qubble_coins_m` | Consumable | 2,99 € |
 | `qubble_coins_l` | Consumable | 7,99 € |
+| `qubble_starter` | Consumable | 1,99 € (Starter-Paket, 48h-Angebot ab Runde 5) |
 
 - App Store Connect: **In-App-Käufe** → jeweils anlegen, Preis + Lokalisierung.
 - Play Console: **Monetarisierung → Produkte → In-App-Produkte**.
@@ -153,6 +163,40 @@ Produkte in **beiden** Konsolen mit **exakt diesen IDs** anlegen
   Anleitung: https://docs.flutter.dev/deployment/android#signing-the-app
 - **iOS**: In Xcode Signing-Team wählen, `flutter build ipa` → über
   Transporter/Xcode zu App Store Connect hochladen.
+
+## 7. Geschlossener Test — PFLICHT vor der Veröffentlichung! 🧪
+
+Dein Play-Konto ist ein **neues persönliches Konto** (nach Nov. 2023 erstellt).
+Google verlangt deshalb, bevor du die App veröffentlichen darfst:
+
+> **Mindestens 12 Tester müssen 14 Tage lang ununterbrochen** an einem
+> geschlossenen Test teilnehmen (Opt-in + App installiert). Erst danach
+> kannst du den Produktionszugriff beantragen (Prüfung dauert ≤ 7 Tage).
+
+So läuft es ab:
+
+1. In der Play Console: **Testen → Geschlossene Tests** → Track anlegen,
+   `.aab` hochladen (siehe §6), Testversion einreichen.
+2. **Tester einladen** — per E-Mail-Liste oder Google-Group. Die Tester
+   klicken den Opt-in-Link und installieren die App über Play.
+   „Eingeladen" zählt NICHT — nur wer wirklich beigetreten ist + installiert
+   hat.
+3. **14 Tage warten** (Zähler läuft nur, solange ≥ 12 Tester dabei sind —
+   lieber 15–20 einladen als Puffer).
+4. Danach in der Console **Produktionszugriff beantragen** (drei kurze
+   Fragebögen zur App).
+
+**Woher 12 Tester nehmen?** Optionen (kombinierbar):
+- Freunde/Familie/Kollegen (kostenlos, aber alle brauchen ein Google-Konto
+  und müssen die App wirklich 14 Tage installiert lassen).
+- **Bezahlte Tester-Dienste** (~15–30 € einmalig), die genau diese
+  12-Tester-Anforderung erfüllen, z. B. testerscommunity.com,
+  primetestlab.com oder Anbieter auf Fiverr („Google Play 12 testers").
+  Seriöse Anbieter liefern echte Geräte-Installs + tägliche Nutzung.
+- Reddit-Communities wie r/AndroidClosedTesting (Gegenseitigkeits-Prinzip).
+
+Der Test ist ohnehin nützlich: echtes Geräte-Feedback vor dem Launch —
+Crashes und Probleme sehen wir in der Play Console (Android Vitals).
 
 ---
 

@@ -1,9 +1,10 @@
 /// Ad service abstraction over `google_mobile_ads`.
 ///
+/// Qubble shows NO forced ads (no interstitials, no banners) — the only ad
+/// format is the voluntary rewarded video, always opt-in and always paying out.
 /// [FakeAdService] keeps tests and headless contexts ad-free (and always grants
-/// rewards, matching the "rewarded always pays out" rule). [GoogleAdService]
-/// drives real AdMob interstitials + rewarded ads and runs the UMP consent flow
-/// before the first request.
+/// rewards). [GoogleAdService] drives real AdMob rewarded ads and runs the UMP
+/// consent flow before the first request.
 library;
 
 import 'dart:async';
@@ -17,9 +18,6 @@ abstract class AdService {
   /// Runs consent + SDK init and preloads the first ads.
   Future<void> initialize();
 
-  /// Shows an interstitial if available; completes when dismissed.
-  Future<void> showInterstitial();
-
   /// Shows a rewarded ad. Returns true if the reward was earned.
   Future<bool> showRewarded();
 }
@@ -30,14 +28,10 @@ class FakeAdService implements AdService {
   Future<void> initialize() async {}
 
   @override
-  Future<void> showInterstitial() async {}
-
-  @override
   Future<bool> showRewarded() async => true;
 }
 
 class GoogleAdService implements AdService {
-  InterstitialAd? _interstitial;
   RewardedAd? _rewarded;
   bool _initialized = false;
 
@@ -47,7 +41,6 @@ class GoogleAdService implements AdService {
     _initialized = true;
     await _requestConsent();
     await MobileAds.instance.initialize();
-    _loadInterstitial();
     _loadRewarded();
   }
 
@@ -71,20 +64,6 @@ class GoogleAdService implements AdService {
     return completer.future;
   }
 
-  void _loadInterstitial() {
-    InterstitialAd.load(
-      adUnitId: AdConfig.interstitialUnitId,
-      request: const AdRequest(),
-      adLoadCallback: InterstitialAdLoadCallback(
-        onAdLoaded: (ad) => _interstitial = ad,
-        onAdFailedToLoad: (error) {
-          _interstitial = null;
-          debugPrint('Interstitial failed to load: $error');
-        },
-      ),
-    );
-  }
-
   void _loadRewarded() {
     RewardedAd.load(
       adUnitId: AdConfig.rewardedUnitId,
@@ -97,32 +76,6 @@ class GoogleAdService implements AdService {
         },
       ),
     );
-  }
-
-  @override
-  Future<void> showInterstitial() async {
-    final ad = _interstitial;
-    if (ad == null) {
-      _loadInterstitial();
-      return;
-    }
-    final completer = Completer<void>();
-    ad.fullScreenContentCallback = FullScreenContentCallback(
-      onAdDismissedFullScreenContent: (ad) {
-        ad.dispose();
-        _interstitial = null;
-        _loadInterstitial();
-        if (!completer.isCompleted) completer.complete();
-      },
-      onAdFailedToShowFullScreenContent: (ad, error) {
-        ad.dispose();
-        _interstitial = null;
-        _loadInterstitial();
-        if (!completer.isCompleted) completer.complete();
-      },
-    );
-    await ad.show();
-    return completer.future;
   }
 
   @override

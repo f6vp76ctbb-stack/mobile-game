@@ -15,7 +15,6 @@ class AnalyticsEvent {
   static const reachRound3 = 'reach_round_3';
   static const dailyPlayed = 'daily_played';
   static const rewardedWatched = 'rewarded_watched';
-  static const interstitialShown = 'interstitial_shown';
   static const purchase = 'purchase';
   static const themeUnlocked = 'theme_unlocked';
 }
