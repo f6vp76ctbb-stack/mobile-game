@@ -46,7 +46,9 @@ class ThemesScreen extends ConsumerWidget {
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(
-                      'Nicht genug Münzen (brauchst ${entry.cost}, hast $coins)',
+                      entry.supporterOnly
+                          ? 'Exklusiv im Unterstützer-Paket (siehe Shop) ❤️'
+                          : 'Nicht genug Münzen (brauchst ${entry.cost}, hast $coins)',
                     ),
                   ),
                 );
@@ -112,7 +114,9 @@ class _ThemeTile extends StatelessWidget {
                         ? 'Aktiv'
                         : owned
                             ? 'Tippen zum Aktivieren'
-                            : '🪙 ${entry.cost} zum Freischalten',
+                            : entry.supporterOnly
+                                ? '❤️ Im Unterstützer-Paket'
+                                : '🪙 ${entry.cost} zum Freischalten',
                     style: const TextStyle(
                       color: GridColors.textMuted,
                       fontSize: 14,

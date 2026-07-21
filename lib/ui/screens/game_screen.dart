@@ -775,25 +775,28 @@ class _GameOverOverlay extends ConsumerWidget {
               ),
             ],
             const SizedBox(height: 28),
-            // "Nochmal" is the primary, always-free action. The rewarded
-            // revive is optional and deliberately less prominent, so it never
-            // feels like you must watch a video to keep playing.
+            // "Nochmal" is the primary, always-free action. Qubble shows no
+            // forced ads — restarting is instant. The revive below costs
+            // coins; ads are never required to keep playing.
             FilledButton(
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
                 textStyle:
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-              onPressed: () => controller.newGameWithInterstitial(),
+              onPressed: () => controller.newGame(),
               child: const Text('Nochmal spielen'),
             ),
             const SizedBox(height: 8),
-            TextButton.icon(
-              onPressed: () => controller.reviveWithAd(),
-              icon: const Icon(Icons.play_circle_outline, size: 18),
-              label: const Text('Weiterspielen (Video, optional)'),
-              style: TextButton.styleFrom(foregroundColor: GridColors.fever),
-            ),
+            if (!snap.reviveUsed)
+              TextButton.icon(
+                onPressed: snap.coins >= BoosterCosts.revive
+                    ? () => controller.reviveWithCoins()
+                    : null,
+                icon: const Icon(Icons.favorite_outline, size: 18),
+                label: Text('Weiterspielen (🪙 ${BoosterCosts.revive})'),
+                style: TextButton.styleFrom(foregroundColor: GridColors.fever),
+              ),
             TextButton(
               onPressed: () => Navigator.of(context).maybePop(),
               child: const Text('Hauptmenü'),

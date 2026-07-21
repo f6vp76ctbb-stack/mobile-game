@@ -66,9 +66,10 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   Provider-Overrides in `main.dart`.
 - `lib/ui/screens/` = home, game, puzzle(+levels), themes, skins, missions,
   stats, achievements, shop, settings, leaderboard, feedback, name_entry.
-- `lib/monetization/` = `ad_gate.dart` (Frequency-Capping — Interstitials nur
-  über `newGameWithInterstitial`, frühestens Runde 3, max 1/90s),
-  `ads.dart`, `iap.dart` (Produkt-IDs `qubble_*`).
+- `lib/monetization/` = `ads.dart` (NUR Rewarded — **keine Interstitials,
+  keine Banner**; Juli-2026-Rework auf Nutzerwunsch), `iap.dart` (Produkt-IDs
+  `qubble_supporter`, `qubble_coins_s/m/l`, `qubble_starter`).
+  `ad_gate.dart` wurde ersatzlos gelöscht.
 - `lib/services/` = storage (shared_preferences), audio (SFX + Musik),
   haptics, analytics (Debug), notifications, feedback, leaderboard.
 
@@ -104,9 +105,14 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   (`Puzzle.solution`) und per billigem Replay verifiziert. Solver hat
   **Node-Budget** (hängt nie); Fehlschlag-Erkennung wertet Budget-Überlauf
   NICHT als „failed". Sterne: 3=optimal, 2=+2 Züge, 1=gelöst.
-- **Sparschwein** (füllt sich pro Reihe, IAP öffnet), **Starter-Paket**
-  (48h-Angebot nach 5. Runde), **Wochenend-Event** (doppelte Münzen),
-  **Missionen** (Fortschritt persistiert).
+- **Sparschwein** (füllt sich pro Reihe; **voll = gratis ausschütten**,
+  vorzeitig optional per Bonus-Video — seit Juli 2026 KEIN IAP mehr),
+  **Starter-Paket** (48h-Angebot nach 5. Runde), **Wochenend-Event**
+  (doppelte Münzen), **Missionen** (Fortschritt persistiert).
+- **Unterstützer-Paket** (`qubble_supporter`, 4,99 €): exklusives
+  Aurora-Theme + Kristall-Skin (`supporterOnly`, nie für Münzen) + 1.500
+  Münzen + ❤️ neben dem Spielernamen. Ersetzt das frühere „Werbefrei"
+  (überflüssig, da keine erzwungene Werbung mehr existiert).
 - **Musik**: 42s-Lo-Fi-Loop, ruhig/leise (Volume 0.24), generiert via
   `scripts/gen_music.py` (pures Python, CC0/Eigenwerk — bei Änderungen neu
   generieren). SFX ebenfalls selbst synthetisiert (`assets/CREDITS.md`).
@@ -116,8 +122,11 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
 - **Onboarding**: Pflicht-**Namenseingabe** beim ersten Start
   (`NameEntryScreen` → `storage.playerName`, geräteweit, 2–14 Zeichen);
   Name auf Home antippbar zum Ändern. 3 Coach-Hints in der ersten Runde.
-- **Game-Over**: „Nochmal spielen" = Hauptaktion (immer gratis); Revive-Video
-  nur kleiner optionaler Link (Rewarded IMMER freiwillig — Projektregel).
+- **Game-Over**: „Nochmal spielen" = Hauptaktion (immer gratis, ohne Werbung);
+  Revive = kleiner Link für **200 Münzen** (1×/Runde) — NIE per Video.
+  **Monetarisierungs-Grundsatz (Nutzer-Entscheidung Juli 2026): keine
+  erzwungene Werbung; Videos nur als freiwilliger Bonus** (Münzen verdoppeln,
+  Lucky Block, Streak-Reparatur, Sparschwein, Rätsel-Extra-Zug).
   Home-Button im Spiel-Header; laufende Runde → Home zeigt „Weiterspielen".
 
 ## 5. GitHub-Pipelines (kein Backend! Secrets-frei)
@@ -221,5 +230,9 @@ auf Nutzerwunsch wieder ENTFERNT** (ein Name pro Gerät statt Multi-Profil).
   #11 Menü-Partikel, #12 Level-Up-Sound+2 Themes, #13 Erfolge,
   #14 3 Skins, #15 Web-Restart+Live-Münzen+Musik
 - Folge-Session (Juli 2026): #17 Mini-Board-Previews für Theme-/Skin-Shop
-  (gemeinsames `MiniBoardPreview`-Widget, `test/widget/store_preview_test.dart`)
+  (gemeinsames `MiniBoardPreview`-Widget, `test/widget/store_preview_test.dart`);
+  Monetarisierungs-Rework „fair & werbearm" (Interstitials raus, Revive per
+  Münzen, Sparschwein gratis, Unterstützer-Paket statt Werbefrei; Play-Konto +
+  AdMob vom Nutzer angelegt, Firebase noch offen; geschlossener Test mit
+  12 Testern/14 Tagen nötig → `docs/SETUP-ACCOUNTS.md` §7)
 - Flutter stable 3.44.x / Dart 3.12.x; Riverpod 2.x (immutable Snapshots)

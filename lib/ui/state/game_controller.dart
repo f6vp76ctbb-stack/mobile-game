@@ -17,7 +17,6 @@ import '../../game/piece.dart';
 import '../../game/starter_offer.dart';
 import '../../game/streak.dart';
 import '../../game/weekend_event.dart';
-import '../../monetization/ad_gate.dart';
 import '../../monetization/ads.dart';
 import '../../monetization/iap.dart';
 import '../../services/analytics.dart';
@@ -44,13 +43,6 @@ final analyticsProvider = Provider<Analytics>((ref) => NoopAnalytics());
 /// Ad service — [FakeAdService] by default (tests/dev); main overrides it with
 /// the real AdMob-backed one.
 final adServiceProvider = Provider<AdService>((ref) => FakeAdService());
-
-/// Single [AdGate] instance; ad-free is seeded from storage.
-final adGateProvider = Provider<AdGate>((ref) {
-  final gate = AdGate(now: DateTime.now);
-  gate.adFree = ref.read(storageProvider).adFree;
-  return gate;
-});
 
 /// IAP service — [FakeIap] by default (tests/dev); main overrides with the real
 /// store-backed one.
@@ -80,7 +72,8 @@ class GameSnapshot {
     required this.onboardingHint,
     required this.clearEventId,
     required this.clearedCells,
-    required this.adFree,
+    required this.supporter,
+    required this.reviveUsed,
     required this.canUndo,
     required this.coinsDoubled,
     required this.streakRepairAvailable,
@@ -133,8 +126,11 @@ class GameSnapshot {
   /// nothing).
   final List<Cell> clearedCells;
 
-  /// True once the player owns the "remove ads" IAP.
-  final bool adFree;
+  /// True once the player owns the supporter pack (heart badge, exclusives).
+  final bool supporter;
+
+  /// Whether this run's one revive (coin-paid) was already used.
+  final bool reviveUsed;
 
   /// Whether the last placement can still be undone (booster availability).
   final bool canUndo;
@@ -166,7 +162,8 @@ class GameSnapshot {
   /// Whether the weekend double-coins event is currently active.
   final bool weekendActive;
 
-  /// Piggy bank state (fills while playing; emptied via IAP).
+  /// Piggy bank state (fills while playing; free payout when full, optional
+  /// early open via rewarded video).
   final int piggyCoins;
   final int piggyCapacity;
 
@@ -207,12 +204,16 @@ class GameSnapshot {
   final int lastCoinGain;
 }
 
-/// In-run booster prices (MASTERPLAN.md Anhang C.1).
+/// In-run booster prices (MASTERPLAN.md Anhang C.1 / A.3).
 class BoosterCosts {
   const BoosterCosts._();
   static const int undo = 50;
   static const int swap = 75;
   static const int bomb = 150;
+
+  /// Revive after game over (clears the board centre). Coins only — ads are
+  /// never required to keep playing.
+  static const int revive = 200;
 }
 
 /// Coins earned per cleared line during play (live reward, shown as a popup).
@@ -228,7 +229,6 @@ final gameControllerProvider =
     ref.read(hapticsProvider),
     ref.read(audioProvider),
     ref.read(adServiceProvider),
-    ref.read(adGateProvider),
     ref.read(analyticsProvider),
     onCosmeticsGranted: () {
       // Level-up unlocks changed the owned themes/skins — rebuild the caches.
@@ -244,7 +244,6 @@ class GameController extends StateNotifier<GameSnapshot> {
     this._haptics,
     this._audio,
     this._ads,
-    this._adGate,
     this._analytics, {
     int? seed,
     this.onCosmeticsGranted,
@@ -270,7 +269,6 @@ class GameController extends StateNotifier<GameSnapshot> {
   final Haptics _haptics;
   final AudioService _audio;
   final AdService _ads;
-  final AdGate _adGate;
   final Analytics _analytics;
   final MissionEngine _missions;
 
@@ -280,6 +278,8 @@ class GameController extends StateNotifier<GameSnapshot> {
   bool _finalized = false;
   int _coinsEarnedThisRun = 0;
   bool _coinsDoubled = false;
+  bool _reviveUsed = false;
+  int _roundsThisLaunch = 0;
   int _streak = 0;
   int _levelsGainedThisRun = 0;
   int _levelUpCoins = 0;
@@ -328,7 +328,8 @@ class GameController extends StateNotifier<GameSnapshot> {
           storage.onboardingDone ? null : 'Zieh einen Stein ins Gitter 👆',
       clearEventId: 0,
       clearedCells: const [],
-      adFree: storage.adFree,
+      supporter: storage.supporter,
+      reviveUsed: false,
       canUndo: false,
       coinsDoubled: false,
       streakRepairAvailable: StreakRepair.isRepairable(
@@ -386,32 +387,16 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
 
-  /// Shows an interstitial if the gate allows, then starts a new endless run.
-  /// This is the sanctioned "play again" path — never show ads elsewhere.
-  Future<void> newGameWithInterstitial() async {
-    if (_adGate.canShowInterstitial()) {
-      // A failing/absent ad must never block the restart.
-      try {
-        await _ads.showInterstitial();
-        _adGate.recordInterstitialShown();
-        _analytics.logEvent(AnalyticsEvent.interstitialShown);
-      } catch (_) {
-        // Ignore ad errors and just start the next game.
-      }
-    }
-    newGame();
-  }
-
-  /// "Revive" reward: watch a rewarded ad to clear the board centre. Always
-  /// grants the reward when earned. Returns whether the player revived.
-  Future<bool> reviveWithAd() async {
-    final earned = await _ads.showRewarded();
-    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'revive'});
-    if (earned) {
-      _session.reviveClearCenter();
-      _emit();
-    }
-    return earned;
+  /// Revive after game over: pays [BoosterCosts.revive] coins to clear the
+  /// board centre and keep the run going. Once per run; ads are never part of
+  /// this — playing must never require watching a video.
+  Future<bool> reviveWithCoins() async {
+    if (_reviveUsed || _storage.coins < BoosterCosts.revive) return false;
+    await _storage.addCoins(-BoosterCosts.revive);
+    _reviveUsed = true;
+    _session.reviveClearCenter();
+    _emit();
+    return true;
   }
 
   /// Doubles this run's earned coins by watching a rewarded ad. Once only.
@@ -500,8 +485,8 @@ class GameController extends StateNotifier<GameSnapshot> {
     _emit();
   }
 
-  /// Empties the piggy bank into the coin balance and raises its capacity
-  /// (called on the gridpop_piggy IAP delivery). Returns the payout.
+  /// Empties the piggy bank into the coin balance and raises its capacity.
+  /// Free when the bank is full (tap to collect). Returns the payout.
   Future<int> openPiggy() async {
     final piggy = _storage.piggyBank;
     final payout = piggy.coins;
@@ -511,10 +496,19 @@ class GameController extends StateNotifier<GameSnapshot> {
     return payout;
   }
 
-  /// Marks ads removed (from the "remove ads" IAP) and refreshes.
-  Future<void> applyAdFree() async {
-    await _storage.setAdFree(true);
-    _adGate.adFree = true;
+  /// Opens a not-yet-full piggy bank early by watching a rewarded video.
+  /// Returns the payout, or null if the reward was not earned.
+  Future<int?> openPiggyWithAd() async {
+    final earned = await _ads.showRewarded();
+    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'piggy'});
+    if (!earned) return null;
+    return openPiggy();
+  }
+
+  /// Marks the supporter pack owned (heart badge; the coins/theme/skin are
+  /// delivered separately by the purchase handler) and refreshes.
+  Future<void> applySupporter() async {
+    await _storage.setSupporter(true);
     _emit();
   }
 
@@ -524,6 +518,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _finalized = false;
     _coinsEarnedThisRun = 0;
     _coinsDoubled = false;
+    _reviveUsed = false;
     _levelsGainedThisRun = 0;
     _levelUpCoins = 0;
     _playCoinsThisRun = 0;
@@ -652,12 +647,12 @@ class GameController extends StateNotifier<GameSnapshot> {
     if (_finalized) return;
     _finalized = true;
 
-    _adGate.recordRoundComplete();
+    _roundsThisLaunch += 1;
     _analytics.logEvent(AnalyticsEvent.roundComplete, {
       'score': _session.score,
       'mode': _isDaily ? 'daily' : 'endless',
     });
-    if (_adGate.roundsCompleted == 3) {
+    if (_roundsThisLaunch == 3) {
       _analytics.logEvent(AnalyticsEvent.reachRound3);
     }
     if (_isDaily) _analytics.logEvent(AnalyticsEvent.dailyPlayed);
@@ -797,7 +792,8 @@ class GameController extends StateNotifier<GameSnapshot> {
       onboardingHint: _onboardingHint,
       clearEventId: _clearEventId,
       clearedCells: _clearedCells,
-      adFree: _storage.adFree,
+      supporter: _storage.supporter,
+      reviveUsed: _reviveUsed,
       canUndo: _session.canUndo,
       coinsDoubled: _coinsDoubled,
       streakRepairAvailable: _streakRepairAvailable(),

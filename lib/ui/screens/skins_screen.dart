@@ -42,7 +42,13 @@ class SkinsScreen extends ConsumerWidget {
                   .selectOrUnlock(skin);
               if (!ok && context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Nicht genug Münzen')),
+                  SnackBar(
+                    content: Text(
+                      skin.supporterOnly
+                          ? 'Exklusiv im Unterstützer-Paket (siehe Shop) ❤️'
+                          : 'Nicht genug Münzen',
+                    ),
+                  ),
                 );
               }
             },
@@ -106,7 +112,9 @@ class _SkinTile extends StatelessWidget {
                         ? 'Aktiv'
                         : owned
                             ? 'Tippen zum Aktivieren'
-                            : '🪙 ${skin.cost} zum Freischalten',
+                            : skin.supporterOnly
+                                ? '❤️ Im Unterstützer-Paket'
+                                : '🪙 ${skin.cost} zum Freischalten',
                     style: const TextStyle(
                       color: GridColors.textMuted,
                       fontSize: 14,

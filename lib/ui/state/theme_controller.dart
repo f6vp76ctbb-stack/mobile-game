@@ -54,11 +54,13 @@ class ThemeController extends StateNotifier<ThemeState> {
   }
 
   /// Buys (if needed) and equips [entry]. Returns false if unaffordable.
+  /// Supporter-only themes can never be bought with coins.
   Future<bool> selectOrUnlock(ThemeEntry entry) async {
     if (state.isUnlocked(entry.id)) {
       await setActive(entry.id);
       return true;
     }
+    if (entry.supporterOnly) return false;
     final paid =
         await _ref.read(gameControllerProvider.notifier).trySpendCoins(entry.cost);
     if (!paid) return false;

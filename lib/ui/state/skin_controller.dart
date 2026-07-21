@@ -44,12 +44,22 @@ class SkinController extends StateNotifier<SkinState> {
     state = SkinState(activeId: id, unlocked: state.unlocked);
   }
 
+  /// Unlocks a skin for free (e.g. from a bundle/IAP), without spending coins.
+  Future<void> grantSkin(String id) async {
+    if (state.isUnlocked(id)) return;
+    final unlocked = {...state.unlocked, id};
+    await _storage.setUnlockedSkins(unlocked);
+    state = SkinState(activeId: state.activeId, unlocked: unlocked);
+  }
+
   /// Buys (if needed) and equips [skin]. Returns false if unaffordable.
+  /// Supporter-only skins can never be bought with coins.
   Future<bool> selectOrUnlock(BlockSkin skin) async {
     if (state.isUnlocked(skin.id)) {
       await setActive(skin.id);
       return true;
     }
+    if (skin.supporterOnly) return false;
     final paid =
         await _ref.read(gameControllerProvider.notifier).trySpendCoins(skin.cost);
     if (!paid) return false;

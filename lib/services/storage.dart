@@ -34,7 +34,7 @@ class Storage {
   static const _kPlayerLevel = 'playerLevel';
   static const _kPiggyCoins = 'piggyCoins';
   static const _kPiggyCapacity = 'piggyCapacity';
-  static const _kAdFree = 'adFree';
+  static const _kSupporter = 'supporter';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
   static const _kMusicEnabled = 'settings.music';
@@ -203,8 +203,9 @@ class Storage {
   // ---------------------------------------------------------------------------
   // Device-global state (settings, purchases, notification bookkeeping)
 
-  bool get adFree => _prefs.getBool(_kAdFree) ?? false;
-  Future<void> setAdFree(bool value) => _prefs.setBool(_kAdFree, value);
+  /// Whether the supporter pack (non-consumable IAP) is owned.
+  bool get supporter => _prefs.getBool(_kSupporter) ?? false;
+  Future<void> setSupporter(bool value) => _prefs.setBool(_kSupporter, value);
 
   int? get starterOfferStart => _prefs.getInt(_kStarterStart);
   Future<void> setStarterOfferStart(int millis) =>

@@ -2,7 +2,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/game/board.dart';
 import 'package:gridpop/game/leveling.dart';
 import 'package:gridpop/game/piece.dart';
-import 'package:gridpop/monetization/ad_gate.dart';
 import 'package:gridpop/monetization/ads.dart';
 import 'package:gridpop/services/analytics.dart';
 import 'package:gridpop/services/audio.dart';
@@ -19,7 +18,6 @@ Future<GameController> _controller({AdService? ads}) async {
     Haptics(enabled: false),
     SilentAudio(),
     ads ?? FakeAdService(),
-    AdGate(now: DateTime.now),
     NoopAnalytics(),
   );
 }
@@ -114,7 +112,6 @@ void main() {
       Haptics(enabled: false),
       SilentAudio(),
       FakeAdService(),
-      AdGate(now: DateTime.now),
       NoopAnalytics(),
     );
     c.newGame(seed: 1);
@@ -151,8 +148,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+          NoopAnalytics(),
       );
       c.newGame(seed: 3);
       final scoreBefore = c.state.score;
@@ -173,8 +169,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+          NoopAnalytics(),
       );
       c.newGame(seed: 3);
       _placeOneLegalMove(c);
@@ -190,8 +185,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+          NoopAnalytics(),
       );
       c.newGame(seed: 5);
       final before = c.state.tray.map((p) => p?.id).toList();
@@ -209,8 +203,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+          NoopAnalytics(),
       );
       c.newGame(seed: 5);
       final ok = await c.tryBomb(const Cell(4, 4));
@@ -240,7 +233,6 @@ void main() {
       Haptics(enabled: false),
       SilentAudio(),
       FakeAdService(),
-      AdGate(now: DateTime.now),
       NoopAnalytics(),
       onCosmeticsGranted: () => cosmeticsCallbackFired = true,
     );
@@ -269,7 +261,6 @@ void main() {
       Haptics(enabled: false),
       SilentAudio(),
       FakeAdService(),
-      AdGate(now: DateTime.now),
       NoopAnalytics(),
     );
     c.newGame(seed: 1);
@@ -289,7 +280,6 @@ void main() {
       Haptics(enabled: false),
       SilentAudio(),
       FakeAdService(),
-      AdGate(now: DateTime.now),
       NoopAnalytics(),
     );
     c.newGame(seed: 1);
@@ -325,7 +315,6 @@ void main() {
       Haptics(enabled: false),
       SilentAudio(),
       FakeAdService(),
-      AdGate(now: DateTime.now),
       NoopAnalytics(),
     );
     c.newGame(seed: 1);

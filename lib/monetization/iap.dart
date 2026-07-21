@@ -1,8 +1,9 @@
 /// In-app purchase abstraction over `in_app_purchase`.
 ///
 /// [FakeIap] delivers instantly for tests/dev; [StoreIap] talks to the real
-/// stores. Product IDs follow MASTERPLAN.md Anhang A.5. "Remove ads" is
-/// non-consumable and keeps rewarded options; coin packs are consumable.
+/// stores. Product IDs follow MASTERPLAN.md Anhang A.5. The supporter pack is
+/// non-consumable (exclusive cosmetics + coins + heart badge); coin packs and
+/// the starter pack are consumable.
 library;
 
 import 'dart:async';
@@ -14,31 +15,28 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 class IapProducts {
   const IapProducts._();
 
-  static const removeAds = 'qubble_remove_ads';
+  static const supporter = 'qubble_supporter';
   static const coinsS = 'qubble_coins_s';
   static const coinsM = 'qubble_coins_m';
   static const coinsL = 'qubble_coins_l';
-  static const piggy = 'qubble_piggy';
   static const starter = 'qubble_starter';
 
   static const all = <String>{
-    removeAds,
+    supporter,
     coinsS,
     coinsM,
     coinsL,
-    piggy,
     starter,
   };
 
-  /// Coins granted per fixed-amount consumable pack. (The piggy bank pays out a
-  /// variable amount, so it is not listed here.)
+  /// Coins granted per fixed-amount consumable pack.
   static const coinAmounts = <String, int>{
     coinsS: 500,
     coinsM: 2000,
     coinsL: 6000,
   };
 
-  static const _consumables = <String>{coinsS, coinsM, coinsL, piggy, starter};
+  static const _consumables = <String>{coinsS, coinsM, coinsL, starter};
 
   static bool isConsumable(String id) => _consumables.contains(id);
 }
@@ -82,8 +80,8 @@ class FakeIap implements IapService {
   @override
   List<ShopProduct> get products => const [
         ShopProduct(
-          id: IapProducts.removeAds,
-          title: 'Werbefrei',
+          id: IapProducts.supporter,
+          title: 'Unterstützer-Paket',
           price: '4,99 €',
           consumable: false,
         ),

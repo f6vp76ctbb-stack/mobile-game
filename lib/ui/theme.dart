@@ -105,14 +105,18 @@ class ThemeEntry {
     required this.name,
     required this.cost,
     required this.theme,
+    this.supporterOnly = false,
   });
 
   final String id;
   final String name;
 
-  /// Coin cost to unlock (0 = free / always owned).
+  /// Coin cost to unlock (0 = free / always owned; ignored if [supporterOnly]).
   final int cost;
   final GameTheme theme;
+
+  /// Exclusive to the supporter pack — never purchasable with coins.
+  final bool supporterOnly;
 }
 
 const String kDefaultThemeId = 'classic';
@@ -206,6 +210,23 @@ const List<ThemeEntry> kThemeCatalog = [
       traySlots: [Color(0xFF7BE382), Color(0xFF4FB477), Color(0xFFB8F2A0)],
       validPreview: Color(0x667BE382),
       invalidPreview: Color(0x66FF6B6B),
+      fever: Color(0xFFFFD166),
+    ),
+  ),
+  // Supporter-pack exclusive (polar-lights palette) — never sold for coins.
+  ThemeEntry(
+    id: 'aurora',
+    name: 'Aurora',
+    cost: 0,
+    supporterOnly: true,
+    theme: GameTheme(
+      background: Color(0xFF0B1026),
+      boardBackground: Color(0xFF131A3C),
+      emptyCell: Color(0xFF1C2450),
+      placed: Color(0xFF6BF0C8),
+      traySlots: [Color(0xFF6BF0C8), Color(0xFF7C9BFF), Color(0xFFC77CFF)],
+      validPreview: Color(0x666BF0C8),
+      invalidPreview: Color(0x66FF6B8A),
       fever: Color(0xFFFFD166),
     ),
   ),

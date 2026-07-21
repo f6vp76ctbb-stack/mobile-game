@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/game/board.dart';
 import 'package:gridpop/game/piece.dart';
-import 'package:gridpop/monetization/ad_gate.dart';
 import 'package:gridpop/monetization/ads.dart';
 import 'package:gridpop/monetization/iap.dart';
 import 'package:gridpop/services/analytics.dart';
@@ -37,8 +36,6 @@ class _NoRewardAds implements AdService {
   @override
   Future<void> initialize() async {}
   @override
-  Future<void> showInterstitial() async {}
-  @override
   Future<bool> showRewarded() async => false;
 }
 
@@ -53,27 +50,49 @@ Future<GameController> _controller({
     Haptics(enabled: false),
     SilentAudio(),
     ads ?? FakeAdService(),
-    AdGate(now: DateTime.now),
     NoopAnalytics(),
   );
 }
 
 void main() {
-  group('rewarded flows', () {
-    test('revive grants when the reward is earned', () async {
-      final c = await _controller(); // FakeAdService always earns
-      final ok = await c.reviveWithAd();
+  group('revive (coins, never ads)', () {
+    test('spends coins, clears the centre, once per run', () async {
+      final c = await _controller(prefs: {'coins': 500});
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      final balance = c.state.coins;
+      final ok = await c.reviveWithCoins();
       expect(ok, isTrue);
+      expect(c.state.coins, balance - BoosterCosts.revive);
+      expect(c.state.reviveUsed, isTrue);
+
+      // Only one revive per run.
+      expect(await c.reviveWithCoins(), isFalse);
+      expect(c.state.coins, balance - BoosterCosts.revive);
     });
 
-    test('revive does nothing when the reward is not earned', () async {
-      final c = await _controller(ads: _NoRewardAds());
+    test('refused without enough coins', () async {
+      final c = await _controller(prefs: {'coins': 100});
+      c.newGame(seed: 1);
       final before = c.state.board.toAscii();
-      final ok = await c.reviveWithAd();
-      expect(ok, isFalse);
+      expect(await c.reviveWithCoins(), isFalse);
       expect(c.state.board.toAscii(), before);
+      expect(c.state.coins, 100);
     });
 
+    test('a new run resets the revive', () async {
+      final c = await _controller(prefs: {'coins': 500});
+      c.newGame(seed: 1);
+      await c.reviveWithCoins();
+      expect(c.state.reviveUsed, isTrue);
+      c.newGame(seed: 2);
+      expect(c.state.reviveUsed, isFalse);
+    });
+  });
+
+  group('rewarded flows', () {
     test('lucky block rerolls the tray when earned', () async {
       final c = await _controller();
       c.newGame(seed: 5);
@@ -159,8 +178,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+            NoopAnalytics(),
       );
       c.newGame(seed: 1);
       _playToGameOver(c);
@@ -178,6 +196,30 @@ void main() {
       expect(c.state.piggyCoins, 0); // emptied
       expect(c.state.piggyCapacity, greaterThan(500)); // capacity grew
     });
+
+    test('early open via rewarded video pays out when earned', () async {
+      final c = await _controller(prefs: {
+        'coins': 0,
+        'piggyCoins': 120,
+        'piggyCapacity': 500,
+      });
+      final payout = await c.openPiggyWithAd();
+      expect(payout, 120);
+      expect(c.state.coins, 120);
+      expect(c.state.piggyCoins, 0);
+    });
+
+    test('early open pays nothing when the reward is not earned', () async {
+      final c = await _controller(ads: _NoRewardAds(), prefs: {
+        'coins': 0,
+        'piggyCoins': 120,
+        'piggyCapacity': 500,
+      });
+      final payout = await c.openPiggyWithAd();
+      expect(payout, isNull);
+      expect(c.state.coins, 0);
+      expect(c.state.piggyCoins, 120); // untouched
+    });
   });
 
   group('starter offer', () {
@@ -189,8 +231,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+            NoopAnalytics(),
       );
       expect(c.state.starterOfferActive, isFalse);
 
@@ -214,8 +255,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-        AdGate(now: DateTime.now),
-        NoopAnalytics(),
+            NoopAnalytics(),
       );
       c.newGame(seed: 1);
       _playToGameOver(c);
@@ -247,11 +287,11 @@ void main() {
   });
 
   group('IAP entitlements', () {
-    test('applyAdFree flips the flag in the snapshot', () async {
+    test('applySupporter flips the flag in the snapshot', () async {
       final c = await _controller();
-      expect(c.state.adFree, isFalse);
-      await c.applyAdFree();
-      expect(c.state.adFree, isTrue);
+      expect(c.state.supporter, isFalse);
+      await c.applySupporter();
+      expect(c.state.supporter, isTrue);
     });
 
     test('grantCoins increases the balance', () async {
@@ -266,9 +306,9 @@ void main() {
       final delivered = <String>[];
       final iap = FakeIap();
       await iap.initialize(delivered.add);
-      await iap.buy(IapProducts.removeAds);
+      await iap.buy(IapProducts.supporter);
       await iap.buy(IapProducts.coinsM);
-      expect(delivered, [IapProducts.removeAds, IapProducts.coinsM]);
+      expect(delivered, [IapProducts.supporter, IapProducts.coinsM]);
     });
 
     test('coin amounts are defined for every consumable pack', () {
@@ -280,7 +320,7 @@ void main() {
         expect(IapProducts.coinAmounts[id], isNotNull);
         expect(IapProducts.isConsumable(id), isTrue);
       }
-      expect(IapProducts.isConsumable(IapProducts.removeAds), isFalse);
+      expect(IapProducts.isConsumable(IapProducts.supporter), isFalse);
     });
   });
 }
