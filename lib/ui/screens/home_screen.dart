@@ -9,7 +9,9 @@ import '../../game/piggy_bank.dart';
 import '../../game/streak.dart';
 import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
+import '../state/theme_controller.dart';
 import '../theme.dart';
+import '../widgets/menu_particles.dart';
 import 'game_screen.dart';
 import 'leaderboard_screen.dart';
 import 'missions_screen.dart';
@@ -114,9 +116,15 @@ class HomeScreen extends ConsumerWidget {
     final controller = ref.read(gameControllerProvider.notifier);
 
     return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+      body: Stack(
+        children: [
+          // Subtle drifting particles behind everything.
+          Positioned.fill(
+            child: MenuParticles(colors: ref.watch(activeThemeProvider).traySlots),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
           // Scrolls when the content is taller than the screen (small phones,
           // landscape), while the Spacers still center it when there's room.
           child: LayoutBuilder(
@@ -354,9 +362,11 @@ class HomeScreen extends ConsumerWidget {
               ),
             ),
           ),
+              ),
+            ),
+          ],
         ),
-      ),
-    );
+      );
   }
 }
 
