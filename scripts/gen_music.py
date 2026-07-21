@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Generates the background music loop (assets/audio/music.wav).
 
-Self-made, license-free (CC0 / Eigenwerk): a calm ambient loop built from
-pure sine tones — soft pad chords (Am F C G), a gentle eighth-note arpeggio
-and a quiet bass. Envelopes decay to zero at chord boundaries so the loop
-point is click-free. Mono, 22050 Hz, 16-bit PCM (same format as the SFX).
+Self-made, license-free (CC0 / Eigenwerk): a calm lo-fi ambient loop built
+from pure sine tones. Deliberately understated to avoid listening fatigue on
+long sessions — a soft pad carries the harmony, a sparse arpeggio appears on
+only some bars, and a quiet bass grounds it. The progression is longer (12
+bars) so repeats are less obvious. Envelopes decay to zero at loop boundaries
+so the loop point is click-free. Mono, 22050 Hz, 16-bit PCM.
 
 Run from the repo root:  python3 scripts/gen_music.py
 """
@@ -13,88 +15,87 @@ import struct
 import wave
 
 RATE = 22050
-BPM = 75.0
-BEAT = 60.0 / BPM                      # 0.8 s
-CHORD_BEATS = 4                        # one bar per chord
-CHORDS = [                             # frequencies (Hz): root, third, fifth
-    ("Am", [220.00, 261.63, 329.63]),
-    ("F", [174.61, 220.00, 261.63]),
-    ("C", [130.81, 164.81, 196.00, 261.63]),
-    ("G", [196.00, 246.94, 293.66]),
-    ("Am", [220.00, 261.63, 329.63]),
-    ("F", [174.61, 220.00, 261.63]),
-    ("C", [130.81, 164.81, 196.00, 261.63]),
-    ("Em", [164.81, 196.00, 246.94]),
+BPM = 68.0
+BEAT = 60.0 / BPM
+CHORD_BEATS = 4
+# Calm progression in A minor: i - VI - III - VII, then a gentler variation.
+CHORDS = [
+    ("Am", [220.00, 261.63, 329.63], True),
+    ("F", [174.61, 220.00, 261.63], False),
+    ("C", [130.81, 164.81, 196.00, 261.63], True),
+    ("G", [196.00, 246.94, 293.66], False),
+    ("Am", [220.00, 261.63, 329.63], False),
+    ("Dm", [146.83, 174.61, 220.00], True),
+    ("F", [174.61, 220.00, 261.63], False),
+    ("E", [164.81, 207.65, 246.94], True),
+    ("Am", [220.00, 261.63, 329.63], True),
+    ("F", [174.61, 220.00, 261.63], False),
+    ("Dm", [146.83, 174.61, 220.00], False),
+    ("E", [164.81, 207.65, 246.94], True),
 ]
 CHORD_LEN = BEAT * CHORD_BEATS
-TOTAL = CHORD_LEN * len(CHORDS)        # 25.6 s
+TOTAL = CHORD_LEN * len(CHORDS)
 N = int(TOTAL * RATE)
 
-PAD_GAIN = 0.16
-ARP_GAIN = 0.10
-BASS_GAIN = 0.14
+PAD_GAIN = 0.18
+ARP_GAIN = 0.06
+BASS_GAIN = 0.12
 
 
 def pad_env(t, length):
-    """Slow swell that starts and ends at zero within one chord."""
     x = t / length
-    return math.sin(math.pi * min(max(x, 0.0), 1.0)) ** 1.5
+    return math.sin(math.pi * min(max(x, 0.0), 1.0)) ** 1.6
 
 
 def pluck_env(t, length):
-    """Fast attack, exponential decay, hard-zero at the end."""
     if t < 0 or t >= length:
         return 0.0
-    attack = 0.008
+    attack = 0.02
     if t < attack:
         return t / attack
     rel = (t - attack) / (length - attack)
-    return math.exp(-4.5 * rel) * (1.0 - rel) ** 0.5
+    return math.exp(-3.5 * rel) * (1.0 - rel) ** 0.6
 
 
 samples = [0.0] * N
 
-for ci, (_, freqs) in enumerate(CHORDS):
+for ci, (_, freqs, arp_on) in enumerate(CHORDS):
     start = ci * CHORD_LEN
     s0 = int(start * RATE)
     s1 = int((start + CHORD_LEN) * RATE)
 
-    # Pad: chord tones + soft octave shimmer, swelling per bar.
+    # Soft pad: chord tones with a quiet octave shimmer, swelling per bar.
     for k in range(s0, min(s1, N)):
         t = k / RATE - start
         env = pad_env(t, CHORD_LEN) * PAD_GAIN
         v = 0.0
         for f in freqs:
             v += math.sin(2 * math.pi * f * t)
-            v += 0.35 * math.sin(2 * math.pi * f * 2 * t)  # octave, quieter
-        samples[k] += env * v / (len(freqs) * 1.35)
+            v += 0.22 * math.sin(2 * math.pi * f * 2 * t)
+        samples[k] += env * v / (len(freqs) * 1.2)
 
-    # Bass: root an octave down, two half-notes per bar.
+    # Bass: root an octave down, one soft note per bar (less busy).
     root = freqs[0] / 2.0
-    for half in range(2):
-        hstart = start + half * (CHORD_LEN / 2)
-        h0 = int(hstart * RATE)
-        hlen = CHORD_LEN / 2
-        for k in range(h0, min(int((hstart + hlen) * RATE), N)):
-            t = k / RATE - hstart
-            env = pluck_env(t, hlen) * BASS_GAIN
-            samples[k] += env * math.sin(2 * math.pi * root * t)
+    for k in range(s0, min(s1, N)):
+        t = k / RATE - start
+        env = pluck_env(t, CHORD_LEN) * BASS_GAIN
+        samples[k] += env * math.sin(2 * math.pi * root * t)
 
-    # Arpeggio: eighth notes cycling chord tones one octave up.
-    eighth = BEAT / 2
-    tones = [f * 2 for f in freqs]
-    for i in range(CHORD_BEATS * 2):
-        astart = start + i * eighth
-        a0 = int(astart * RATE)
-        f = tones[i % len(tones)]
-        for k in range(a0, min(int((astart + eighth) * RATE), N)):
-            t = k / RATE - astart
-            env = pluck_env(t, eighth) * ARP_GAIN
-            samples[k] += env * math.sin(2 * math.pi * f * t)
+    # Arpeggio only on flagged bars, as calm quarter notes (not eighths).
+    if arp_on:
+        tones = [f * 2 for f in freqs]
+        for i in range(CHORD_BEATS):
+            astart = start + i * BEAT
+            a0 = int(astart * RATE)
+            f = tones[i % len(tones)]
+            for k in range(a0, min(int((astart + BEAT) * RATE), N)):
+                t = k / RATE - astart
+                env = pluck_env(t, BEAT) * ARP_GAIN
+                samples[k] += env * math.sin(2 * math.pi * f * t)
 
-# Normalize with headroom, clip safety.
+# Normalize with generous headroom (quiet, non-fatiguing).
 peak = max(abs(s) for s in samples) or 1.0
-scale = 0.72 / peak
+scale = 0.6 / peak
 frames = bytearray()
 for s in samples:
     v = int(max(-1.0, min(1.0, s * scale)) * 32767)

@@ -1,6 +1,7 @@
 /// Riverpod bridge between the pure-Dart [GameSession] and the widgets.
 library;
 
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -104,6 +105,7 @@ class GameSnapshot {
     required this.lastSubmittedScore,
     required this.rewardsUnlockedThisRun,
     required this.achievementsUnlockedThisRun,
+    required this.lastCoinGain,
   });
 
   final Board board;
@@ -199,6 +201,10 @@ class GameSnapshot {
 
   /// Achievements newly unlocked by this run (game-over celebration).
   final List<Achievement> achievementsUnlockedThisRun;
+
+  /// Coins earned by the most recent clearing move (drives the "+N 🪙" popup);
+  /// 0 on moves that cleared nothing.
+  final int lastCoinGain;
 }
 
 /// In-run booster prices (MASTERPLAN.md Anhang C.1).
@@ -208,6 +214,12 @@ class BoosterCosts {
   static const int swap = 75;
   static const int bomb = 150;
 }
+
+/// Coins earned per cleared line during play (live reward, shown as a popup).
+const int kCoinsPerLine = 3;
+
+/// Bonus coins for emptying the whole board (All Clear).
+const int kAllClearCoins = 25;
 
 final gameControllerProvider =
     StateNotifierProvider<GameController, GameSnapshot>((ref) {
@@ -271,6 +283,8 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _streak = 0;
   int _levelsGainedThisRun = 0;
   int _levelUpCoins = 0;
+  int _playCoinsThisRun = 0;
+  int _lastCoinGain = 0;
   List<LevelReward> _rewardsThisRun = const [];
   List<Achievement> _achievementsThisRun = const [];
   List<String> _completedMissions = const [];
@@ -348,6 +362,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       lastSubmittedScore: storage.lastSubmittedScore,
       rewardsUnlockedThisRun: const [],
       achievementsUnlockedThisRun: const [],
+      lastCoinGain: 0,
     );
   }
 
@@ -375,9 +390,14 @@ class GameController extends StateNotifier<GameSnapshot> {
   /// This is the sanctioned "play again" path — never show ads elsewhere.
   Future<void> newGameWithInterstitial() async {
     if (_adGate.canShowInterstitial()) {
-      await _ads.showInterstitial();
-      _adGate.recordInterstitialShown();
-      _analytics.logEvent(AnalyticsEvent.interstitialShown);
+      // A failing/absent ad must never block the restart.
+      try {
+        await _ads.showInterstitial();
+        _adGate.recordInterstitialShown();
+        _analytics.logEvent(AnalyticsEvent.interstitialShown);
+      } catch (_) {
+        // Ignore ad errors and just start the next game.
+      }
     }
     newGame();
   }
@@ -443,6 +463,16 @@ class GameController extends StateNotifier<GameSnapshot> {
     _emit();
   }
 
+  /// Awards live coins during a run (fire-and-forget persist). The shared_prefs
+  /// in-memory cache updates synchronously, so [_emit] shows the new balance
+  /// right away; the disk write completes in the background.
+  void _grantPlayCoins(int amount) {
+    if (amount <= 0) return;
+    _playCoinsThisRun += amount;
+    _lastCoinGain = amount;
+    unawaited(_storage.addCoins(amount));
+  }
+
   /// Sets the coin balance directly — only reachable from the hidden admin
   /// (test) section in the settings.
   Future<void> setCoinsForTest(int value) async {
@@ -496,6 +526,8 @@ class GameController extends StateNotifier<GameSnapshot> {
     _coinsDoubled = false;
     _levelsGainedThisRun = 0;
     _levelUpCoins = 0;
+    _playCoinsThisRun = 0;
+    _lastCoinGain = 0;
     _rewardsThisRun = const [];
     _achievementsThisRun = const [];
     _completedMissions = const [];
@@ -528,9 +560,16 @@ class GameController extends StateNotifier<GameSnapshot> {
     _haptics.place();
     _audio.play(Sfx.place);
     _lastGained = event.gained;
+    _lastCoinGain = 0;
     if (_session.lastClearedCells.isNotEmpty) {
       _clearEventId += 1;
       _clearedCells = _session.lastClearedCells;
+      // Live coin reward for clears — instant, visible feedback while playing.
+      final lines = _session.lastClearedLineCount;
+      var coinGain = lines * kCoinsPerLine;
+      if (event.combo > 1) coinGain += event.combo; // combo bonus
+      if (_session.lastWasAllClear) coinGain += kAllClearCoins;
+      _grantPlayCoins(coinGain);
     }
     // The combo now survives non-clearing moves (time-based), so gate the
     // clear feedback on this move actually having cleared lines.
@@ -710,7 +749,9 @@ class GameController extends StateNotifier<GameSnapshot> {
     if (unlocked.isNotEmpty) onCosmeticsGranted?.call();
 
     if (earned > 0) await _storage.addCoins(earned);
-    _coinsEarnedThisRun = earned;
+    // Total for the run = end-of-run bonuses + coins earned live during play
+    // (the play coins were already added to the balance as they were earned).
+    _coinsEarnedThisRun = earned + _playCoinsThisRun;
     _isNewHighscore = await _storage.submitScore(_session.score);
 
     // Achievements: evaluate against the now-updated aggregates.
@@ -781,6 +822,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       lastSubmittedScore: _storage.lastSubmittedScore,
       rewardsUnlockedThisRun: _rewardsThisRun,
       achievementsUnlockedThisRun: _achievementsThisRun,
+      lastCoinGain: _lastCoinGain,
     );
   }
 

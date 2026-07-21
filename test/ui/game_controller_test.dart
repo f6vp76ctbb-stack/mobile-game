@@ -281,6 +281,28 @@ void main() {
     expect(c.state.rewardsUnlockedThisRun, isEmpty);
   });
 
+  test('clearing lines awards live coins during play', () async {
+    SharedPreferences.setMockInitialValues({'coins': 0});
+    final storage = await Storage.create();
+    final c = GameController(
+      storage,
+      Haptics(enabled: false),
+      SilentAudio(),
+      FakeAdService(),
+      AdGate(now: DateTime.now),
+      NoopAnalytics(),
+    );
+    c.newGame(seed: 1);
+    _playToGameOver(c);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+
+    // A greedy full run clears many lines, each worth kCoinsPerLine coins,
+    // so the balance must have grown from the live rewards.
+    expect(storage.coins, greaterThan(0));
+    // The run total shown on game-over includes those play coins.
+    expect(c.state.coinsEarnedThisRun, greaterThan(0));
+  });
+
   test('finishing a run unlocks and persists achievements', () async {
     final c = await _controller();
     c.newGame(seed: 1);

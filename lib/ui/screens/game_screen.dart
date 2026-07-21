@@ -14,6 +14,7 @@ import '../state/theme_controller.dart';
 import '../theme.dart';
 import '../widgets/board_view.dart';
 import '../widgets/clear_burst.dart';
+import '../widgets/coin_popup.dart';
 import '../widgets/juice_overlay.dart';
 import '../widgets/shake.dart';
 import '../widgets/tray_view.dart';
@@ -106,6 +107,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                 _Header(
                   score: snap.score,
                   highscore: snap.highscore,
+                  coins: snap.coins,
                   combo: snap.combo,
                   comboEndsAt: snap.comboEndsAt,
                   fever: snap.feverLevel,
@@ -189,6 +191,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           ),
                                         ),
                                       ),
+                                      CoinPopup(size: boardSize),
                                     ],
                                   ),
                                 ),
@@ -214,6 +217,48 @@ class _GameScreenState extends ConsumerState<GameScreen> {
               ],
             ),
             if (snap.gameOver) _GameOverOverlay(snap: snap),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact live coin balance shown in the game header; pulses when it grows.
+class _CoinChip extends StatelessWidget {
+  const _CoinChip({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey(coins),
+      tween: Tween(begin: 1.18, end: 1.0),
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: BoxDecoration(
+          color: GridColors.boardBackground,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: GridColors.gridLine),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('🪙', style: TextStyle(fontSize: 14)),
+            const SizedBox(width: 5),
+            Text(
+              '$coins',
+              style: const TextStyle(
+                color: GridColors.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 15,
+              ),
+            ),
           ],
         ),
       ),
@@ -428,6 +473,7 @@ class _Header extends StatelessWidget {
   const _Header({
     required this.score,
     required this.highscore,
+    required this.coins,
     required this.combo,
     required this.comboEndsAt,
     required this.fever,
@@ -437,6 +483,7 @@ class _Header extends StatelessWidget {
 
   final int score;
   final int highscore;
+  final int coins;
   final int combo;
   final DateTime? comboEndsAt;
   final double fever;
@@ -446,21 +493,26 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 20, 4),
+      padding: const EdgeInsets.fromLTRB(8, 8, 20, 4),
       child: Column(
         children: [
-          if (isDaily)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 6),
-              child: Text(
-                'TÄGLICHE CHALLENGE',
-                style: TextStyle(
-                  color: GridColors.textMuted,
-                  fontSize: 12,
-                  letterSpacing: 1.2,
+          Row(
+            children: [
+              if (isDaily)
+                const Text(
+                  'TÄGLICHE CHALLENGE',
+                  style: TextStyle(
+                    color: GridColors.textMuted,
+                    fontSize: 12,
+                    letterSpacing: 1.2,
+                  ),
                 ),
-              ),
-            ),
+              const Spacer(),
+              // Live coin balance — updates as you clear lines.
+              _CoinChip(coins: coins),
+            ],
+          ),
+          const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

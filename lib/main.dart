@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -16,18 +17,26 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final storage = await Storage.create();
 
+  // AdMob, in_app_purchase and flutter_local_notifications have no web
+  // implementation — on the web/PWA build they throw when invoked (which was
+  // breaking "Nochmal spielen"). Use the no-op fakes there; native builds use
+  // the real services.
   runApp(
     ProviderScope(
       overrides: [
         storageProvider.overrideWithValue(storage),
         audioProvider.overrideWithValue(AudioplayersAudio()),
         musicProvider.overrideWithValue(AudioplayersMusic()),
-        adServiceProvider.overrideWithValue(GoogleAdService()),
-        iapServiceProvider.overrideWithValue(StoreIap()),
+        adServiceProvider
+            .overrideWithValue(kIsWeb ? FakeAdService() : GoogleAdService()),
+        iapServiceProvider
+            .overrideWithValue(kIsWeb ? FakeIap() : StoreIap()),
         // Firebase backend lands once config files exist; DebugAnalytics prints
         // the funnel in the meantime (see docs/SETUP-ACCOUNTS.md).
         analyticsProvider.overrideWithValue(DebugAnalytics()),
-        notificationServiceProvider.overrideWithValue(LocalNotifications()),
+        if (!kIsWeb)
+          notificationServiceProvider
+              .overrideWithValue(LocalNotifications()),
       ],
       child: const GridPopApp(),
     ),
