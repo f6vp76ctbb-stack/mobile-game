@@ -173,6 +173,9 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   pinnt Gradle 9.1 + AGP 9.0.1; Plugins müssen dazu passen. `google_mobile_ads`
   daher auf **≥ 9.0.0** (5.x/6.x scheitern mit „unknown property 'all'" beim
   Konfigurieren von `:google_mobile_ads`; Gradle-9-Support kam mit Plugin 7.0.0).
+  Zusätzlich braucht `flutter_local_notifications` **Core Library Desugaring**:
+  `isCoreLibraryDesugaringEnabled = true` + `coreLibraryDesugaring(...desugar_jdk_libs:2.1.4)`
+  in `android/app/build.gradle.kts` (sonst bricht `checkReleaseAarMetadata` ab).
 
 ## 6. Web/PWA-Besonderheiten (wichtig!)
 

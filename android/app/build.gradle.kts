@@ -31,6 +31,10 @@ android {
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
+        // flutter_local_notifications needs core library desugaring so its
+        // java.time usage works down to the app's minSdk. Paired with the
+        // desugar_jdk_libs dependency at the bottom of this file.
+        isCoreLibraryDesugaringEnabled = true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -83,4 +87,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Enables core library desugaring (see compileOptions above) — required by
+    // flutter_local_notifications' AAR metadata check.
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
 }
