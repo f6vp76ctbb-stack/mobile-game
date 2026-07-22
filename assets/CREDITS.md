@@ -30,3 +30,13 @@ externen Grafik-Assets.
 
 Aus diesen Quellen generiert `flutter_launcher_icons` die Android-Mipmaps und
 das iOS-AppIcon-Set.
+
+## Schrift
+
+| Datei | Quelle | Lizenz |
+|---|---|---|
+| `assets/fonts/Nunito.ttf` | Nunito (Vernon Adams, Cyreal, Jacques Le Bailly) via Google Fonts | SIL Open Font License 1.1 |
+
+Nunito ist unter der **SIL OFL 1.1** frei nutzbar (auch kommerziell,
+Einbettung erlaubt). Variable Schrift — eine Datei deckt alle Gewichte ab.
+Lizenztext: https://openfontlicense.org

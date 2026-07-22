@@ -124,6 +124,10 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   `scripts/gen_music.py` (pures Python, CC0/Eigenwerk — bei Änderungen neu
   generieren). SFX ebenfalls selbst synthetisiert (`assets/CREDITS.md`).
   Musik-Schalter in Einstellungen; Start nur nach User-Geste (Autoplay).
+- **Typografie**: app-weit **Nunito** (runde, freundliche OFL-Schrift,
+  `assets/fonts/Nunito.ttf`, variable Schrift = alle Gewichte in einer Datei;
+  in `pubspec.yaml` registriert, `fontFamily: 'Nunito'` in `buildGridTheme`).
+  Lizenz in `assets/CREDITS.md`.
 - **Menü-Partikel**: dezente Punkte im Home-Hintergrund
   (`menu_particles.dart`), themenfarben.
 - **Onboarding**: Pflicht-**Namenseingabe** beim ersten Start
