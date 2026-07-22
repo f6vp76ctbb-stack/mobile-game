@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/achievements.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 
 class AchievementsScreen extends ConsumerWidget {
   const AchievementsScreen({super.key});
@@ -80,7 +81,7 @@ class _Header extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('🏅', style: TextStyle(fontSize: 30)),
+              const Icon(AppIcons.trophy, size: 30, color: GridColors.fever),
               const SizedBox(width: 12),
               Text(
                 '$unlocked / $total freigeschaltet',

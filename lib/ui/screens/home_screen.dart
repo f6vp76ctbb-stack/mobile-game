@@ -10,6 +10,7 @@ import '../../game/streak.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 import '../widgets/menu_particles.dart';
 import 'game_screen.dart';
 import 'leaderboard_screen.dart';
@@ -88,11 +89,11 @@ class HomeScreen extends ConsumerWidget {
         builder: (dialogContext) => AlertDialog(
           backgroundColor: GridColors.boardBackground,
           title: const Text(
-            'Sparschwein ist voll! 🎉',
+            'Sparschwein ist voll!',
             style: TextStyle(color: GridColors.textPrimary),
           ),
           content: Text(
-            'Hol dir 🪙 ${piggy.coins} Münzen — gratis.',
+            'Hol dir ${piggy.coins} Münzen — gratis.',
             style: const TextStyle(color: GridColors.textMuted),
           ),
           actions: [
@@ -121,7 +122,7 @@ class HomeScreen extends ConsumerWidget {
           style: TextStyle(color: GridColors.textPrimary),
         ),
         content: Text(
-          '🪙 ${piggy.coins} von ${piggy.capacity} gesammelt.\n\n'
+          '${piggy.coins} von ${piggy.capacity} gesammelt.\n\n'
           'Ist es voll, kannst du es gratis ausschütten — oder du öffnest es '
           'jetzt schon mit einem Bonus-Video.',
           style: const TextStyle(color: GridColors.textMuted),
@@ -136,7 +137,7 @@ class HomeScreen extends ConsumerWidget {
               Navigator.of(dialogContext).pop();
               controller.openPiggyWithAd();
             },
-            child: const Text('▶  Jetzt öffnen'),
+            child: const Text('Jetzt öffnen'),
           ),
         ],
       ),
@@ -426,20 +427,11 @@ class _CoinPill extends StatelessWidget {
         color: GridColors.boardBackground,
         borderRadius: BorderRadius.circular(20),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('🪙', style: TextStyle(fontSize: 16)),
-          const SizedBox(width: 6),
-          Text(
-            '$coins',
-            style: const TextStyle(
-              color: GridColors.textPrimary,
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
-        ],
+      child: CoinAmount(
+        amount: coins,
+        size: 17,
+        color: GridColors.textPrimary,
+        fontWeight: FontWeight.bold,
       ),
     );
   }
@@ -493,7 +485,12 @@ class _PiggyChip extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🐷', style: TextStyle(fontSize: 15)),
+            Icon(
+              Icons.savings_rounded,
+              size: 16,
+              color:
+                  piggy.showHint ? GridColors.fever : GridColors.textMuted,
+            ),
             const SizedBox(width: 5),
             Text(
               '$coins',
@@ -524,13 +521,20 @@ class _WeekendBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: GridColors.fever),
       ),
-      child: const Text(
-        '🎉 Wochenende: doppelte Münzen!',
-        style: TextStyle(
-          color: GridColors.fever,
-          fontWeight: FontWeight.bold,
-          fontSize: 14,
-        ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(AppIcons.celebrate, size: 16, color: GridColors.fever),
+          SizedBox(width: 7),
+          Text(
+            'Wochenende: doppelte Münzen!',
+            style: TextStyle(
+              color: GridColors.fever,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -590,14 +594,28 @@ class _LevelBadge extends StatelessWidget {
           ),
           if (LevelSystem.nextReward(level) case final next?) ...[
             const SizedBox(height: 6),
-            Text(
-              '${next.kind == LevelRewardKind.theme ? '🎨' : '🧊'} '
-              'Level ${next.level}: ${next.name}',
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: GridColors.textMuted,
-                fontSize: 12,
-              ),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  next.kind == LevelRewardKind.theme
+                      ? AppIcons.themes
+                      : AppIcons.skins,
+                  size: 13,
+                  color: GridColors.textMuted,
+                ),
+                const SizedBox(width: 5),
+                Flexible(
+                  child: Text(
+                    'Level ${next.level}: ${next.name}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: GridColors.textMuted,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ],
@@ -634,13 +652,19 @@ class _StreakRepairBanner extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            '🔥 $streak-Tage-Streak in Gefahr!',
-            style: const TextStyle(
-              color: GridColors.textPrimary,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+          Row(
+            children: [
+              const Icon(AppIcons.streak, size: 18, color: GridColors.fever),
+              const SizedBox(width: 6),
+              Text(
+                '$streak-Tage-Streak in Gefahr!',
+                style: const TextStyle(
+                  color: GridColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 4),
           const Text(
@@ -653,14 +677,19 @@ class _StreakRepairBanner extends ConsumerWidget {
               Expanded(
                 child: FilledButton.tonal(
                   onPressed: () => repair(controller.repairStreakWithAd()),
-                  child: const Text('▶ Video'),
+                  child: const Text('Video'),
                 ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
                   onPressed: () => repair(controller.repairStreakWithCoins()),
-                  child: Text('🪙 ${StreakRepair.coinCost}'),
+                  child: CoinAmount(
+                    amount: StreakRepair.coinCost,
+                    size: 16,
+                    color: GridColors.background,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -739,7 +768,7 @@ class _DailyCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.today, color: GridColors.textPrimary),
+            const Icon(Icons.today_rounded, color: GridColors.textPrimary),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -753,17 +782,33 @@ class _DailyCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    streak > 0 ? '🔥 $streak Tage Streak' : 'Heute noch offen',
-                    style: const TextStyle(
-                      color: GridColors.textMuted,
-                      fontSize: 14,
+                  if (streak > 0)
+                    Row(
+                      children: [
+                        const Icon(AppIcons.streak,
+                            size: 14, color: GridColors.fever),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$streak Tage Streak',
+                          style: const TextStyle(
+                            color: GridColors.textMuted,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    const Text(
+                      'Heute noch offen',
+                      style: TextStyle(
+                        color: GridColors.textMuted,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
-            const Icon(Icons.play_arrow, color: GridColors.placed),
+            const Icon(Icons.play_arrow_rounded, color: GridColors.placed),
           ],
         ),
       ),

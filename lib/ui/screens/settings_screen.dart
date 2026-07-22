@@ -174,7 +174,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ListTile(
               leading: const Icon(Icons.paid_outlined,
                   color: GridColors.textPrimary),
-              title: Text('🪙 ${snap.coins} Münzen', style: _tileStyle),
+              title: Text('${snap.coins} Münzen', style: _tileStyle),
               subtitle: const Text(
                 'Nur zum Testen — nicht in Release-Screenshots zeigen',
                 style: TextStyle(color: GridColors.textMuted, fontSize: 12),

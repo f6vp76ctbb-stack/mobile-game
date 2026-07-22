@@ -1,4 +1,4 @@
-/// A floating "+N 🪙" that rises and fades over the board whenever a clearing
+/// A floating "+N coin" that rises and fades over the board whenever a clearing
 /// move earns coins, so the player sees the reward while playing.
 library;
 
@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../state/game_controller.dart';
 import '../theme.dart';
+import 'app_icons.dart';
 
 class CoinPopup extends ConsumerStatefulWidget {
   const CoinPopup({super.key, required this.size});
@@ -69,13 +70,12 @@ class _CoinPopupState extends ConsumerState<CoinPopup>
                     color: Colors.black.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Text(
-                    '+$_amount 🪙',
-                    style: const TextStyle(
-                      color: GridColors.fever,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                  child: CoinAmount(
+                    amount: _amount,
+                    prefix: '+',
+                    size: 20,
+                    color: GridColors.fever,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),

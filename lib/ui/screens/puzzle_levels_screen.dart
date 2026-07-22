@@ -92,13 +92,25 @@ class _LevelTile extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(
-              solved ? '⭐' * stars : '···',
-              style: TextStyle(
-                fontSize: 12,
-                color: solved ? null : GridColors.textMuted,
+            if (solved)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  for (var i = 0; i < 3; i++)
+                    Icon(
+                      i < stars
+                          ? Icons.star_rounded
+                          : Icons.star_outline_rounded,
+                      size: 13,
+                      color: GridColors.fever,
+                    ),
+                ],
+              )
+            else
+              const Text(
+                '···',
+                style: TextStyle(fontSize: 12, color: GridColors.textMuted),
               ),
-            ),
           ],
         ),
       ),
