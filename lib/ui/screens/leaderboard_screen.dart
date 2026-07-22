@@ -1,5 +1,6 @@
-/// Shared leaderboard: shows the public ranking and submits the player's
-/// best score directly to Firestore (silent anonymous identity, no account).
+/// Shared leaderboard: shows the public ranking. The player's best score is
+/// uploaded automatically in the background (silent anonymous identity, no
+/// account) — opening this screen just triggers a fresh upload attempt.
 library;
 
 import 'package:flutter/material.dart';
@@ -22,50 +23,24 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
   @override
   void initState() {
     super.initState();
+    // Make sure the player's best is uploaded, then show the ranking.
+    ref.read(gameControllerProvider.notifier).autoUploadBestScore();
     _future = ref.read(leaderboardServiceProvider).fetchTop();
   }
 
   void _reload() {
+    ref.read(gameControllerProvider.notifier).autoUploadBestScore();
     setState(() {
       _future = ref.read(leaderboardServiceProvider).fetchTop();
     });
-  }
-
-  Future<void> _submit() async {
-    final snap = ref.read(gameControllerProvider);
-    if (snap.highscore <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Spiel erst eine Runde für einen Score.')),
-      );
-      return;
-    }
-    final ok = await ref
-        .read(leaderboardServiceProvider)
-        .submit(name: snap.playerName, score: snap.highscore);
-    if (!mounted) return;
-    if (ok) {
-      await ref
-          .read(gameControllerProvider.notifier)
-          .markScoreSubmitted(snap.highscore);
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Score eingetragen! 🏆')),
-      );
-      _reload();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Gerade nicht erreichbar — später erneut versuchen.'),
-        ),
-      );
-    }
   }
 
   @override
   Widget build(BuildContext context) {
     final snap = ref.watch(gameControllerProvider);
     final me = snap.playerName;
-    final canSubmit = snap.highscore > snap.lastSubmittedScore;
+    final pending = snap.highscore > snap.lastSubmittedScore &&
+        snap.highscore > 0;
 
     return Scaffold(
       backgroundColor: GridColors.background,
@@ -145,19 +120,15 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           SafeArea(
             top: false,
             child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: FilledButton.icon(
-                onPressed: canSubmit ? _submit : null,
-                icon: const Icon(Icons.upload),
-                label: Text(
-                  canSubmit
-                      ? 'Meinen Score senden (${snap.highscore})'
-                      : 'Score bereits eingetragen',
-                ),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                  backgroundColor: GridColors.placed,
-                  foregroundColor: GridColors.background,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Text(
+                pending
+                    ? 'Dein Bestwert (${snap.highscore}) wird eingetragen …'
+                    : 'Dein Bestwert wird automatisch eingetragen.',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: GridColors.textMuted,
+                  fontSize: 13,
                 ),
               ),
             ),

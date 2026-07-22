@@ -65,6 +65,9 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
     final opens = storage.appOpenCount + 1;
     await storage.setAppOpenCount(opens);
 
+    // Retry a best-score upload that may have failed offline last time.
+    ref.read(gameControllerProvider.notifier).autoUploadBestScore();
+
     // Keep any already-scheduled notifications fresh.
     await ref.read(notificationsControllerProvider.notifier).refresh();
 

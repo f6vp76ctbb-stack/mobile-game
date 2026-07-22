@@ -777,12 +777,15 @@ class _GameOverOverlay extends ConsumerWidget {
               const SizedBox(height: 20),
               _StarterCard(hoursLeft: snap.starterHoursLeft),
             ],
-            if (snap.playerName.isNotEmpty &&
-                snap.score > snap.lastSubmittedScore) ...[
-              const SizedBox(height: 20),
-              _LeaderboardSubmitButton(
-                name: snap.playerName,
-                score: snap.score,
+            // The best score uploads to the leaderboard automatically in the
+            // background (see GameController.autoUploadBestScore) — a new best
+            // just gets a quiet confirmation, no button to tap.
+            if (snap.isNewHighscore && snap.playerName.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Text(
+                '🏆 Neuer Bestwert — in der Bestenliste eingetragen',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: GridColors.placed, fontSize: 14),
               ),
             ],
             const SizedBox(height: 28),
@@ -815,49 +818,6 @@ class _GameOverOverlay extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// "Submit to leaderboard" button shown on game-over for a new best. Writes
-/// straight to the shared Firestore leaderboard under the player's silent
-/// anonymous identity — no account, no browser hop.
-class _LeaderboardSubmitButton extends ConsumerWidget {
-  const _LeaderboardSubmitButton({required this.name, required this.score});
-
-  final String name;
-  final int score;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return FilledButton.icon(
-      style: FilledButton.styleFrom(
-        backgroundColor: GridColors.placed,
-        foregroundColor: GridColors.background,
-      ),
-      icon: const Icon(Icons.emoji_events),
-      label: const Text('In Bestenliste eintragen'),
-      onPressed: () async {
-        final ok = await ref
-            .read(leaderboardServiceProvider)
-            .submit(name: name, score: score);
-        if (ok) {
-          await ref
-              .read(gameControllerProvider.notifier)
-              .markScoreSubmitted(score);
-        }
-        if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                ok
-                    ? 'Score steht in der Bestenliste! 🏆'
-                    : 'Gerade nicht erreichbar — versuch es später erneut.',
-              ),
-            ),
-          );
-        }
-      },
     );
   }
 }
