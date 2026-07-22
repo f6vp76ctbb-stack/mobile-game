@@ -22,7 +22,30 @@ void paintCell(
   final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
   switch (style) {
     case BlockSkinStyle.solid:
-      canvas.drawRRect(rrect, Paint()..color = color);
+      // Premium default (Aurora look): a subtle vertical gradient, a soft top
+      // light and a thin inner rim give each block real depth — without any
+      // blur (which janks / flashes white on iOS-Safari and is costly).
+      final shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [_lighten(color, 0.15), color, _darken(color, 0.17)],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(rect);
+      canvas.drawRRect(rrect, Paint()..shader = shader);
+      canvas.save();
+      canvas.clipRRect(rrect);
+      canvas.drawRect(
+        Rect.fromLTWH(rect.left, rect.top, rect.width, rect.height * 0.34),
+        Paint()..color = Colors.white.withValues(alpha: 0.12),
+      );
+      canvas.restore();
+      canvas.drawRRect(
+        rrect.deflate(0.5),
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1
+          ..color = _lighten(color, 0.30).withValues(alpha: 0.45),
+      );
     case BlockSkinStyle.gradient:
       final shader = LinearGradient(
         begin: Alignment.topCenter,

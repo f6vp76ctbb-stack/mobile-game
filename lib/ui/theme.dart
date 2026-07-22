@@ -7,25 +7,26 @@ import 'package:flutter/material.dart';
 class GridColors {
   const GridColors._();
 
-  static const background = Color(0xFF12122A);
-  static const boardBackground = Color(0xFF1B1B3A);
-  static const emptyCell = Color(0xFF23234A);
-  static const gridLine = Color(0xFF2C2C57);
+  static const background = Color(0xFF0F1030);
+  static const boardBackground = Color(0xFF191B40);
+  static const emptyCell = Color(0xFF23254E);
+  static const gridLine = Color(0xFF2E3068);
 
   /// Uniform colour for cells that are locked onto the board.
-  static const placed = Color(0xFF4ECDC4);
+  static const placed = Color(0xFF4FE0C6);
 
   /// Per-slot accent colours for tray pieces (purely cosmetic).
   static const traySlots = <Color>[
     Color(0xFF7C6BFF), // indigo
-    Color(0xFF4ECDC4), // teal
-    Color(0xFFFF6BAA), // pink
+    Color(0xFF4FE0C6), // teal
+    Color(0xFFFF6FB0), // pink
   ];
 
-  static const validPreview = Color(0x664ECDC4);
+  static const validPreview = Color(0x664FE0C6);
   static const invalidPreview = Color(0x66FF5D5D);
 
-  static const fever = Color(0xFFFFB020);
+  /// Gold accent — matched to the coin so highlights read as one system.
+  static const fever = Color(0xFFFFC24B);
   static const textPrimary = Color(0xFFF4F4FF);
   static const textMuted = Color(0xFF9B9BC7);
 }
@@ -128,14 +129,14 @@ const List<ThemeEntry> kThemeCatalog = [
     name: 'Classic',
     cost: 0,
     theme: GameTheme(
-      background: Color(0xFF12122A),
-      boardBackground: Color(0xFF1B1B3A),
-      emptyCell: Color(0xFF23234A),
-      placed: Color(0xFF4ECDC4),
-      traySlots: [Color(0xFF7C6BFF), Color(0xFF4ECDC4), Color(0xFFFF6BAA)],
-      validPreview: Color(0x664ECDC4),
+      background: Color(0xFF0F1030),
+      boardBackground: Color(0xFF191B40),
+      emptyCell: Color(0xFF23254E),
+      placed: Color(0xFF4FE0C6),
+      traySlots: [Color(0xFF7C6BFF), Color(0xFF4FE0C6), Color(0xFFFF6FB0)],
+      validPreview: Color(0x664FE0C6),
       invalidPreview: Color(0x66FF5D5D),
-      fever: Color(0xFFFFB020),
+      fever: Color(0xFFFFC24B),
     ),
   ),
   ThemeEntry(
