@@ -232,6 +232,7 @@ final gameControllerProvider =
     ref.read(audioProvider),
     ref.read(adServiceProvider),
     ref.read(analyticsProvider),
+    leaderboard: ref.read(leaderboardServiceProvider),
     onCosmeticsGranted: () {
       // Level-up unlocks changed the owned themes/skins — rebuild the caches.
       ref.invalidate(themeControllerProvider);
@@ -249,7 +250,10 @@ class GameController extends StateNotifier<GameSnapshot> {
     this._analytics, {
     int? seed,
     this.onCosmeticsGranted,
-  })  : _missions = MissionEngine(progress: _storage.missionProgress),
+    LeaderboardService? leaderboard,
+    // ignore: prefer_initializing_formals
+  })  : _leaderboard = leaderboard,
+        _missions = MissionEngine(progress: _storage.missionProgress),
         _session = GameSession.newGame(
           seed: seed ?? _randomSeed(),
           freeRotation: _storage.playerLevel <= 2,
@@ -272,6 +276,10 @@ class GameController extends StateNotifier<GameSnapshot> {
   final AudioService _audio;
   final AdService _ads;
   final Analytics _analytics;
+
+  /// Shared leaderboard; null in tests that don't need it. Used to auto-upload
+  /// the player's best score in the background.
+  final LeaderboardService? _leaderboard;
   final MissionEngine _missions;
 
   GameSession _session;
@@ -429,9 +437,13 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
   /// Sets the player's display name (leaderboard identity) and refreshes.
+  /// A rename should follow through to the shared leaderboard, so we clear the
+  /// "already uploaded" marker and re-upload the best score under the new name.
   Future<void> setPlayerName(String name) async {
     await _storage.setPlayerName(name);
+    await _storage.setLastSubmittedScore(0);
     _emit();
+    autoUploadBestScore();
   }
 
   /// Records that [score] was submitted to the shared leaderboard, so the UI
@@ -441,6 +453,25 @@ class GameController extends StateNotifier<GameSnapshot> {
       await _storage.setLastSubmittedScore(score);
       _emit();
     }
+  }
+
+  /// Uploads the player's best score to the shared leaderboard whenever it
+  /// beats what was last uploaded. Fire-and-forget and silent: if there's no
+  /// network the score simply stays queued (lastSubmittedScore only advances
+  /// on success), so the next call — next game over or next app start —
+  /// retries it. Call from anywhere; it self-guards.
+  void autoUploadBestScore() {
+    final leaderboard = _leaderboard;
+    if (leaderboard == null) return;
+    final name = _storage.playerName;
+    final best = _storage.highscore;
+    if (name.isEmpty || best <= 0 || best <= _storage.lastSubmittedScore) {
+      return;
+    }
+    unawaited(() async {
+      final ok = await leaderboard.submit(name: name, score: best);
+      if (ok && mounted) await markScoreSubmitted(best);
+    }());
   }
 
   /// Adds coins (e.g. from a consumable IAP) and refreshes the display.
@@ -752,6 +783,10 @@ class GameController extends StateNotifier<GameSnapshot> {
     // (the play coins were already added to the balance as they were earned).
     _coinsEarnedThisRun = earned + _playCoinsThisRun;
     _isNewHighscore = await _storage.submitScore(_session.score);
+
+    // Always keep the shared leaderboard in sync with the player's best,
+    // automatically and in the background — no button to tap.
+    autoUploadBestScore();
 
     // Achievements: evaluate against the now-updated aggregates.
     final life = _storage.lifetimeStats;

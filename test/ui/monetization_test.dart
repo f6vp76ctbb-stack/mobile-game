@@ -6,6 +6,7 @@ import 'package:gridpop/monetization/iap.dart';
 import 'package:gridpop/services/analytics.dart';
 import 'package:gridpop/services/audio.dart';
 import 'package:gridpop/services/haptics.dart';
+import 'package:gridpop/services/leaderboard.dart';
 import 'package:gridpop/services/storage.dart';
 import 'package:gridpop/ui/state/game_controller.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -37,6 +38,18 @@ class _NoRewardAds implements AdService {
   Future<void> initialize() async {}
   @override
   Future<bool> showRewarded() async => false;
+}
+
+/// Records leaderboard submissions; [succeed] simulates online/offline.
+class _FakeLeaderboard extends LeaderboardService {
+  _FakeLeaderboard({this.succeed = true});
+  final bool succeed;
+  final List<({String name, int score})> submitted = [];
+  @override
+  Future<bool> submit({required String name, required int score}) async {
+    submitted.add((name: name, score: score));
+    return succeed;
+  }
 }
 
 Future<GameController> _controller({
@@ -283,6 +296,79 @@ void main() {
       expect(c.state.playerLevel, 3);
       expect(c.state.xpIntoLevel, 40);
       expect(c.state.xpForNextLevel, 250); // 100 + 50*3
+    });
+  });
+
+  group('auto leaderboard upload', () {
+    Future<(GameController, _FakeLeaderboard)> controllerWith({
+      required bool succeed,
+      Map<String, Object> prefs = const {'playerName': 'Sam'},
+    }) async {
+      SharedPreferences.setMockInitialValues(prefs);
+      final storage = await Storage.create();
+      final board = _FakeLeaderboard(succeed: succeed);
+      final c = GameController(
+        storage,
+        Haptics(enabled: false),
+        SilentAudio(),
+        FakeAdService(),
+        NoopAnalytics(),
+        leaderboard: board,
+      );
+      return (c, board);
+    }
+
+    test('uploads the best score automatically at game over', () async {
+      final (c, board) = await controllerWith(succeed: true);
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(board.submitted, hasLength(1));
+      expect(board.submitted.first.name, 'Sam');
+      expect(board.submitted.first.score, c.state.highscore);
+      // Marked as submitted so it won't re-upload the same score.
+      expect(c.state.lastSubmittedScore, c.state.highscore);
+    });
+
+    test('keeps the score queued when offline (retries later)', () async {
+      final (c, board) = await controllerWith(succeed: false);
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      expect(board.submitted, isNotEmpty); // attempted
+      expect(c.state.lastSubmittedScore, 0); // but not marked done
+
+      // Still queued: a later call retries (best > lastSubmittedScore).
+      board.submitted.clear();
+      c.autoUploadBestScore();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(board.submitted, isNotEmpty);
+    });
+
+    test('does nothing without a player name', () async {
+      final (c, board) = await controllerWith(
+        succeed: true,
+        prefs: const {},
+      );
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(board.submitted, isEmpty);
+    });
+
+    test('renaming re-uploads under the new name', () async {
+      final (c, board) = await controllerWith(succeed: true);
+      c.newGame(seed: 1);
+      _playToGameOver(c);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      board.submitted.clear();
+
+      await c.setPlayerName('NewName');
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(board.submitted, hasLength(1));
+      expect(board.submitted.first.name, 'NewName');
     });
   });
 
