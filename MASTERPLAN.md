@@ -206,7 +206,9 @@ bis der Mensch sie als erledigt markiert.
 - [x] Native Config: AdMob-App-ID (Test) in AndroidManifest + Info.plist,
       INTERNET-Permission
 - [ ] 👤 DU: Accounts anlegen — Apple Developer, Google Play, AdMob, Firebase (Anleitung s. o.)
-- [ ] 👤 DU: Echte Ad-Unit-IDs + App-IDs eintragen (`ad_config.dart`, Manifest, Info.plist)
+- [x] 👤 DU: Echte Ad-Unit-IDs + App-IDs — **Android erledigt 22.07.2026**
+      (App-ID im Manifest, Rewarded-Unit in `ad_config.dart`; iOS folgt beim
+      App-Store-Gang)
 - [ ] 👤 DU: IAP-Produkte in beiden Konsolen anlegen (IDs aus `iap.dart` / Anhang A.5)
 - [ ] 👤 DU: Firebase-Config-Dateien einchecken → dann bindet Claude das Firebase-Backend an
 - [x] Eigenes App-Icon (Android-Mipmaps + iOS-Set via `flutter_launcher_icons`)

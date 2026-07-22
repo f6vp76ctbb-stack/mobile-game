@@ -68,6 +68,10 @@ Einnahmen also zeitnah anmelden. Im Zweifel kurz Finanzamt/Steuerberater fragen.
    Einwilligungsmeldung (GDPR) für EU erstellen. Der Code ruft den Consent-Flow
    automatisch vor dem ersten Ad-Request auf (`GoogleAdService._requestConsent`).
 
+> ✅ **Schritte 1–3 erledigt (22.07.2026):** Android-App-ID im Manifest,
+> Rewarded-Unit-ID in `ad_config.dart`. Offen: UMP-Meldung (Schritt 4) und
+> später die Store-Verknüpfung + iOS.
+
 > Debug-Builds nutzen **immer** Googles Test-IDs (in `ad_config.dart` fest
 > verdrahtet) — echte Ads erscheinen nur im Release-Build. Bitte während der
 > Entwicklung nie auf echte Ads klicken (Konto-Sperre).

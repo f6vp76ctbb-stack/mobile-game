@@ -7,11 +7,12 @@
         android:label="Qubble"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-        <!-- AdMob App ID. This is Google's official TEST app id — replace with
-             the real one from AdMob before release (docs/SETUP-ACCOUNTS.md). -->
+        <!-- Real AdMob App ID (app "Qubble", set 2026-07). Ad UNIT ids still
+             switch between Google test ids (debug) and the real one (release)
+             in lib/monetization/ad_config.dart. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713"/>
+            android:value="ca-app-pub-8596176219181991~9674890597"/>
         <activity
             android:name=".MainActivity"
             android:exported="true"
