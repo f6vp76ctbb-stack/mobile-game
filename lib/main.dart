@@ -18,6 +18,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final storage = await Storage.create();
 
+  // Configure audio as a GAME (ambient) before any player is created, so the
+  // music never shows up in the system media controls like a Spotify track.
+  await configureGameAudioSession();
+
   // Firebase (Analytics + Crashlytics) on native builds; null on web (the
   // stub) or when init fails — the game never depends on it.
   final firebaseAnalytics = await initFirebase();

@@ -8,6 +8,37 @@ library;
 
 import 'package:audioplayers/audioplayers.dart';
 
+/// Audio session config for a GAME, not a music app.
+///
+/// audioplayers defaults to the iOS `playback` category, which registers with
+/// the system Now Playing / lock-screen media controls (so our loop showed up
+/// like a Spotify track, even in the background). `ambient` fixes that: it
+/// never appears in the media controls, mixes with the user's own music
+/// instead of interrupting it, and is silenced automatically when the app
+/// isn't active. On Android we mark it as game audio that never takes audio
+/// focus, so no media notification appears.
+final AudioContext kGameAudioContext = AudioContext(
+  iOS: AudioContextIOS(
+    category: AVAudioSessionCategory.ambient,
+    options: const {},
+  ),
+  android: const AudioContextAndroid(
+    contentType: AndroidContentType.music,
+    usageType: AndroidUsageType.game,
+    audioFocus: AndroidAudioFocus.none,
+  ),
+);
+
+/// Applies [kGameAudioContext] as the global default so every player created
+/// afterwards is ambient. Safe to call once at startup (no-op on web).
+Future<void> configureGameAudioSession() async {
+  try {
+    await AudioPlayer.global.setAudioContext(kGameAudioContext);
+  } catch (_) {
+    // Web / headless: no audio session to configure.
+  }
+}
+
 enum Sfx { place, clear, combo, feverBurst, gameOver, levelUp }
 
 abstract class AudioService {
@@ -33,7 +64,9 @@ class AudioplayersAudio implements AudioService {
   AudioplayersAudio({int poolSize = 4})
       : _pool = List.generate(
           poolSize,
-          (_) => AudioPlayer()..setReleaseMode(ReleaseMode.stop),
+          (_) => AudioPlayer()
+            ..setReleaseMode(ReleaseMode.stop)
+            ..setAudioContext(kGameAudioContext),
         );
 
   final List<AudioPlayer> _pool;
@@ -97,7 +130,8 @@ class SilentMusic implements MusicService {
 /// assets/CREDITS.md) via a dedicated looping [AudioPlayer].
 class AudioplayersMusic implements MusicService {
   final AudioPlayer _player = AudioPlayer()
-    ..setReleaseMode(ReleaseMode.loop);
+    ..setReleaseMode(ReleaseMode.loop)
+    ..setAudioContext(kGameAudioContext);
 
   bool _enabled = true;
   bool _started = false;
@@ -119,6 +153,9 @@ class AudioplayersMusic implements MusicService {
     if (!_enabled || _started) return;
     _started = true;
     try {
+      // Ensure the ambient session is applied before the first play, so the
+      // loop never registers with the system media controls.
+      await _player.setAudioContext(kGameAudioContext);
       await _player.play(AssetSource('audio/music.wav'), volume: 0.24);
     } catch (_) {
       // Autoplay may still be blocked (e.g. web before a gesture) — retry on
