@@ -399,6 +399,32 @@ void main() {
     });
   });
 
+  group('gold → diamond exchange', () {
+    test('spends gold and grants diamonds at the set rate', () async {
+      final c = await _controller(prefs: {'coins': 1000, 'diamonds': 0});
+      final ok = await c.exchangeGoldForDiamonds(3);
+      expect(ok, isTrue);
+      expect(c.state.diamonds, 3);
+      expect(c.state.coins, 1000 - 3 * 100); // 100 gold per diamond
+    });
+
+    test('refused without enough gold; balances unchanged', () async {
+      final c = await _controller(prefs: {'coins': 150, 'diamonds': 0});
+      expect(await c.exchangeGoldForDiamonds(2), isFalse); // needs 200
+      expect(c.state.coins, 150);
+      expect(c.state.diamonds, 0);
+    });
+
+    test('diamonds can be spent and granted directly', () async {
+      final c = await _controller(prefs: {'diamonds': 40});
+      expect(await c.trySpendDiamonds(30), isTrue);
+      expect(c.state.diamonds, 10);
+      expect(await c.trySpendDiamonds(30), isFalse); // not enough
+      await c.grantDiamonds(20);
+      expect(c.state.diamonds, 30);
+    });
+  });
+
   group('paid name change', () {
     test('a purchased credit lets the player rename once', () async {
       final c = await _controller(prefs: {'playerName': 'Old'});

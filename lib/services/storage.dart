@@ -19,6 +19,7 @@ class Storage {
 
   static const _kHighscore = 'highscore';
   static const _kCoins = 'coins';
+  static const _kDiamonds = 'diamonds';
   static const _kStreak = 'streak';
   static const _kLastDailyDate = 'lastDailyDate';
   static const _kActiveTheme = 'activeTheme';
@@ -101,6 +102,19 @@ class Storage {
   Future<int> addCoins(int delta) async {
     final next = (coins + delta).clamp(0, 1 << 31);
     await setCoins(next);
+    return next;
+  }
+
+  /// Premium diamond balance (skins). Earned via the gold→diamond exchange or
+  /// a diamond purchase; never granted for free by gameplay.
+  int get diamonds => _prefs.getInt(_kDiamonds) ?? 0;
+  Future<void> setDiamonds(int value) =>
+      _prefs.setInt(_kDiamonds, value < 0 ? 0 : value);
+
+  /// Adds [delta] diamonds (never below zero) and returns the new balance.
+  Future<int> addDiamonds(int delta) async {
+    final next = (diamonds + delta).clamp(0, 1 << 31);
+    await setDiamonds(next);
     return next;
   }
 

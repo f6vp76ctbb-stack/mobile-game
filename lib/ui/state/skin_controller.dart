@@ -53,15 +53,18 @@ class SkinController extends StateNotifier<SkinState> {
   }
 
   /// Buys (if needed) and equips [skin]. Returns false if unaffordable.
-  /// Supporter-only skins can never be bought with coins.
+  /// Gold skins cost coins, diamond skins cost diamonds; supporter-only skins
+  /// can never be bought.
   Future<bool> selectOrUnlock(BlockSkin skin) async {
     if (state.isUnlocked(skin.id)) {
       await setActive(skin.id);
       return true;
     }
     if (skin.supporterOnly) return false;
-    final paid =
-        await _ref.read(gameControllerProvider.notifier).trySpendCoins(skin.cost);
+    final game = _ref.read(gameControllerProvider.notifier);
+    final paid = skin.currency == SkinCurrency.diamond
+        ? await game.trySpendDiamonds(skin.cost)
+        : await game.trySpendCoins(skin.cost);
     if (!paid) return false;
 
     final unlocked = {...state.unlocked, skin.id};

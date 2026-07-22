@@ -1,10 +1,12 @@
-/// Block skin picker: preview, unlock with coins, and equip skins.
+/// Block skin picker: preview, unlock with gold or diamonds, and equip skins.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/block_skin.dart';
+import '../../game/economy.dart';
+import '../state/game_controller.dart';
 import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
@@ -18,17 +20,33 @@ class SkinsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(skinControllerProvider);
     final theme = ref.watch(activeThemeProvider);
+    final snap = ref.watch(gameControllerProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Block-Skins'),
         backgroundColor: GridColors.background,
+        actions: [
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.only(right: 14),
+              child: DiamondAmount(
+                amount: snap.diamonds,
+                size: 16,
+                color: GridColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
       body: ListView.separated(
         padding: const EdgeInsets.all(20),
-        itemCount: kSkinCatalog.length,
+        itemCount: kSkinCatalog.length + 1,
         separatorBuilder: (_, _) => const SizedBox(height: 14),
         itemBuilder: (context, i) {
+          if (i == kSkinCatalog.length) {
+            return _ExchangeCard(coins: snap.coins);
+          }
           final skin = kSkinCatalog[i];
           final owned = state.isUnlocked(skin.id);
           final active = state.activeId == skin.id;
@@ -47,7 +65,9 @@ class SkinsScreen extends ConsumerWidget {
                     content: Text(
                       skin.supporterOnly
                           ? 'Exklusiv im Unterstützer-Paket (siehe Shop) ❤️'
-                          : 'Nicht genug Münzen',
+                          : skin.currency == SkinCurrency.diamond
+                              ? 'Nicht genug Diamanten (unten Gold eintauschen)'
+                              : 'Nicht genug Münzen',
                     ),
                   ),
                 );
@@ -111,7 +131,10 @@ class _SkinTile extends StatelessWidget {
                   if (!active && !owned && !skin.supporterOnly)
                     Row(
                       children: [
-                        const CoinIcon(size: 14),
+                        if (skin.currency == SkinCurrency.diamond)
+                          const DiamondIcon(size: 14)
+                        else
+                          const CoinIcon(size: 14),
                         const SizedBox(width: 5),
                         Text(
                           '${skin.cost} zum Freischalten',
@@ -138,11 +161,106 @@ class _SkinTile extends StatelessWidget {
               ),
             ),
             if (active)
-              Icon(Icons.check_circle, color: accent)
+              Icon(Icons.check_circle_rounded, color: accent)
             else if (!owned)
-              const Icon(Icons.lock_outline, color: GridColors.textMuted),
+              const Icon(Icons.lock_outline_rounded,
+                  color: GridColors.textMuted),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Gold → diamond exchange. Deliberately steep so it takes real playtime.
+class _ExchangeCard extends ConsumerWidget {
+  const _ExchangeCard({required this.coins});
+
+  final int coins;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> exchange(int diamonds) async {
+      final ok = await ref
+          .read(gameControllerProvider.notifier)
+          .exchangeGoldForDiamonds(diamonds);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Nicht genug Gold.')),
+        );
+      }
+    }
+
+    Widget option(int diamonds) {
+      final cost = Economy.goldCostForDiamonds(diamonds);
+      final canAfford = coins >= cost;
+      return Opacity(
+        opacity: canAfford ? 1 : 0.4,
+        child: FilledButton.tonal(
+          onPressed: canAfford ? () => exchange(diamonds) : null,
+          style: FilledButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DiamondAmount(
+                amount: diamonds,
+                size: 15,
+                color: GridColors.textPrimary,
+              ),
+              const SizedBox(height: 3),
+              CoinAmount(
+                amount: cost,
+                size: 12,
+                color: GridColors.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: GridColors.boardBackground,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: GridColors.gridLine),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              CoinIcon(size: 18),
+              Icon(Icons.arrow_forward_rounded,
+                  size: 16, color: GridColors.textMuted),
+              DiamondIcon(size: 18),
+              SizedBox(width: 8),
+              Text(
+                'Gold eintauschen',
+                style: TextStyle(
+                  color: GridColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${Economy.goldPerDiamond} Gold = 1 Diamant. Diamanten schalten die '
+            'edelsten Skins frei — lass dir Zeit beim Sammeln.',
+            style: const TextStyle(color: GridColors.textMuted, fontSize: 13),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [option(1), option(10), option(50)],
+          ),
+        ],
       ),
     );
   }

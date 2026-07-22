@@ -10,6 +10,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/achievements.dart';
 import '../../game/board.dart';
 import '../../game/daily.dart';
+import '../../game/economy.dart';
 import '../../game/game_session.dart';
 import '../../game/leveling.dart';
 import '../../game/missions.dart';
@@ -67,6 +68,7 @@ class GameSnapshot {
     required this.highscore,
     required this.isNewHighscore,
     required this.coins,
+    required this.diamonds,
     required this.coinsEarnedThisRun,
     required this.completedMissions,
     required this.isDaily,
@@ -113,6 +115,9 @@ class GameSnapshot {
   final int highscore;
   final bool isNewHighscore;
   final int coins;
+
+  /// Premium diamond balance (skins).
+  final int diamonds;
   final int coinsEarnedThisRun;
   final List<String> completedMissions;
   final bool isDaily;
@@ -334,6 +339,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       highscore: storage.highscore,
       isNewHighscore: false,
       coins: storage.coins,
+      diamonds: storage.diamonds,
       coinsEarnedThisRun: 0,
       completedMissions: const [],
       isDaily: false,
@@ -664,6 +670,34 @@ class GameController extends StateNotifier<GameSnapshot> {
     return true;
   }
 
+  /// Spends [cost] diamonds if affordable (premium skins). Returns whether it
+  /// went through, and refreshes the display.
+  Future<bool> trySpendDiamonds(int cost) async {
+    if (_storage.diamonds < cost) return false;
+    await _storage.addDiamonds(-cost);
+    _emit();
+    return true;
+  }
+
+  /// Grants [amount] diamonds (from a diamond purchase). Refreshes the display.
+  Future<void> grantDiamonds(int amount) async {
+    if (amount <= 0) return;
+    await _storage.addDiamonds(amount);
+    _emit();
+  }
+
+  /// Buys [diamonds] diamonds with gold at [Economy.goldPerDiamond] each.
+  /// Returns whether the player could afford it.
+  Future<bool> exchangeGoldForDiamonds(int diamonds) async {
+    if (diamonds <= 0) return false;
+    final cost = Economy.goldCostForDiamonds(diamonds);
+    if (_storage.coins < cost) return false;
+    await _storage.addCoins(-cost);
+    await _storage.addDiamonds(diamonds);
+    _emit();
+    return true;
+  }
+
   /// Undo booster: reverts the last placement for [BoosterCosts.undo] coins.
   Future<bool> tryUndo() async {
     if (!_session.canUndo || _storage.coins < BoosterCosts.undo) return false;
@@ -847,6 +881,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       highscore: max(_storage.highscore, _session.score),
       isNewHighscore: _isNewHighscore,
       coins: _storage.coins,
+      diamonds: _storage.diamonds,
       coinsEarnedThisRun: _coinsEarnedThisRun,
       completedMissions: _completedMissions,
       isDaily: _isDaily,

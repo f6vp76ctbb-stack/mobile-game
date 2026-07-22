@@ -67,11 +67,24 @@ des Eigentümers.
 **Verboten:** Interstitials, Banner, „Video um weiterzuspielen". Revive kostet
 Münzen (200), nie Werbung.
 
+### Währungs-Trennung (Juli 2026)
+
+**Sauber getrennt, damit nichts „zu billig" wirkt:**
+- **Gold** = Spiel-Währung. Verdient durch Spielen; ausgegeben für Booster
+  (Undo/Tausch/Bombe/Revive) und **Gold-Skins** (1.200–2.200 Gold — ein Skin
+  ist ein echtes Ziel, nicht „2 Bomben").
+- **Diamanten** 💎 = Premium-Kosmetik-Währung. Nur für die **edelsten Skins**
+  (aktuell Relief 30 💎, Glow 50 💎). Diamanten gibt es über den
+  **Gold→Diamant-Tausch** (100 Gold = 1 💎, bewusst langsam) — später auch
+  per Diamant-Kauf (Echtgeld). Nie gratis durchs Gameplay.
+  Logik/Kurs: `lib/game/economy.dart`; Salden in `storage.diamonds`.
+
 ### In-App-Käufe
 
 | Produkt | Preis | Typ |
 |---|---|---|
 | **Unterstützer-Paket** (Aurora-Theme + Kristall-Skin + 1.500 Münzen + ❤️-Abzeichen) | 4,99 € | Non-Consumable — ehrliches „Ich mag das Spiel"-Angebot |
+| Diamant-Pakete (geplant) | tbd | Consumable — Premium-Währung für Skins |
 | Münzpaket S/M/L | 0,99 / 2,99 / 7,99 € | Consumable |
 | Starter-Paket (einmalig, ab Runde 5, 48h) | 1,99 € | Consumable — 1200 Münzen + Wood-Theme (Anhang C.6) |
 | Namensänderung (`qubble_rename`) | 1,49 € | Consumable — Name ist sonst fest (Bestenlisten-Identität) |

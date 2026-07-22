@@ -85,6 +85,13 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
 - **Booster**: Undo 50 / Tausch 75 / Bombe 150 Münzen (zentral in
   `BoosterCosts`). Bombe = 3x3, mit Partikeln/Sound; Buttons ausgegraut ohne
   Guthaben.
+- **Währungen (Juli 2026, sauber getrennt):** **Gold** = Spiel (Booster,
+  Revive, Gold-Skins 1.200–2.200). **Diamanten** 💎 = Premium-Kosmetik (edle
+  Skins, Relief 30/Glow 50); Bezug über Gold→Diamant-Tausch (100:1,
+  `economy.dart`) — später Diamant-IAP. `storage.diamonds`,
+  `trySpendDiamonds`/`exchangeGoldForDiamonds`; Skin trägt `SkinCurrency`.
+  Diamant-Chip auf Home + Tausch-Karte im Skins-Screen. `DiamondIcon`/
+  `DiamondAmount` in `app_icons.dart`.
 - **Live-Münzen beim Spielen**: `kCoinsPerLine = 3` pro geräumter Reihe,
   + Combo-Bonus (+combo), + `kAllClearCoins = 25`. Sichtbar als
   „+N 🪙"-Popup überm Board (`coin_popup.dart`) + Live-Münzchip im Header.

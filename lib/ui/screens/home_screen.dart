@@ -275,6 +275,8 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(width: 10),
                       _CoinPill(coins: snap.coins),
+                      const SizedBox(width: 8),
+                      _DiamondPill(diamonds: snap.diamonds),
                     ],
                   ),
                 ],
@@ -489,6 +491,29 @@ class _CoinPill extends StatelessWidget {
       ),
       child: CoinAmount(
         amount: coins,
+        size: 17,
+        color: GridColors.textPrimary,
+        fontWeight: FontWeight.bold,
+      ),
+    );
+  }
+}
+
+class _DiamondPill extends StatelessWidget {
+  const _DiamondPill({required this.diamonds});
+
+  final int diamonds;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: GridColors.boardBackground,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: DiamondAmount(
+        amount: diamonds,
         size: 17,
         color: GridColors.textPrimary,
         fontWeight: FontWeight.bold,
