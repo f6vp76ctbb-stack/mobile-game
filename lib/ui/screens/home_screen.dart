@@ -287,9 +287,9 @@ class HomeScreen extends ConsumerWidget {
                 'Qubble',
                 style: TextStyle(
                   color: GridColors.textPrimary,
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.2,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.5,
                 ),
               ),
               const SizedBox(height: 6),
