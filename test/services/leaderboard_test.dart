@@ -1,83 +1,168 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:gridpop/services/leaderboard.dart';
+import 'package:gridpop/services/storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+String _runQueryBody(List<(String, int)> rows) => jsonEncode([
+      for (final (name, score) in rows)
+        {
+          'document': {
+            'name': 'projects/qubble/databases/(default)/documents/'
+                'leaderboard/uid-$name',
+            'fields': {
+              'name': {'stringValue': name},
+              'score': {'integerValue': '$score'},
+            },
+          },
+        },
+      // runQuery may append a row without a document (readTime only).
+      {'readTime': '2026-07-22T12:00:00Z'},
+    ]);
+
+Future<Storage> _storage([Map<String, Object> prefs = const {}]) async {
+  SharedPreferences.setMockInitialValues(prefs);
+  return Storage.create();
+}
 
 void main() {
-  group('parseLeaderboard', () {
-    test('parses and sorts by score descending', () {
-      final entries = parseLeaderboard(
-        '{"entries":[{"name":"A","score":10},{"name":"B","score":50},'
-        '{"name":"C","score":30}]}',
-      );
-      expect(entries.map((e) => e.name), ['B', 'C', 'A']);
-      expect(entries.first.score, 50);
+  group('parseRunQueryResponse', () {
+    test('parses rows, drops malformed ones, sorts descending', () {
+      final entries = parseRunQueryResponse(_runQueryBody([
+        ('Anna', 300),
+        ('Ben', 900),
+        ('C', 5), // invalid: name too short
+      ]));
+      expect(entries.map((e) => e.name), ['Ben', 'Anna']);
+      expect(entries.first.score, 900);
     });
 
-    test('drops malformed rows', () {
-      final entries = parseLeaderboard(
-        '{"entries":[{"name":"A","score":10},{"name":"","score":5},'
-        '{"nope":1},{"name":"B"},{"name":"C","score":"x"},'
-        '{"name":"D","score":7}]}',
-      );
-      expect(entries.map((e) => e.name), ['A', 'D']);
+    test('tolerates junk input', () {
+      expect(parseRunQueryResponse('{}'), isEmpty);
+      expect(parseRunQueryResponse('[]'), isEmpty);
+      expect(parseRunQueryResponse('[{"document":{}}]'), isEmpty);
     });
 
-    test('missing or non-list entries yields empty', () {
-      expect(parseLeaderboard('{}'), isEmpty);
-      expect(parseLeaderboard('{"entries":{}}'), isEmpty);
-      expect(parseLeaderboard('{"entries":[]}'), isEmpty);
-    });
-  });
-
-  group('buildScoreIssueUri', () {
-    test('null for empty name or non-positive score', () {
-      expect(buildScoreIssueUri('', 100), isNull);
-      expect(buildScoreIssueUri('Max', 0), isNull);
-      expect(buildScoreIssueUri('Max', -5), isNull);
-    });
-
-    test('carries the score label and a parseable marker', () {
-      final uri = buildScoreIssueUri('Max', 12345)!;
-      expect(uri.host, 'github.com');
-      expect(uri.path, '/f6vp76ctbb-stack/mobile-game/issues/new');
-      expect(uri.queryParameters['labels'], 'score');
-      expect(
-        uri.queryParameters['body'],
-        contains('<!-- qubble-score v1 name="Max" score="12345" -->'),
-      );
-    });
-
-    test('the marker matches the Action regex', () {
-      final uri = buildScoreIssueUri('Ann_1', 42)!;
-      final body = uri.queryParameters['body']!;
-      final re = RegExp(r'qubble-score\s+v1\s+name="([^"]{2,14})"\s+score="(\d{1,9})"');
-      final m = re.firstMatch(body);
-      expect(m, isNotNull);
-      expect(m!.group(1), 'Ann_1');
-      expect(m.group(2), '42');
+    test('rejects out-of-range scores and bad names', () {
+      final entries = parseRunQueryResponse(_runQueryBody([
+        ('Okay', 100),
+        ('Cheater', 999999999), // > max
+      ]));
+      expect(entries.map((e) => e.name), ['Okay']);
     });
   });
 
   group('LeaderboardService.fetchTop', () {
-    test('parses a successful response and applies the limit', () async {
+    test('queries Firestore and parses the response', () async {
       final client = MockClient((req) async {
-        expect(req.url.host, 'raw.githubusercontent.com');
-        return http.Response(
-          '{"entries":[{"name":"A","score":3},{"name":"B","score":9},'
-          '{"name":"C","score":6}]}',
-          200,
-        );
+        expect(req.url.host, 'firestore.googleapis.com');
+        expect(req.url.path, contains(':runQuery'));
+        final query = jsonDecode(req.body)['structuredQuery'];
+        expect(query['from'][0]['collectionId'], 'leaderboard');
+        expect(query['orderBy'][0]['direction'], 'DESCENDING');
+        return http.Response(_runQueryBody([('Anna', 300), ('Ben', 900)]), 200);
       });
       final service = LeaderboardService(client: client);
-      final top2 = await service.fetchTop(limit: 2);
-      expect(top2.map((e) => e.name), ['B', 'C']);
+      final top = await service.fetchTop();
+      expect(top.map((e) => e.name), ['Ben', 'Anna']);
     });
 
     test('throws on a non-200 response', () async {
       final client = MockClient((req) async => http.Response('nope', 404));
       final service = LeaderboardService(client: client);
       expect(service.fetchTop(), throwsA(isA<Exception>()));
+    });
+  });
+
+  group('LeaderboardService.submit', () {
+    test('signs up anonymously on first submit, persists identity, writes doc',
+        () async {
+      final storage = await _storage();
+      final calls = <String>[];
+      final client = MockClient((req) async {
+        calls.add(req.url.host + req.url.path);
+        if (req.url.host == 'identitytoolkit.googleapis.com') {
+          return http.Response(
+            jsonEncode({
+              'localId': 'uid-123',
+              'idToken': 'token-abc',
+              'refreshToken': 'refresh-xyz',
+            }),
+            200,
+          );
+        }
+        if (req.url.host == 'firestore.googleapis.com') {
+          expect(req.method, 'PATCH');
+          expect(req.url.path, endsWith('/leaderboard/uid-123'));
+          expect(req.headers['Authorization'], 'Bearer token-abc');
+          final fields = jsonDecode(req.body)['fields'];
+          expect(fields['name']['stringValue'], 'Sam');
+          expect(fields['score']['integerValue'], '1234');
+          return http.Response('{}', 200);
+        }
+        fail('unexpected request: ${req.url}');
+      });
+
+      final service = LeaderboardService(client: client, storage: storage);
+      final ok = await service.submit(name: 'Sam', score: 1234);
+      expect(ok, isTrue);
+      expect(storage.firebaseUid, 'uid-123');
+      expect(storage.firebaseRefreshToken, 'refresh-xyz');
+      expect(calls, hasLength(2)); // signUp + patch, no token refresh
+    });
+
+    test('reuses the stored identity via token refresh', () async {
+      final storage = await _storage({
+        'fbUid': 'uid-old',
+        'fbRefreshToken': 'refresh-old',
+      });
+      final client = MockClient((req) async {
+        if (req.url.host == 'securetoken.googleapis.com') {
+          return http.Response(jsonEncode({'id_token': 'token-new'}), 200);
+        }
+        if (req.url.host == 'firestore.googleapis.com') {
+          expect(req.url.path, endsWith('/leaderboard/uid-old'));
+          expect(req.headers['Authorization'], 'Bearer token-new');
+          return http.Response('{}', 200);
+        }
+        fail('unexpected request: ${req.url} (no signUp expected)');
+      });
+
+      final service = LeaderboardService(client: client, storage: storage);
+      expect(await service.submit(name: 'Sam', score: 99), isTrue);
+      expect(storage.firebaseUid, 'uid-old'); // identity kept
+    });
+
+    test('rejects invalid names/scores locally without any request', () async {
+      final storage = await _storage();
+      final client = MockClient((req) async => fail('no request expected'));
+      final service = LeaderboardService(client: client, storage: storage);
+      expect(await service.submit(name: 'x', score: 100), isFalse); // short
+      expect(await service.submit(name: 'Sam!', score: 100), isFalse);
+      expect(await service.submit(name: 'Sam', score: 0), isFalse);
+      expect(
+        await service.submit(name: 'Sam', score: kLeaderboardMaxScore + 1),
+        isFalse,
+      );
+    });
+
+    test('returns false when the rules reject the write (e.g. lower score)',
+        () async {
+      final storage = await _storage({
+        'fbUid': 'uid-old',
+        'fbRefreshToken': 'refresh-old',
+      });
+      final client = MockClient((req) async {
+        if (req.url.host == 'securetoken.googleapis.com') {
+          return http.Response(jsonEncode({'id_token': 't'}), 200);
+        }
+        return http.Response('{"error":{"status":"PERMISSION_DENIED"}}', 403);
+      });
+      final service = LeaderboardService(client: client, storage: storage);
+      expect(await service.submit(name: 'Sam', score: 10), isFalse);
     });
   });
 }

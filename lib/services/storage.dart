@@ -35,6 +35,8 @@ class Storage {
   static const _kPiggyCoins = 'piggyCoins';
   static const _kPiggyCapacity = 'piggyCapacity';
   static const _kSupporter = 'supporter';
+  static const _kFirebaseUid = 'fbUid';
+  static const _kFirebaseRefreshToken = 'fbRefreshToken';
   static const _kSoundEnabled = 'settings.sound';
   static const _kHapticsEnabled = 'settings.haptics';
   static const _kMusicEnabled = 'settings.music';
@@ -206,6 +208,18 @@ class Storage {
   /// Whether the supporter pack (non-consumable IAP) is owned.
   bool get supporter => _prefs.getBool(_kSupporter) ?? false;
   Future<void> setSupporter(bool value) => _prefs.setBool(_kSupporter, value);
+
+  /// Silent anonymous Firebase identity for the leaderboard (no visible
+  /// login, ever). Created lazily on the first score submission.
+  String? get firebaseUid => _prefs.getString(_kFirebaseUid);
+  String? get firebaseRefreshToken => _prefs.getString(_kFirebaseRefreshToken);
+  Future<void> setFirebaseIdentity({
+    required String uid,
+    required String refreshToken,
+  }) async {
+    await _prefs.setString(_kFirebaseUid, uid);
+    await _prefs.setString(_kFirebaseRefreshToken, refreshToken);
+  }
 
   int? get starterOfferStart => _prefs.getInt(_kStarterStart);
   Future<void> setStarterOfferStart(int millis) =>

@@ -1,20 +1,16 @@
-/// Shared leaderboard: shows the public ranking and lets the player submit
-/// their best score (as a prefilled GitHub issue).
+/// Shared leaderboard: shows the public ranking and submits the player's
+/// best score directly to Firestore (silent anonymous identity, no account).
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../services/leaderboard.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
 
 class LeaderboardScreen extends ConsumerStatefulWidget {
-  const LeaderboardScreen({super.key, this.launcher});
-
-  /// Injectable URL launcher for tests.
-  final Future<bool> Function(Uri uri)? launcher;
+  const LeaderboardScreen({super.key});
 
   @override
   ConsumerState<LeaderboardScreen> createState() => _LeaderboardScreenState();
@@ -35,22 +31,17 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
     });
   }
 
-  Future<bool> _launch(Uri uri) {
-    final launcher = widget.launcher;
-    if (launcher != null) return launcher(uri);
-    return launchUrl(uri, mode: LaunchMode.externalApplication);
-  }
-
   Future<void> _submit() async {
     final snap = ref.read(gameControllerProvider);
-    final uri = buildScoreIssueUri(snap.playerName, snap.highscore);
-    if (uri == null) {
+    if (snap.highscore <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Spiel erst eine Runde für einen Score.')),
       );
       return;
     }
-    final ok = await _launch(uri);
+    final ok = await ref
+        .read(leaderboardServiceProvider)
+        .submit(name: snap.playerName, score: snap.highscore);
     if (!mounted) return;
     if (ok) {
       await ref
@@ -58,15 +49,14 @@ class _LeaderboardScreenState extends ConsumerState<LeaderboardScreen> {
           .markScoreSubmitted(snap.highscore);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Score gesendet! Er erscheint in ein paar Minuten in der Liste.',
-          ),
-        ),
+        const SnackBar(content: Text('Score eingetragen! 🏆')),
       );
+      _reload();
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('GitHub ließ sich nicht öffnen.')),
+        const SnackBar(
+          content: Text('Gerade nicht erreichbar — später erneut versuchen.'),
+        ),
       );
     }
   }

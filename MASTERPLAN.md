@@ -362,17 +362,24 @@ PR-Zyklus (Commit → PR → Merge, wie etabliert). Vor jedem Commit:
 im Chat geliefert wurde — Nutzer-Entscheidung vom 22.07.2026: Analytics +
 Crashlytics + kontofreie Firestore-Bestenliste mit ANONYMER Auth. NIE ein
 sichtbarer Login, KEIN E-Mail/Passwort):**
-- [ ] `firebase_core` + `firebase_analytics` + `firebase_crashlytics`
-      anbinden: `firebase_options.dart` aus den JSON-Werten generieren,
-      `FirebaseAnalyticsBackend` hinter das bestehende `Analytics`-Interface,
-      Crashlytics-Fehler-Weiterleitung; Web + Tests behalten die Fakes
-- [ ] Kontofreie Bestenliste: anonyme Auth + Firestore (`leaderboard`-
-      Collection, bester Score pro Spieler), Security-Rules im Repo
-      (`firebase/firestore.rules`, Nutzer fügt sie in der Konsole ein),
-      `LeaderboardService` auf Firestore umstellen, GitHub-Issue-Pipeline
-      danach stilllegen
-- [ ] Offline-Regel bleibt: Gameplay läuft ohne Netz; Bestenliste/Analytics
-      degradieren still (kein Fehler-Popup)
+- [x] `firebase_core` + `firebase_analytics` + `firebase_crashlytics`
+      angebunden (22.07.2026): `firebase_boot.dart` mit Conditional Import —
+      native Builds initialisieren Firebase (Optionen aus
+      `firebase_config.dart`), der Web-Build kompiliert den Stub (kein
+      Firebase-SDK im PWA-Bundle); Crashlytics fängt FlutterError +
+      PlatformDispatcher-Fehler; Tests behalten die Fakes
+- [x] Kontofreie Bestenliste (22.07.2026): `LeaderboardService` spricht
+      Firestore per REST (runQuery lesen; anonyme Identität via
+      Identity-Toolkit-signUp + Token-Refresh, persistiert in storage;
+      PATCH aufs eigene Dokument). Läuft identisch auf Native + Web-PWA.
+      Rules in `firebase/firestore.rules` (👤 in Konsole einfügen!);
+      GitHub-Issue-Pipeline entfernt (`leaderboard.yaml` gelöscht,
+      `leaderboard.json` bleibt Archiv)
+- [x] Offline-Regel: `submit()` wirft nie (gibt false zurück), Lesen zeigt
+      den bestehenden Retry-Zustand; Firebase-Init-Fehler → Spiel läuft ohne
+- [ ] 👤 In der Konsole: Anonyme Auth aktivieren, Firestore anlegen
+      (europe-west3), Rules aus `firebase/firestore.rules` veröffentlichen
+      (`docs/SETUP-ACCOUNTS.md` §3 Schritte 9–11)
 
 **👤-gebunden (NICHT von autonomen Sessions startbar):**
 Play-Games-Achievements, Screenshots/Signing/Upload, geschlossener Test

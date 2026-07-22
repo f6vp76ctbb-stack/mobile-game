@@ -1,16 +1,18 @@
-/// Shared leaderboard: reads a public JSON file from the repo and submits new
-/// scores as prefilled GitHub issues (a server-side Action validates them and
-/// updates the file). The app never holds a GitHub token.
+/// Shared leaderboard on Firestore — account-free by design.
 ///
-/// Read path works for everyone (public file, no auth). Submitting a score
-/// needs a GitHub login, since GitHub requires auth to open an issue.
+/// Reads the top list via the public Firestore REST API and submits scores
+/// under a silent anonymous Firebase-Auth identity (created lazily on the
+/// first submit; players never see any login UI). Pure Dart + http, so it
+/// behaves identically on native and web and is fully unit-testable with a
+/// fake client. Server-side enforcement lives in `firebase/firestore.rules`.
 library;
 
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import 'feedback.dart' show FeedbackTarget, kFeedbackTarget;
+import 'firebase_config.dart';
+import 'storage.dart';
 
 /// One row on the leaderboard.
 class LeaderboardEntry {
@@ -18,92 +20,192 @@ class LeaderboardEntry {
 
   final String name;
   final int score;
-
-  Map<String, dynamic> toJson() => {'name': name, 'score': score};
 }
 
-/// Parses the leaderboard JSON (`{"entries":[{"name","score"}, ...]}`),
-/// dropping malformed rows and returning entries sorted by score descending.
-List<LeaderboardEntry> parseLeaderboard(String body) {
+/// Client-side mirror of the Firestore security rules (the rules are the
+/// actual gate; this just avoids pointless requests).
+final RegExp kLeaderboardNameRule = RegExp(r'^[A-Za-z0-9 _-]{2,14}$');
+const int kLeaderboardMaxScore = 100000000;
+
+/// Parses a Firestore `runQuery` REST response (a JSON array of rows with an
+/// optional `document`), dropping malformed rows; sorted by score descending.
+List<LeaderboardEntry> parseRunQueryResponse(String body) {
   final decoded = jsonDecode(body);
-  final rawEntries = decoded is Map<String, dynamic> ? decoded['entries'] : null;
-  if (rawEntries is! List) return const [];
+  if (decoded is! List) return const [];
 
   final entries = <LeaderboardEntry>[];
-  for (final e in rawEntries) {
-    if (e is! Map) continue;
-    final name = e['name'];
-    final score = e['score'];
-    if (name is String && name.isNotEmpty && score is num) {
-      entries.add(LeaderboardEntry(name: name, score: score.toInt()));
+  for (final row in decoded) {
+    if (row is! Map) continue;
+    final document = row['document'];
+    if (document is! Map) continue;
+    final fields = document['fields'];
+    if (fields is! Map) continue;
+
+    final name = _stringField(fields, 'name');
+    final score = _intField(fields, 'score');
+    if (name != null &&
+        kLeaderboardNameRule.hasMatch(name) &&
+        score != null &&
+        score > 0 &&
+        score <= kLeaderboardMaxScore) {
+      entries.add(LeaderboardEntry(name: name, score: score));
     }
   }
   entries.sort((a, b) => b.score.compareTo(a.score));
   return entries;
 }
 
-/// Machine-readable marker the leaderboard Action parses out of the issue body.
-/// Keep in sync with `.github/workflows/leaderboard.yaml`.
-String scoreMarker(String name, int score) =>
-    '<!-- qubble-score v1 name="$name" score="$score" -->';
-
-/// Builds the prefilled "new issue" URL that submits [score] for [name].
-/// Returns null for an empty name or non-positive score.
-Uri? buildScoreIssueUri(
-  String name,
-  int score, {
-  FeedbackTarget target = kFeedbackTarget,
-}) {
-  final trimmed = name.trim();
-  if (trimmed.isEmpty || score <= 0) return null;
-
-  final body = StringBuffer()
-    ..writeln('Neuer Highscore für die Qubble-Bestenliste 🏆')
-    ..writeln()
-    ..writeln('- Name: $trimmed')
-    ..writeln('- Score: $score')
-    ..writeln()
-    ..writeln('Bitte einfach unten auf „Submit new issue" tippen.')
-    ..writeln()
-    ..writeln(scoreMarker(trimmed, score));
-
-  return Uri.https('github.com', '/${target.owner}/${target.repo}/issues/new', {
-    'labels': 'score',
-    'title': 'Score: $trimmed — $score',
-    'body': body.toString(),
-  });
+String? _stringField(Map<dynamic, dynamic> fields, String key) {
+  final field = fields[key];
+  if (field is! Map) return null;
+  final value = field['stringValue'];
+  return value is String ? value : null;
 }
 
-/// Reads the shared leaderboard from the public repo. Reads raw content from
-/// the default branch, which reflects Action commits within minutes.
+int? _intField(Map<dynamic, dynamic> fields, String key) {
+  final field = fields[key];
+  if (field is! Map) return null;
+  // Firestore REST encodes integerValue as a string.
+  final value = field['integerValue'];
+  if (value is String) return int.tryParse(value);
+  if (value is num) return value.toInt();
+  return null;
+}
+
+/// Firestore-backed leaderboard client.
 class LeaderboardService {
   LeaderboardService({
     http.Client? client,
-    this.target = kFeedbackTarget,
-    this.branch = 'main',
+    this.storage,
+    this.projectId = FirebaseConfig.projectId,
+    this.apiKey = FirebaseConfig.apiKey,
   }) : _client = client ?? http.Client();
 
   final http.Client _client;
-  final FeedbackTarget target;
-  final String branch;
 
-  Uri get sourceUri => Uri.https(
-        'raw.githubusercontent.com',
-        '/${target.owner}/${target.repo}/$branch/leaderboard.json',
-      );
+  /// Needed only for submitting (persists the anonymous identity); reading
+  /// works without it.
+  final Storage? storage;
 
-  /// Fetches and parses the leaderboard. Throws on network/parse errors so the
-  /// UI can show a retry state.
-  Future<List<LeaderboardEntry>> fetchTop({int limit = 100}) async {
-    // Cache-bust so an installed PWA doesn't serve a stale copy.
-    final uri = sourceUri.replace(queryParameters: {
-      't': DateTime.now().millisecondsSinceEpoch.toString(),
+  final String projectId;
+  final String apiKey;
+
+  static const _firestoreHost = 'firestore.googleapis.com';
+  static const _collection = 'leaderboard';
+
+  String get _documentsPath =>
+      '/v1/projects/$projectId/databases/(default)/documents';
+
+  /// Fetches the top [limit] entries. Throws on network/HTTP errors so the
+  /// UI can show its retry state.
+  Future<List<LeaderboardEntry>> fetchTop({int limit = 50}) async {
+    final uri = Uri.https(_firestoreHost, '$_documentsPath:runQuery', {
+      'key': apiKey,
     });
-    final res = await _client.get(uri);
+    final res = await _client.post(
+      uri,
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'structuredQuery': {
+          'from': [
+            {'collectionId': _collection},
+          ],
+          'orderBy': [
+            {
+              'field': {'fieldPath': 'score'},
+              'direction': 'DESCENDING',
+            },
+          ],
+          'limit': limit,
+        },
+      }),
+    );
     if (res.statusCode != 200) {
       throw Exception('Leaderboard HTTP ${res.statusCode}');
     }
-    final entries = parseLeaderboard(res.body);
-    return entries.length > limit ? entries.sublist(0, limit) : entries;
+    return parseRunQueryResponse(res.body);
+  }
+
+  /// Submits the player's best score under their silent anonymous identity.
+  /// Returns true on success; returns false (never throws) on any failure —
+  /// offline play must degrade quietly. The security rules reject lowering
+  /// an existing score.
+  Future<bool> submit({required String name, required int score}) async {
+    final trimmed = name.trim();
+    if (!kLeaderboardNameRule.hasMatch(trimmed) ||
+        score <= 0 ||
+        score > kLeaderboardMaxScore) {
+      return false;
+    }
+    try {
+      final identity = await _ensureIdentity();
+      if (identity == null) return false;
+
+      final uri = Uri.https(
+        _firestoreHost,
+        '$_documentsPath/$_collection/${identity.uid}',
+        {'key': apiKey},
+      );
+      final res = await _client.patch(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ${identity.idToken}',
+        },
+        body: jsonEncode({
+          'fields': {
+            'name': {'stringValue': trimmed},
+            'score': {'integerValue': '$score'},
+          },
+        }),
+      );
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Returns a usable anonymous identity: refreshes the stored one, or signs
+  /// up a fresh anonymous user on first use (or when the token was revoked).
+  Future<({String uid, String idToken})?> _ensureIdentity() async {
+    final storage = this.storage;
+    if (storage == null) return null;
+
+    final uid = storage.firebaseUid;
+    final refreshToken = storage.firebaseRefreshToken;
+    if (uid != null && refreshToken != null) {
+      final res = await _client.post(
+        Uri.https('securetoken.googleapis.com', '/v1/token', {'key': apiKey}),
+        body: {
+          'grant_type': 'refresh_token',
+          'refresh_token': refreshToken,
+        },
+      );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        final idToken = data is Map ? data['id_token'] : null;
+        if (idToken is String) return (uid: uid, idToken: idToken);
+      }
+      // Fall through: token revoked/expired — start a fresh identity.
+    }
+
+    final res = await _client.post(
+      Uri.https('identitytoolkit.googleapis.com', '/v1/accounts:signUp', {
+        'key': apiKey,
+      }),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({'returnSecureToken': true}),
+    );
+    if (res.statusCode != 200) return null;
+    final data = jsonDecode(res.body);
+    if (data is! Map) return null;
+    final localId = data['localId'];
+    final idToken = data['idToken'];
+    final newRefresh = data['refreshToken'];
+    if (localId is! String || idToken is! String || newRefresh is! String) {
+      return null;
+    }
+    await storage.setFirebaseIdentity(uid: localId, refreshToken: newRefresh);
+    return (uid: localId, idToken: idToken);
   }
 }

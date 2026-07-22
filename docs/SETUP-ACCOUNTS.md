@@ -111,20 +111,28 @@ Google-Konto**. Ein eingetragenes Unternehmen brauchst du nicht:
    Assistenten („SDK hinzufügen" etc.) **überspringen** — das erledigt Claude
    im Code.
 7. Die Datei **NICHT ins Repo committen** (Repo ist öffentlich; sie steht
-   bereits in `.gitignore`). Stattdessen:
-   - lokal nach `android/app/google-services.json` legen (dort erwartet sie
-     der Release-Build auf deinem Rechner), **und**
-   - den Datei-Inhalt Claude in der Session schicken (einfach einfügen) —
-     dann verdrahtet Claude Firebase Analytics + Crashlytics an das bestehende
-     `Analytics`-Interface (aktuell läuft `DebugAnalytics`).
+   bereits in `.gitignore`). Lokal nach `android/app/google-services.json`
+   legen (der Release-Build auf deinem Rechner braucht sie dort) und den
+   Inhalt Claude in der Session schicken.
+   ✅ **Erledigt (22.07.2026):** App registriert, Firebase Analytics +
+   Crashlytics sind im Code angebunden (`lib/services/firebase_boot*.dart`).
 8. *(später/optional)* **iOS-App** genauso registrieren (Bundle-ID
    `com.thinkube.qubble`) → `GoogleService-Info.plist` → lokal nach
    `ios/Runner/`. Erst beim App-Store-Gang nötig.
 
-In der Firebase-Konsole musst du sonst **nichts** einstellen — kein
-Realtime-Database/Firestore, keine Authentication (wir haben bewusst kein
-Backend). Sollte die konto-freie Bestenliste kommen, wäre das ein eigener,
-späterer Schritt.
+**Bestenliste (Entscheidung 22.07.2026: kontofrei über Firestore):**
+
+9. **Authentication** → Tab „Sign-in-Methode" → **„Anonym" aktivieren**
+   (NICHT E-Mail/Passwort — Spieler sehen nie einen Login).
+10. **Firestore Database** → „Datenbank erstellen" → Standort
+    **europe-west3 (Frankfurt)** → „Im Produktionsmodus starten".
+11. **Sicherheitsregeln einspielen:** Firestore → Tab **„Regeln"** → Inhalt
+    von **`firebase/firestore.rules`** aus dem Repo einfügen →
+    „Veröffentlichen". Ohne diesen Schritt kann die App keine Scores
+    schreiben (Produktionsmodus sperrt alles).
+
+Mehr ist in der Konsole nicht nötig — kein Blaze-Upgrade, keine weiteren
+Produkte.
 
 ## 4. In-App-Käufe (IAP)
 
