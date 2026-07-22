@@ -16,9 +16,11 @@ class AdConfig {
   static const _testRewardedAndroid = 'ca-app-pub-3940256099942544/5224354917';
   static const _testRewardedIos = 'ca-app-pub-3940256099942544/1712485313';
 
-  // --- Real production unit IDs (fill in before release) --------------------
+  // --- Real production unit IDs ---------------------------------------------
   // Rewarded is the ONLY ad format in Qubble (no interstitials, no banners).
-  static const _prodRewardedAndroid = 'REPLACE_ME_REWARDED_ANDROID';
+  // Android id set 2026-07 (AdMob app "Qubble"); iOS follows with the
+  // App-Store phase.
+  static const _prodRewardedAndroid = 'ca-app-pub-8596176219181991/4303264559';
   static const _prodRewardedIos = 'REPLACE_ME_REWARDED_IOS';
 
   static bool get _isAndroid => Platform.isAndroid;
