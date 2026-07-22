@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/leveling.dart';
 import '../../game/piggy_bank.dart';
 import '../../game/streak.dart';
+import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
@@ -29,6 +30,94 @@ class HomeScreen extends ConsumerWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const GameScreen()),
     );
+  }
+
+  /// The name is fixed after onboarding. Changing it requires a purchased
+  /// "name change" (IAP): with a credit in hand we open the rename dialog,
+  /// otherwise we offer to buy one.
+  Future<void> _changeName(
+    BuildContext context,
+    WidgetRef ref,
+    int renameCredits,
+  ) async {
+    if (renameCredits > 0) {
+      await _renameDialog(context, ref);
+      return;
+    }
+    final buy = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GridColors.boardBackground,
+        title: const Text('Namen ändern',
+            style: TextStyle(color: GridColors.textPrimary)),
+        content: const Text(
+          'Dein Name ist deine Bestenlisten-Identität und daher fest. '
+          'Du kannst eine einmalige Namensänderung kaufen.',
+          style: TextStyle(color: GridColors.textMuted),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Kaufen'),
+          ),
+        ],
+      ),
+    );
+    if (buy ?? false) {
+      await ref.read(iapServiceProvider).buy(IapProducts.rename);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Nach dem Kauf tippe erneut auf deinen Namen zum Ändern.',
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _renameDialog(BuildContext context, WidgetRef ref) async {
+    final controller = TextEditingController();
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: GridColors.boardBackground,
+        title: const Text('Neuer Name',
+            style: TextStyle(color: GridColors.textPrimary)),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 14,
+          textCapitalization: TextCapitalization.words,
+          style: const TextStyle(color: GridColors.textPrimary),
+          decoration: const InputDecoration(hintText: 'Name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Abbrechen'),
+          ),
+          FilledButton(
+            onPressed: () =>
+                Navigator.of(dialogContext).pop(controller.text.trim()),
+            child: const Text('Speichern'),
+          ),
+        ],
+      ),
+    );
+    if (name == null) return;
+    final ok =
+        await ref.read(gameControllerProvider.notifier).renameWithCredit(name);
+    if (!ok && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Name braucht mindestens 2 Zeichen.')),
+      );
+    }
   }
 
   /// Opens the piggy bank (free when full, or early via a bonus video).
@@ -202,26 +291,39 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              // The name is chosen once at first launch and is fixed after
-              // that (it's the leaderboard identity) — no free renaming.
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.person,
-                      size: 13, color: GridColors.textMuted),
-                  const SizedBox(width: 5),
-                  Text(
-                    // Supporters get a small heart next to their name.
-                    snap.supporter
-                        ? '${snap.playerName} ❤️'
-                        : snap.playerName,
-                    style: const TextStyle(
-                      color: GridColors.textMuted,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
+              // The name is fixed after onboarding (it's the leaderboard
+              // identity). Tapping offers a paid, one-time change — never free.
+              GestureDetector(
+                onTap: () => _changeName(context, ref, snap.renameCredits),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.person,
+                        size: 13, color: GridColors.textMuted),
+                    const SizedBox(width: 5),
+                    Text(
+                      // Supporters get a small heart next to their name.
+                      snap.supporter
+                          ? '${snap.playerName} ❤️'
+                          : snap.playerName,
+                      style: const TextStyle(
+                        color: GridColors.textMuted,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(width: 3),
+                    // A key when a paid change is in hand, otherwise a lock —
+                    // so it never looks like a free edit.
+                    Icon(
+                      snap.renameCredits > 0
+                          ? Icons.vpn_key_rounded
+                          : Icons.lock_outline_rounded,
+                      size: 12,
+                      color: GridColors.textMuted,
+                    ),
+                  ],
+                ),
               ),
               const Spacer(flex: 3),
               // Prominent best score, right above the play button.

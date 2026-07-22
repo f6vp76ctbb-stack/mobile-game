@@ -76,6 +76,7 @@ class GameSnapshot {
     required this.clearedCells,
     required this.supporter,
     required this.reviveUsed,
+    required this.renameCredits,
     required this.canUndo,
     required this.coinsDoubled,
     required this.streakRepairAvailable,
@@ -133,6 +134,9 @@ class GameSnapshot {
 
   /// Whether this run's one revive (coin-paid) was already used.
   final bool reviveUsed;
+
+  /// Purchased-but-unused name changes (the name is otherwise fixed).
+  final int renameCredits;
 
   /// Whether the last placement can still be undone (booster availability).
   final bool canUndo;
@@ -340,6 +344,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       clearedCells: const [],
       supporter: storage.supporter,
       reviveUsed: false,
+      renameCredits: storage.renameCredits,
       canUndo: false,
       coinsDoubled: false,
       streakRepairAvailable: StreakRepair.isRepairable(
@@ -439,11 +444,29 @@ class GameController extends StateNotifier<GameSnapshot> {
   /// Sets the player's display name (leaderboard identity) and refreshes.
   /// A rename should follow through to the shared leaderboard, so we clear the
   /// "already uploaded" marker and re-upload the best score under the new name.
+  /// Used for the one-time onboarding name entry; later renames go through
+  /// [renameWithCredit].
   Future<void> setPlayerName(String name) async {
     await _storage.setPlayerName(name);
     await _storage.setLastSubmittedScore(0);
     _emit();
     autoUploadBestScore();
+  }
+
+  /// Grants one paid name change (from the `qubble_rename` IAP delivery).
+  Future<void> grantRenameCredit() async {
+    await _storage.setRenameCredits(_storage.renameCredits + 1);
+    _emit();
+  }
+
+  /// Spends one purchased name change to set a new [name]. Returns false when
+  /// there is no credit or the name is too short (the name is otherwise fixed).
+  Future<bool> renameWithCredit(String name) async {
+    final trimmed = name.trim();
+    if (_storage.renameCredits <= 0 || trimmed.length < 2) return false;
+    await _storage.setRenameCredits(_storage.renameCredits - 1);
+    await setPlayerName(trimmed);
+    return true;
   }
 
   /// Records that [score] was submitted to the shared leaderboard, so the UI
@@ -833,6 +856,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       clearedCells: _clearedCells,
       supporter: _storage.supporter,
       reviveUsed: _reviveUsed,
+      renameCredits: _storage.renameCredits,
       canUndo: _session.canUndo,
       coinsDoubled: _coinsDoubled,
       streakRepairAvailable: _streakRepairAvailable(),

@@ -150,6 +150,7 @@ Produkte in **beiden** Konsolen mit **exakt diesen IDs** anlegen
 | `qubble_coins_m` | Consumable | 2,99 € |
 | `qubble_coins_l` | Consumable | 7,99 € |
 | `qubble_starter` | Consumable | 1,99 € (Starter-Paket, 48h-Angebot ab Runde 5) |
+| `qubble_rename` | Consumable | 1,49 € (einmalige Namensänderung — Name ist sonst fest) |
 
 - App Store Connect: **In-App-Käufe** → jeweils anlegen, Preis + Lokalisierung.
 - Play Console: **Monetarisierung → Produkte → In-App-Produkte**.

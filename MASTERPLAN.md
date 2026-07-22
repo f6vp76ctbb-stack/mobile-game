@@ -74,6 +74,7 @@ Münzen (200), nie Werbung.
 | **Unterstützer-Paket** (Aurora-Theme + Kristall-Skin + 1.500 Münzen + ❤️-Abzeichen) | 4,99 € | Non-Consumable — ehrliches „Ich mag das Spiel"-Angebot |
 | Münzpaket S/M/L | 0,99 / 2,99 / 7,99 € | Consumable |
 | Starter-Paket (einmalig, ab Runde 5, 48h) | 1,99 € | Consumable — 1200 Münzen + Wood-Theme (Anhang C.6) |
+| Namensänderung (`qubble_rename`) | 1,49 € | Consumable — Name ist sonst fest (Bestenlisten-Identität) |
 | Münzen kaufen: Revive, Undo, Teil-Tausch, Board-Bombe | — | Booster-Ökonomie |
 | Themes/Skins | via Münzen | Kosmetik, treibt Münz-Nachfrage |
 
