@@ -167,6 +167,12 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   **Nur in Debug-Builds** (doppelt verriegelt: `kDebugMode` in der UI +
   `kReleaseMode`-No-op im Controller) — Spieler dürfen NIE Cheats bekommen.
   Ebenso: öffentlicher Web-Build nutzt `LockedIap` (keine Gratis-Käufe).
+- **Android-Release (.aab)**: `.github/workflows/build-release.yaml`
+  (manuell, „Run workflow"). Signing-Secrets als Repo-Secrets, .aab liegt in
+  den Run-Artifacts. **Gradle-9-Falle:** Das Flutter-3.44-Android-Template
+  pinnt Gradle 9.1 + AGP 9.0.1; Plugins müssen dazu passen. `google_mobile_ads`
+  daher auf **≥ 9.0.0** (5.x/6.x scheitern mit „unknown property 'all'" beim
+  Konfigurieren von `:google_mobile_ads`; Gradle-9-Support kam mit Plugin 7.0.0).
 
 ## 6. Web/PWA-Besonderheiten (wichtig!)
 
