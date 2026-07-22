@@ -10,6 +10,7 @@ import '../../game/achievements.dart';
 import '../../game/leveling.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 import 'achievements_screen.dart';
 
 class StatsScreen extends ConsumerWidget {
@@ -101,7 +102,7 @@ class _AchievementsLink extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Text('🏅', style: TextStyle(fontSize: 24)),
+            const Icon(AppIcons.trophy, size: 24, color: GridColors.fever),
             const SizedBox(width: 12),
             const Expanded(
               child: Text('Erfolge',
@@ -158,7 +159,7 @@ class _HeroCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text('🏆', style: TextStyle(fontSize: 34)),
+              const Icon(AppIcons.trophy, size: 34, color: GridColors.fever),
               const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -309,7 +310,7 @@ class _PuzzleCard extends StatelessWidget {
           const SizedBox(height: 12),
           Row(
             children: [
-              const Text('⭐', style: TextStyle(fontSize: 20)),
+              const Icon(Icons.star_rounded, size: 22, color: GridColors.fever),
               const SizedBox(width: 8),
               Text('$stars',
                   style: const TextStyle(

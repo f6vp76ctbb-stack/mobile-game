@@ -8,6 +8,7 @@ import '../../game/block_skin.dart';
 import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 import '../widgets/mini_board_preview.dart';
 
 class SkinsScreen extends ConsumerWidget {
@@ -107,19 +108,32 @@ class _SkinTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    active
-                        ? 'Aktiv'
-                        : owned
-                            ? 'Tippen zum Aktivieren'
-                            : skin.supporterOnly
-                                ? '❤️ Im Unterstützer-Paket'
-                                : '🪙 ${skin.cost} zum Freischalten',
-                    style: const TextStyle(
-                      color: GridColors.textMuted,
-                      fontSize: 14,
+                  if (!active && !owned && !skin.supporterOnly)
+                    Row(
+                      children: [
+                        const CoinIcon(size: 14),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${skin.cost} zum Freischalten',
+                          style: const TextStyle(
+                            color: GridColors.textMuted,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Text(
+                      active
+                          ? 'Aktiv'
+                          : owned
+                              ? 'Tippen zum Aktivieren'
+                              : 'Im Unterstützer-Paket ❤️',
+                      style: const TextStyle(
+                        color: GridColors.textMuted,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

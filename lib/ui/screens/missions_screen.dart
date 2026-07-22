@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../game/missions.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 
 class MissionsScreen extends ConsumerWidget {
   const MissionsScreen({super.key});
@@ -65,11 +66,13 @@ class _MissionTile extends StatelessWidget {
                 ),
               ),
               if (done)
-                const Icon(Icons.check_circle, color: GridColors.placed)
+                const Icon(Icons.check_circle_rounded,
+                    color: GridColors.placed)
               else
-                Text(
-                  '🪙 ${view.mission.reward}',
-                  style: const TextStyle(color: GridColors.fever, fontSize: 14),
+                CoinAmount(
+                  amount: view.mission.reward,
+                  size: 14,
+                  color: GridColors.fever,
                 ),
             ],
           ),

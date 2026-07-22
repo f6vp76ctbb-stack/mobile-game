@@ -10,6 +10,7 @@ import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 import '../widgets/board_view.dart';
 import '../widgets/clear_burst.dart';
 import '../widgets/coin_popup.dart';
@@ -210,7 +211,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                             _BoosterBar(snap: snap, bombMode: bombMode),
                             if (bombMode)
                               const _CoachHint(
-                                  text: '💣 Tippe auf eine Zelle im Board')
+                                  text: 'Tippe auf eine Zelle im Board')
                             else if (snap.onboardingHint != null)
                               _CoachHint(text: snap.onboardingHint!),
                             TrayView(
@@ -255,20 +256,11 @@ class _CoinChip extends StatelessWidget {
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: GridColors.gridLine),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🪙', style: TextStyle(fontSize: 14)),
-            const SizedBox(width: 5),
-            Text(
-              '$coins',
-              style: const TextStyle(
-                color: GridColors.textPrimary,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
-          ],
+        child: CoinAmount(
+          amount: coins,
+          size: 15,
+          color: GridColors.textPrimary,
+          fontWeight: FontWeight.bold,
         ),
       ),
     );
@@ -339,9 +331,9 @@ class _BoosterBar extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           _BoosterButton(
-            icon: Icons.undo,
+            icon: AppIcons.undo,
             label: 'Undo',
-            sub: '🪙${BoosterCosts.undo}',
+            cost: BoosterCosts.undo,
             enabled: snap.canUndo &&
                 !snap.gameOver &&
                 snap.coins >= BoosterCosts.undo,
@@ -349,17 +341,17 @@ class _BoosterBar extends ConsumerWidget {
             onTap: () => run(controller.tryUndo()),
           ),
           _BoosterButton(
-            icon: Icons.autorenew,
+            icon: AppIcons.swap,
             label: 'Tausch',
-            sub: '🪙${BoosterCosts.swap}',
+            cost: BoosterCosts.swap,
             enabled: !snap.gameOver && snap.coins >= BoosterCosts.swap,
             active: false,
             onTap: () => run(controller.trySwapPieces()),
           ),
           _BoosterButton(
-            icon: Icons.blur_circular,
+            icon: AppIcons.bomb,
             label: 'Bombe',
-            sub: '🪙${BoosterCosts.bomb}',
+            cost: BoosterCosts.bomb,
             enabled: !snap.gameOver && snap.coins >= BoosterCosts.bomb,
             active: bombMode,
             onTap: () {
@@ -370,9 +362,9 @@ class _BoosterBar extends ConsumerWidget {
           // Rotation status: not a coin booster — tapping a tray piece
           // rotates it; this chip shows the remaining charges.
           _BoosterButton(
-            icon: Icons.rotate_right,
+            icon: Icons.rotate_right_rounded,
             label: 'Drehen',
-            sub: snap.rotationFree ? 'frei' : '⟳${snap.rotationCharges}',
+            sub: snap.rotationFree ? 'frei' : '${snap.rotationCharges}×',
             enabled: !snap.gameOver &&
                 (snap.rotationFree || snap.rotationCharges > 0),
             active: false,
@@ -396,17 +388,21 @@ class _BoosterButton extends StatelessWidget {
   const _BoosterButton({
     required this.icon,
     required this.label,
-    required this.sub,
     required this.enabled,
     required this.active,
     required this.onTap,
+    this.sub,
+    this.cost,
   });
 
   final IconData icon;
   final String label;
 
-  /// Small line under the label (coin cost or rotation charges).
-  final String sub;
+  /// Coin cost, rendered with the coin icon. Mutually exclusive with [sub].
+  final int? cost;
+
+  /// Non-currency sub-line (e.g. rotation charges). Used when [cost] is null.
+  final String? sub;
 
   final bool enabled;
   final bool active;
@@ -431,13 +427,21 @@ class _BoosterButton extends StatelessWidget {
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 2),
               Text(label, style: TextStyle(color: color, fontSize: 12)),
-              Text(
-                sub,
-                style: const TextStyle(
+              if (cost != null)
+                CoinAmount(
+                  amount: cost!,
+                  size: 12,
                   color: GridColors.textMuted,
-                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                )
+              else
+                Text(
+                  sub ?? '',
+                  style: const TextStyle(
+                    color: GridColors.textMuted,
+                    fontSize: 11,
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -702,7 +706,7 @@ class _GameOverOverlay extends ConsumerWidget {
               const Padding(
                 padding: EdgeInsets.only(top: 6),
                 child: Text(
-                  'Neuer Rekord! 🎉',
+                  'Neuer Rekord!',
                   style: TextStyle(color: GridColors.fever, fontSize: 16),
                 ),
               ),
@@ -718,59 +722,91 @@ class _GameOverOverlay extends ConsumerWidget {
             if (snap.isDaily && snap.streak > 0)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  '🔥 ${snap.streak} Tage Streak',
-                  style: const TextStyle(
-                    color: GridColors.fever,
-                    fontSize: 16,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(AppIcons.streak,
+                        size: 17, color: GridColors.fever),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${snap.streak} Tage Streak',
+                      style: const TextStyle(
+                          color: GridColors.fever, fontSize: 16),
+                    ),
+                  ],
                 ),
               ),
             if (snap.coinsEarnedThisRun > 0)
               Padding(
                 padding: const EdgeInsets.only(top: 6),
-                child: Text(
-                  '🪙 +${snap.coinsEarnedThisRun} Münzen'
-                  '${snap.coinsDoubled ? ' (x2)' : ''}',
-                  style: const TextStyle(
-                    color: GridColors.textPrimary,
-                    fontSize: 16,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CoinAmount(
+                      amount: snap.coinsEarnedThisRun,
+                      prefix: '+',
+                      size: 17,
+                      color: GridColors.textPrimary,
+                    ),
+                    if (snap.coinsDoubled)
+                      const Text(
+                        '  ×2',
+                        style: TextStyle(
+                            color: GridColors.fever,
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold),
+                      ),
+                  ],
                 ),
               ),
             if (snap.coinsEarnedThisRun > 0 && !snap.coinsDoubled)
               Padding(
                 padding: const EdgeInsets.only(top: 10),
-                child: FilledButton.tonal(
+                child: FilledButton.tonalIcon(
                   style: FilledButton.styleFrom(
                     backgroundColor: GridColors.fever,
                     foregroundColor: GridColors.background,
                   ),
                   onPressed: () => controller.doubleCoinsWithAd(),
-                  child: const Text('▶  Münzen verdoppeln'),
+                  icon: const Icon(Icons.play_circle_fill_rounded, size: 20),
+                  label: const Text('Münzen verdoppeln'),
                 ),
               ),
             for (final mission in snap.completedMissions)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '✓ $mission',
-                  style: const TextStyle(
-                    color: GridColors.placed,
-                    fontSize: 14,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle_rounded,
+                        size: 15, color: GridColors.placed),
+                    const SizedBox(width: 5),
+                    Text(
+                      mission,
+                      style: const TextStyle(
+                          color: GridColors.placed, fontSize: 14),
+                    ),
+                  ],
                 ),
               ),
             for (final a in snap.achievementsUnlockedThisRun)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '🏅 Erfolg: ${a.title}',
-                  style: const TextStyle(
-                    color: GridColors.fever,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(AppIcons.trophy,
+                        size: 15, color: GridColors.fever),
+                    const SizedBox(width: 5),
+                    Text(
+                      'Erfolg: ${a.title}',
+                      style: const TextStyle(
+                        color: GridColors.fever,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             if (snap.starterOfferActive) ...[
@@ -782,10 +818,18 @@ class _GameOverOverlay extends ConsumerWidget {
             // just gets a quiet confirmation, no button to tap.
             if (snap.isNewHighscore && snap.playerName.isNotEmpty) ...[
               const SizedBox(height: 16),
-              const Text(
-                '🏆 Neuer Bestwert — in der Bestenliste eingetragen',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: GridColors.placed, fontSize: 14),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(AppIcons.trophy, size: 16, color: GridColors.placed),
+                  SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      'Neuer Bestwert — eingetragen',
+                      style: TextStyle(color: GridColors.placed, fontSize: 14),
+                    ),
+                  ),
+                ],
               ),
             ],
             const SizedBox(height: 28),
@@ -807,8 +851,18 @@ class _GameOverOverlay extends ConsumerWidget {
                 onPressed: snap.coins >= BoosterCosts.revive
                     ? () => controller.reviveWithCoins()
                     : null,
-                icon: const Icon(Icons.favorite_outline, size: 18),
-                label: Text('Weiterspielen (🪙 ${BoosterCosts.revive})'),
+                icon: const Icon(Icons.favorite_rounded, size: 18),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Weiterspielen · '),
+                    CoinAmount(
+                      amount: BoosterCosts.revive,
+                      size: 15,
+                      color: GridColors.fever,
+                    ),
+                  ],
+                ),
                 style: TextButton.styleFrom(foregroundColor: GridColors.fever),
               ),
             TextButton(
@@ -891,7 +945,7 @@ class _LevelUpCardState extends State<_LevelUpCard>
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('⭐', style: TextStyle(fontSize: 22)),
+              const Icon(AppIcons.level, size: 22, color: Colors.white),
               const SizedBox(width: 8),
               Flexible(
                 child: Text(
@@ -911,15 +965,29 @@ class _LevelUpCardState extends State<_LevelUpCard>
             for (final r in widget.rewards)
               Padding(
                 padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  '${r.kind == LevelRewardKind.theme ? '🎨' : '🧊'} '
-                  'Freigeschaltet: ${r.name}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      r.kind == LevelRewardKind.theme
+                          ? AppIcons.themes
+                          : AppIcons.skins,
+                      size: 15,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 5),
+                    Flexible(
+                      child: Text(
+                        'Freigeschaltet: ${r.name}',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],

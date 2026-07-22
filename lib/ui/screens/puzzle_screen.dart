@@ -10,6 +10,7 @@ import '../state/game_controller.dart';
 import '../state/puzzle_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 import '../widgets/board_view.dart' show boardOriginForDrag, kFingerLiftCells;
 import '../widgets/piece_view.dart';
 
@@ -71,7 +72,7 @@ class _PuzzleScreenState extends ConsumerState<PuzzleScreen> {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Text(
-                    'Züge: ${state.moves}   •   Ziel: ${state.minMoves} für ⭐⭐⭐',
+                    'Züge: ${state.moves}   •   Ziel: ${state.minMoves} für 3 Sterne',
                     style: const TextStyle(color: GridColors.textMuted),
                   ),
                 ),
@@ -314,7 +315,7 @@ class _WinOverlay extends ConsumerWidget {
     return _Overlay(
       children: [
         const Text(
-          'Gelöst! 🎉',
+          'Gelöst!',
           style: TextStyle(
             color: GridColors.textPrimary,
             fontSize: 32,
@@ -322,16 +323,25 @@ class _WinOverlay extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Text(
-          '⭐' * state.stars + '☆' * (3 - state.stars),
-          style: const TextStyle(fontSize: 34),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            for (var i = 0; i < 3; i++)
+              Icon(
+                i < state.stars ? Icons.star_rounded : Icons.star_outline_rounded,
+                size: 38,
+                color: GridColors.fever,
+              ),
+          ],
         ),
         if (state.coinsAwarded > 0)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              '🪙 +${state.coinsAwarded} Münzen',
-              style: const TextStyle(color: GridColors.textPrimary, fontSize: 16),
+            child: CoinAmount(
+              amount: state.coinsAwarded,
+              prefix: '+',
+              size: 16,
+              color: GridColors.textPrimary,
             ),
           ),
         const SizedBox(height: 28),
@@ -375,7 +385,7 @@ class _FailOverlay extends ConsumerWidget {
         ),
         const SizedBox(height: 24),
         if (state.canExtraMove)
-          FilledButton.tonal(
+          FilledButton.tonalIcon(
             style: FilledButton.styleFrom(
               backgroundColor: GridColors.fever,
               foregroundColor: GridColors.background,
@@ -384,7 +394,8 @@ class _FailOverlay extends ConsumerWidget {
               final ok = await ref.read(adServiceProvider).showRewarded();
               if (ok) controller.applyExtraMove();
             },
-            child: const Text('▶  Extra-Zug (Video)'),
+            icon: const Icon(Icons.play_circle_fill_rounded, size: 20),
+            label: const Text('Extra-Zug (Video)'),
           ),
         const SizedBox(height: 12),
         FilledButton(

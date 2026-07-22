@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../theme.dart';
+import '../widgets/app_icons.dart';
 
 class ShopScreen extends ConsumerWidget {
   const ShopScreen({super.key});
@@ -94,10 +95,10 @@ class _ProductTile extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Text(
-            product.id == IapProducts.supporter ? '❤️' : '🪙',
-            style: const TextStyle(fontSize: 24),
-          ),
+          product.id == IapProducts.supporter
+              ? const Icon(Icons.favorite_rounded,
+                  color: Color(0xFFFF6FB0), size: 24)
+              : const CoinIcon(size: 24),
           const SizedBox(width: 14),
           Expanded(
             child: Column(

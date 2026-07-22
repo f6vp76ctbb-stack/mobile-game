@@ -144,15 +144,45 @@ class _RankBadge extends StatelessWidget {
 
   final int rank;
 
+  // Gold / silver / bronze for the podium; a plain number below.
+  static const _podium = {
+    1: Color(0xFFFFC24B),
+    2: Color(0xFFC6CEE0),
+    3: Color(0xFFD9955B),
+  };
+
   @override
   Widget build(BuildContext context) {
-    const medals = {1: '🥇', 2: '🥈', 3: '🥉'};
-    final medal = medals[rank];
+    final medal = _podium[rank];
     return SizedBox(
-      width: 32,
+      width: 34,
       child: Center(
         child: medal != null
-            ? Text(medal, style: const TextStyle(fontSize: 22))
+            ? Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Color.lerp(medal, Colors.white, 0.35)!,
+                      medal,
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Text(
+                    '$rank',
+                    style: const TextStyle(
+                      color: Color(0xFF2A2010),
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              )
             : Text(
                 '$rank',
                 style: const TextStyle(
