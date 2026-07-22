@@ -358,8 +358,23 @@ PR-Zyklus (Commit → PR → Merge, wie etabliert). Vor jedem Commit:
 - [ ] Landscape-/Tablet-Check: Board-MaxWidth, Game-/Home-Layout ab 600 dp
       Breite; Widget-Tests mit großer Surface
 
+**Block 7 — Firebase-Backend (D.7; startbar SOBALD `google-services.json`
+im Chat geliefert wurde — Nutzer-Entscheidung vom 22.07.2026: Analytics +
+Crashlytics + kontofreie Firestore-Bestenliste mit ANONYMER Auth. NIE ein
+sichtbarer Login, KEIN E-Mail/Passwort):**
+- [ ] `firebase_core` + `firebase_analytics` + `firebase_crashlytics`
+      anbinden: `firebase_options.dart` aus den JSON-Werten generieren,
+      `FirebaseAnalyticsBackend` hinter das bestehende `Analytics`-Interface,
+      Crashlytics-Fehler-Weiterleitung; Web + Tests behalten die Fakes
+- [ ] Kontofreie Bestenliste: anonyme Auth + Firestore (`leaderboard`-
+      Collection, bester Score pro Spieler), Security-Rules im Repo
+      (`firebase/firestore.rules`, Nutzer fügt sie in der Konsole ein),
+      `LeaderboardService` auf Firestore umstellen, GitHub-Issue-Pipeline
+      danach stilllegen
+- [ ] Offline-Regel bleibt: Gameplay läuft ohne Netz; Bestenliste/Analytics
+      degradieren still (kein Fehler-Popup)
+
 **👤-gebunden (NICHT von autonomen Sessions startbar):**
-Firebase-Anbindung (braucht `google-services.json` vom Nutzer),
 Play-Games-Achievements, Screenshots/Signing/Upload, geschlossener Test
 (12 Tester / 14 Tage — `docs/SETUP-ACCOUNTS.md` §7).
 
@@ -693,3 +708,32 @@ mappt schwere Impacts auf leichte. `Haptics` bleibt einzige Anlaufstelle.
 - Landscape/Tablet: Breakpoint 600 dp; Board zentriert mit
   `maxWidth = min(Breite, 480)`; Widget-Test mit `tester.view.physicalSize`
   in Portrait + Landscape ohne Overflow-Exceptions.
+
+### D.7 Firebase-Backend (Nutzer-Entscheidung 22.07.2026)
+
+**Grundsätze:** Nie ein sichtbarer Login (nur `signInAnonymously`, lazy beim
+ersten Bestenlisten-Eintrag). Gameplay bleibt 100 % offline-fähig; Netz-
+Features degradieren still. Kein E-Mail/Passwort, kein Firestore fürs
+Gameplay.
+
+**Analytics/Crashlytics:** `FirebaseAnalyticsBackend implements Analytics`
+(bestehendes Interface, Events unverändert); Crashlytics via
+`FlutterError.onError`/`PlatformDispatcher.onError`. Nur native Builds —
+Web und Tests behalten `DebugAnalytics`/`NoopAnalytics`.
+`firebase_options.dart` wird manuell aus der `google-services.json`
+generiert (kein `flutterfire configure` nötig; Datei bleibt git-ignored,
+die extrahierten Werte in `firebase_options.dart` sind öffentlich-harmlos
+— Zugriffsschutz kommt aus den Security Rules, nicht aus Geheimhaltung).
+
+**Bestenliste (Firestore):**
+- Collection `leaderboard`, Dokument-ID = anonyme `uid`.
+- Felder: `name` (String, 2–14, `[A-Za-z0-9 _-]`), `score` (int, 1..1e8),
+  `updatedAt` (serverTimestamp).
+- Security Rules (`firebase/firestore.rules` im Repo; Nutzer kopiert sie in
+  die Konsole): Lesen öffentlich; Schreiben nur eigenes Dokument
+  (`request.auth.uid == docId`), Name/Score validiert, Score darf nur
+  steigen. Anzeige: Top 50 nach `score desc`.
+- UI unverändert (Leaderboard-Screen markiert eigenen Namen); der
+  Game-Over-Eintrag ersetzt den GitHub-Issue-Flow. Danach
+  `leaderboard.yaml`-Action + Issue-Weg entfernen; `leaderboard.json`
+  bleibt als Archiv liegen.

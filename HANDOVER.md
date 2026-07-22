@@ -192,10 +192,13 @@ auf Nutzerwunsch wieder ENTFERNT** (ein Name pro Gerät statt Multi-Profil).
 
 ## 8. Offene Punkte
 
-**Entscheidungen des Nutzers (nachfragen, wenn relevant):**
-- **Firebase** für konto-freie Bestenliste? (Angebot steht; ~15 Min Setup
-  mit Google-Konto; bricht bewusst das reine Offline-Konzept)
-- Finaler **Marken-/Store-Namenscheck** Qubble/Thinkube (👤)
+**Entscheidungen des Nutzers:**
+- **Firebase: ENTSCHIEDEN (22.07.2026)** — Analytics + Crashlytics +
+  kontofreie Firestore-Bestenliste mit anonymer Auth (nie ein sichtbarer
+  Login, kein E-Mail/Passwort). Umsetzung = Phase 7 Block 7 (D.7), wartet
+  nur noch auf die `google-services.json` aus der Konsole (Play-Konto und
+  AdMob hat der Nutzer bereits angelegt; Firebase-Projekt in Arbeit).
+- Finaler **Marken-/Store-Namenscheck** Qubble/Thinkube (👤, offen)
 
 **👤-Aufgaben (nur Nutzer kann sie; Anleitungen in `docs/`):**
 - Apple-/Google-Developer-Konten, AdMob-Konto + echte Ad-Unit-IDs
