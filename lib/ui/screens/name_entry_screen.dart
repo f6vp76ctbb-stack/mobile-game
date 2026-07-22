@@ -4,6 +4,7 @@ library;
 
 import 'package:flutter/material.dart';
 
+import '../../game/name_filter.dart';
 import '../theme.dart';
 
 class NameEntryScreen extends StatefulWidget {
@@ -35,8 +36,9 @@ class _NameEntryScreenState extends State<NameEntryScreen> {
 
   Future<void> _submit() async {
     final name = _controller.text.trim();
-    if (name.length < 2) {
-      setState(() => _error = 'Mindestens 2 Zeichen.');
+    final problem = NameFilter.problem(name);
+    if (problem != null) {
+      setState(() => _error = problem);
       return;
     }
     setState(() {

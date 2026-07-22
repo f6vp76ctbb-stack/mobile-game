@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/leveling.dart';
+import '../../game/name_filter.dart';
 import '../../game/piggy_bank.dart';
 import '../../game/streak.dart';
 import '../../monetization/iap.dart';
@@ -111,11 +112,20 @@ class HomeScreen extends ConsumerWidget {
       ),
     );
     if (name == null) return;
+    final problem = NameFilter.problem(name);
+    if (problem != null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(problem)),
+        );
+      }
+      return;
+    }
     final ok =
         await ref.read(gameControllerProvider.notifier).renameWithCredit(name);
     if (!ok && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Name braucht mindestens 2 Zeichen.')),
+        const SnackBar(content: Text('Umbenennen gerade nicht möglich.')),
       );
     }
   }
