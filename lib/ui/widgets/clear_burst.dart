@@ -91,24 +91,22 @@ class _ClearBurstState extends ConsumerState<ClearBurst>
       }
     });
 
+    // ONE permanently mounted CustomPaint for all bursts: creating a fresh
+    // paint layer per burst reallocates canvas surfaces mid-clear, which
+    // flashes white on iOS-Safari/PWA. The painter repaints itself via the
+    // merged controllers (repaint listenable), even while no burst runs.
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: Stack(
-        children: [
-          for (final burst in _bursts)
-            AnimatedBuilder(
-              animation: burst.controller,
-              builder: (context, _) => CustomPaint(
-                size: Size(widget.size, widget.size),
-                painter: _ParticlePainter(
-                  burst: burst,
-                  t: burst.controller.value,
-                  cellSize: widget.cellSize,
-                ),
-              ),
-            ),
-        ],
+      child: CustomPaint(
+        size: Size(widget.size, widget.size),
+        painter: _ParticlePainter(
+          bursts: List.of(_bursts),
+          cellSize: widget.cellSize,
+          repaint: Listenable.merge(
+            [for (final b in _bursts) b.controller],
+          ),
+        ),
       ),
     );
   }
@@ -146,33 +144,35 @@ class _Particle {
 
 class _ParticlePainter extends CustomPainter {
   _ParticlePainter({
-    required this.burst,
-    required this.t,
+    required this.bursts,
     required this.cellSize,
+    super.repaint,
   });
 
-  final _Burst burst;
-  final double t;
+  final List<_Burst> bursts;
   final double cellSize;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final eased = Curves.easeOut.transform(t);
-    final alpha = 1.0 - t;
-    if (alpha <= 0) return;
-    final paint = Paint()..color = burst.color.withValues(alpha: alpha);
-    final sparklePaint = Paint()
-      ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha);
-    // Light gravity so the burst falls like confetti instead of just fading.
-    final gravity = cellSize * 1.6 * t * t;
-    for (final p in burst.particles) {
-      final radius = cellSize * p.sizeFactor * (1.0 - t);
-      if (radius <= 0) continue;
-      final pos = p.origin + p.velocity * eased + Offset(0, gravity);
-      canvas.drawCircle(pos, radius, p.sparkle ? sparklePaint : paint);
+    for (final burst in bursts) {
+      final t = burst.controller.value;
+      final eased = Curves.easeOut.transform(t);
+      final alpha = 1.0 - t;
+      if (alpha <= 0) continue;
+      final paint = Paint()..color = burst.color.withValues(alpha: alpha);
+      final sparklePaint = Paint()
+        ..color = const Color(0xFFFFFFFF).withValues(alpha: alpha);
+      // Light gravity so the burst falls like confetti instead of fading.
+      final gravity = cellSize * 1.6 * t * t;
+      for (final p in burst.particles) {
+        final radius = cellSize * p.sizeFactor * (1.0 - t);
+        if (radius <= 0) continue;
+        final pos = p.origin + p.velocity * eased + Offset(0, gravity);
+        canvas.drawCircle(pos, radius, p.sparkle ? sparklePaint : paint);
+      }
     }
   }
 
   @override
-  bool shouldRepaint(_ParticlePainter old) => old.t != t;
+  bool shouldRepaint(_ParticlePainter old) => true;
 }

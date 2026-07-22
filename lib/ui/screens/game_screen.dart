@@ -164,28 +164,39 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                 child: SizedBox(
                                   width: boardSize,
                                   height: boardSize,
+                                  // RepaintBoundaries isolate the animated
+                                  // effect layers from the board — without
+                                  // them every particle frame repaints the
+                                  // whole surface, which flashes white on
+                                  // iOS-Safari/PWA (canvas reallocation).
                                   child: Stack(
                                     children: [
-                                      BoardView(
-                                        size: boardSize,
-                                        board: snap.board,
-                                        boardKey: _boardKey,
-                                        onCellTap:
-                                            bombMode ? _handleBombTap : null,
+                                      RepaintBoundary(
+                                        child: BoardView(
+                                          size: boardSize,
+                                          board: snap.board,
+                                          boardKey: _boardKey,
+                                          onCellTap:
+                                              bombMode ? _handleBombTap : null,
+                                        ),
                                       ),
                                       Positioned.fill(
                                         child: IgnorePointer(
-                                          child: ClearBurst(
-                                            size: boardSize,
-                                            cellSize: boardSize / 8,
+                                          child: RepaintBoundary(
+                                            child: ClearBurst(
+                                              size: boardSize,
+                                              cellSize: boardSize / 8,
+                                            ),
                                           ),
                                         ),
                                       ),
                                       Positioned.fill(
                                         child: IgnorePointer(
-                                          child: JuiceOverlay(
-                                            size: boardSize,
-                                            cellSize: boardSize / 8,
+                                          child: RepaintBoundary(
+                                            child: JuiceOverlay(
+                                              size: boardSize,
+                                              cellSize: boardSize / 8,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -279,17 +290,19 @@ class _FeverGlow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final f = fever.clamp(0.0, 1.0);
+    // The shadow layer is ALWAYS present (invisible at fever 0). Adding a
+    // large-blur shadow on the fly forces the compositor to allocate a new
+    // blur surface mid-clear, which flashes white on iOS-Safari/PWA.
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          if (f > 0)
-            BoxShadow(
-              color: color.withValues(alpha: f * 0.6),
-              blurRadius: f * 34,
-              spreadRadius: f * 4,
-            ),
+          BoxShadow(
+            color: color.withValues(alpha: 0.004 + f * 0.6),
+            blurRadius: 1 + f * 34,
+            spreadRadius: f * 4,
+          ),
         ],
       ),
       child: child,
