@@ -31,45 +31,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  /// Lets the player rename themselves (leaderboard identity).
-  Future<void> _editName(
-    BuildContext context,
-    WidgetRef ref,
-    String current,
-  ) async {
-    final controller = TextEditingController(text: current);
-    final name = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: GridColors.boardBackground,
-        title: const Text('Dein Name',
-            style: TextStyle(color: GridColors.textPrimary)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          maxLength: 14,
-          textCapitalization: TextCapitalization.words,
-          style: const TextStyle(color: GridColors.textPrimary),
-          decoration: const InputDecoration(hintText: 'Name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: const Text('Abbrechen'),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: const Text('Speichern'),
-          ),
-        ],
-      ),
-    );
-    if (name != null && name.length >= 2) {
-      await ref.read(gameControllerProvider.notifier).setPlayerName(name);
-    }
-  }
-
+  /// Opens the piggy bank (free when full, or early via a bonus video).
   void _handlePiggy(BuildContext context, WidgetRef ref, PiggyBank piggy) {
     if (piggy.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -240,30 +202,26 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              GestureDetector(
-                onTap: () => _editName(context, ref, snap.playerName),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.person,
-                        size: 13, color: GridColors.textMuted),
-                    const SizedBox(width: 5),
-                    Text(
-                      // Supporters get a small heart next to their name.
-                      snap.supporter
-                          ? '${snap.playerName} ❤️'
-                          : snap.playerName,
-                      style: const TextStyle(
-                        color: GridColors.textMuted,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                      ),
+              // The name is chosen once at first launch and is fixed after
+              // that (it's the leaderboard identity) — no free renaming.
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.person,
+                      size: 13, color: GridColors.textMuted),
+                  const SizedBox(width: 5),
+                  Text(
+                    // Supporters get a small heart next to their name.
+                    snap.supporter
+                        ? '${snap.playerName} ❤️'
+                        : snap.playerName,
+                    style: const TextStyle(
+                      color: GridColors.textMuted,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                     ),
-                    const SizedBox(width: 3),
-                    const Icon(Icons.edit,
-                        size: 12, color: GridColors.textMuted),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const Spacer(flex: 3),
               // Prominent best score, right above the play button.
