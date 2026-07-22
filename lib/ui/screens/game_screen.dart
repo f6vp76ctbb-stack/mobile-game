@@ -3,12 +3,10 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../game/leveling.dart';
 import '../../game/piece.dart';
 import '../../monetization/iap.dart';
-import '../../services/leaderboard.dart';
 import '../state/game_controller.dart';
 import '../state/theme_controller.dart';
 import '../theme.dart';
@@ -808,8 +806,9 @@ class _GameOverOverlay extends ConsumerWidget {
   }
 }
 
-/// "Submit to leaderboard" button shown on game-over for a new best. Opens a
-/// prefilled GitHub issue (an Action adds it to the shared leaderboard).
+/// "Submit to leaderboard" button shown on game-over for a new best. Writes
+/// straight to the shared Firestore leaderboard under the player's silent
+/// anonymous identity — no account, no browser hop.
 class _LeaderboardSubmitButton extends ConsumerWidget {
   const _LeaderboardSubmitButton({required this.name, required this.score});
 
@@ -826,20 +825,24 @@ class _LeaderboardSubmitButton extends ConsumerWidget {
       icon: const Icon(Icons.emoji_events),
       label: const Text('In Bestenliste eintragen'),
       onPressed: () async {
-        final uri = buildScoreIssueUri(name, score);
-        if (uri == null) return;
-        final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        final ok = await ref
+            .read(leaderboardServiceProvider)
+            .submit(name: name, score: score);
         if (ok) {
           await ref
               .read(gameControllerProvider.notifier)
               .markScoreSubmitted(score);
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Score gesendet — erscheint gleich in der Liste.'),
+        }
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                ok
+                    ? 'Score steht in der Bestenliste! 🏆'
+                    : 'Gerade nicht erreichbar — versuch es später erneut.',
               ),
-            );
-          }
+            ),
+          );
         }
       },
     );

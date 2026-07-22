@@ -6,6 +6,7 @@ import 'monetization/ads.dart';
 import 'monetization/iap.dart';
 import 'services/analytics.dart';
 import 'services/audio.dart';
+import 'services/firebase_boot.dart';
 import 'services/notifications.dart';
 import 'services/storage.dart';
 import 'ui/app_bootstrap.dart';
@@ -16,6 +17,10 @@ import 'ui/theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final storage = await Storage.create();
+
+  // Firebase (Analytics + Crashlytics) on native builds; null on web (the
+  // stub) or when init fails — the game never depends on it.
+  final firebaseAnalytics = await initFirebase();
 
   // AdMob, in_app_purchase and flutter_local_notifications have no web
   // implementation — on the web/PWA build they throw when invoked (which was
@@ -35,9 +40,8 @@ Future<void> main() async {
         iapServiceProvider.overrideWithValue(
           kIsWeb ? (kDebugMode ? FakeIap() : LockedIap()) : StoreIap(),
         ),
-        // Firebase backend lands once config files exist; DebugAnalytics prints
-        // the funnel in the meantime (see docs/SETUP-ACCOUNTS.md).
-        analyticsProvider.overrideWithValue(DebugAnalytics()),
+        analyticsProvider
+            .overrideWithValue(firebaseAnalytics ?? DebugAnalytics()),
         if (!kIsWeb)
           notificationServiceProvider
               .overrideWithValue(LocalNotifications()),

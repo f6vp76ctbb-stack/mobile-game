@@ -48,9 +48,11 @@ final adServiceProvider = Provider<AdService>((ref) => FakeAdService());
 /// store-backed one.
 final iapServiceProvider = Provider<IapService>((ref) => FakeIap());
 
-/// Shared leaderboard reader (public repo JSON).
-final leaderboardServiceProvider =
-    Provider<LeaderboardService>((ref) => LeaderboardService());
+/// Shared leaderboard (Firestore REST; storage persists the silent anonymous
+/// identity used for submitting).
+final leaderboardServiceProvider = Provider<LeaderboardService>(
+  (ref) => LeaderboardService(storage: ref.read(storageProvider)),
+);
 
 /// Immutable view of the current run for the widget tree.
 @immutable

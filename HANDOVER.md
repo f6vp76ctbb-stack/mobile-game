@@ -135,17 +135,18 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   (Label `feedback`) → `.github/workflows/feedback.yaml` hängt es an
   **`FEEDBACK.md`** an (nur Issues vom Repo-Owner; Text nur als Daten).
   `FEEDBACK.md` = Ideensammlung für spätere Umsetzung.
-- **Bestenliste**: `leaderboard.json` im Repo. App **liest** öffentlich via
-  `raw.githubusercontent.com` (Cache-Buster-Param). **Eintragen** via
-  vorbefülltem Issue (Label `score`) mit Marker
-  `<!-- qubble-score v1 name="..." score="..." -->` →
-  `.github/workflows/leaderboard.yaml` validiert (Name `[A-Za-z0-9 _-]{2,14}`,
-  Score 1..1e8), behält **besten Score pro Name**, committet, schließt Issue.
-  UI: Home → „Bestenliste" (markiert eigenen Namen); Game-Over-Button bei
-  neuem Bestwert; `lastSubmittedScore` verhindert Doppel-Prompts.
-  **Einschränkung:** Eintragen erfordert GitHub-Login. Für Freunde ohne
-  GitHub-Konto bräuchte es **Firebase** — dem Nutzer mehrfach angeboten,
-  **noch nicht entschieden**.
+- **Bestenliste (seit 22.07.2026: Firestore, kontofrei!):**
+  `LeaderboardService` spricht Firestore **per REST** (pure Dart + http,
+  kein SDK — läuft identisch auf Native und Web-PWA, voll testbar):
+  Lesen via runQuery (öffentlich), Eintragen unter **stiller anonymer
+  Firebase-Identität** (Identity-Toolkit signUp beim ersten Submit,
+  Refresh-Token in storage; Spieler sehen NIE einen Login). Server-Gate:
+  `firebase/firestore.rules` (eigenes Dokument je uid, Name/Score validiert,
+  Score nie senkbar). Firebase-Projekt „qubble", Konstanten in
+  `lib/services/firebase_config.dart` (bewusst committet — keine Secrets).
+  Analytics + Crashlytics: `firebase_boot.dart` (Conditional Import; Web =
+  Stub ohne Firebase-SDK). Die alte GitHub-Issue-Pipeline ist entfernt
+  (`leaderboard.yaml` gelöscht; `leaderboard.json` nur noch Archiv).
 - **Admin-Modus (Test)**: In Einstellungen 7× auf die Fußzeile
   („Qubble • Offline Block Puzzle") tippen → Münzen +1.000/+10.000/auf 0.
   **Nur in Debug-Builds** (doppelt verriegelt: `kDebugMode` in der UI +

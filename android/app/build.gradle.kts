@@ -7,6 +7,14 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Firebase plugins only when the (git-ignored) config file is present, so
+// clones without google-services.json keep building. Release builds on the
+// owner's machine have the file → Crashlytics symbol upload works there.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+    apply(plugin = "com.google.firebase.crashlytics")
+}
+
 // Release signing is read from android/key.properties (git-ignored). When that
 // file is absent (CI, fresh clones, this dev env) the build falls back to the
 // debug keys so `flutter build`/`flutter run --release` still works.
