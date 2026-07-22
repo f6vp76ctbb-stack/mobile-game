@@ -121,11 +121,28 @@ bool _placeAnywhere(GameSession g, int slot) {
   return false;
 }
 
-/// Places the first legal (slot, origin) found across the whole tray.
+/// Places the first legal (slot, origin) found across the whole tray. Plays
+/// like a real player: if nothing fits as-is, it rotates a piece that can be
+/// rescued within the rotation budget (never wasting charges), then places.
 bool _placeFirstLegal(GameSession g) {
   for (var slot = 0; slot < 3; slot++) {
     if (g.tray[slot] == null) continue;
     if (_placeAnywhere(g, slot)) return true;
+  }
+  final budget = g.freeRotation ? 3 : g.rotationCharges.clamp(0, 3);
+  for (var slot = 0; slot < 3; slot++) {
+    final piece = g.tray[slot];
+    if (piece == null) continue;
+    var rotated = piece;
+    for (var r = 1; r <= budget; r++) {
+      rotated = rotated.rotatedCw();
+      if (g.board.hasAnyPlacement(rotated)) {
+        for (var i = 0; i < r; i++) {
+          g.rotate(slot);
+        }
+        return _placeAnywhere(g, slot);
+      }
+    }
   }
   return false;
 }
