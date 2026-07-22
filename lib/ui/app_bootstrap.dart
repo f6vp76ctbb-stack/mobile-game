@@ -117,6 +117,8 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
           .read(skinControllerProvider.notifier)
           .grantSkin(SupporterPack.skinId);
       await controller.applySupporter();
+    } else if (productId == IapProducts.rename) {
+      await controller.grantRenameCredit();
     } else if (productId == IapProducts.starter) {
       await controller.grantCoins(StarterOffer.coins);
       await ref

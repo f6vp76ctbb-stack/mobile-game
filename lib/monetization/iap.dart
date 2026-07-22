@@ -21,12 +21,17 @@ class IapProducts {
   static const coinsL = 'qubble_coins_l';
   static const starter = 'qubble_starter';
 
+  /// One paid name change. The display name is otherwise fixed after
+  /// onboarding — cosmetic only, never a gameplay advantage.
+  static const rename = 'qubble_rename';
+
   static const all = <String>{
     supporter,
     coinsS,
     coinsM,
     coinsL,
     starter,
+    rename,
   };
 
   /// Coins granted per fixed-amount consumable pack.
@@ -36,7 +41,13 @@ class IapProducts {
     coinsL: 6000,
   };
 
-  static const _consumables = <String>{coinsS, coinsM, coinsL, starter};
+  static const _consumables = <String>{
+    coinsS,
+    coinsM,
+    coinsL,
+    starter,
+    rename,
+  };
 
   static bool isConsumable(String id) => _consumables.contains(id);
 }

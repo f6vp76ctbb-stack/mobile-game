@@ -46,6 +46,7 @@ class Storage {
   static const _kLastActiveMillis = 'lastActiveMillis';
   static const _kAppOpenCount = 'appOpenCount';
   static const _kPlayerName = 'playerName';
+  static const _kRenameCredits = 'renameCredits';
   static const _kLastSubmittedScore = 'lastSubmittedScore';
   static const _kAchievements = 'achievements';
 
@@ -64,6 +65,12 @@ class Storage {
       _prefs.setString(_kPlayerName, value.trim());
 
   bool get hasPlayerName => playerName.isNotEmpty;
+
+  /// Purchased-but-unused name changes (consumable IAP `qubble_rename`). The
+  /// name is otherwise fixed after onboarding.
+  int get renameCredits => _prefs.getInt(_kRenameCredits) ?? 0;
+  Future<void> setRenameCredits(int value) =>
+      _prefs.setInt(_kRenameCredits, value < 0 ? 0 : value);
 
   /// The highest score already pushed to the shared leaderboard, so the app
   /// only prompts to submit when a run beats it.

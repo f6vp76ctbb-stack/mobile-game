@@ -399,6 +399,34 @@ void main() {
     });
   });
 
+  group('paid name change', () {
+    test('a purchased credit lets the player rename once', () async {
+      final c = await _controller(prefs: {'playerName': 'Old'});
+      expect(c.state.renameCredits, 0);
+      // Renaming is blocked without a credit.
+      expect(await c.renameWithCredit('New'), isFalse);
+      expect(c.state.playerName, 'Old');
+
+      await c.grantRenameCredit();
+      expect(c.state.renameCredits, 1);
+      expect(await c.renameWithCredit('New'), isTrue);
+      expect(c.state.playerName, 'New');
+      expect(c.state.renameCredits, 0); // consumed
+
+      // No more free renames.
+      expect(await c.renameWithCredit('Again'), isFalse);
+      expect(c.state.playerName, 'New');
+    });
+
+    test('rejects a too-short name and keeps the credit', () async {
+      final c = await _controller(prefs: {'playerName': 'Old'});
+      await c.grantRenameCredit();
+      expect(await c.renameWithCredit('x'), isFalse);
+      expect(c.state.renameCredits, 1); // not consumed
+      expect(c.state.playerName, 'Old');
+    });
+  });
+
   group('IAP entitlements', () {
     test('applySupporter flips the flag in the snapshot', () async {
       final c = await _controller();
