@@ -176,6 +176,9 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   Zusätzlich braucht `flutter_local_notifications` **Core Library Desugaring**:
   `isCoreLibraryDesugaringEnabled = true` + `coreLibraryDesugaring(...desugar_jdk_libs:2.1.4)`
   in `android/app/build.gradle.kts` (sonst bricht `checkReleaseAarMetadata` ab).
+  Und `flutter_timezone` auf **4.x** (nicht 3.x: mischt Java 11 + Kotlin 1.8 →
+  AGP 9 bricht `compileReleaseKotlin` ab). Nicht auf 5.x gehen, solange
+  `getLocalTimezone()` als `String` genutzt wird (5.0.0 liefert `TimezoneInfo`).
 
 ## 6. Web/PWA-Besonderheiten (wichtig!)
 

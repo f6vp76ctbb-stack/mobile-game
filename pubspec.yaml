@@ -53,7 +53,10 @@ dependencies:
   # Local (offline) notifications: daily reminder, streak warning, comeback.
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
-  flutter_timezone: ^3.0.1
+  # 4.x aligns the plugin's Kotlin/Java compile to Java 17, which AGP 9
+  # requires (3.x mixes Java 11 + Kotlin 1.8 and fails compileReleaseKotlin).
+  # Stay on 4.x: 5.0.0 changes getLocalTimezone() to return TimezoneInfo.
+  flutter_timezone: ^4.0.0
 
   # Opens a prefilled GitHub issue for in-app feedback / score submission.
   url_launcher: ^6.3.0
