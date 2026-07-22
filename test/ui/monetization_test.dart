@@ -15,21 +15,48 @@ import 'package:shared_preferences/shared_preferences.dart';
 void _playToGameOver(GameController c) {
   var guard = 0;
   while (!c.state.gameOver && guard < 5000) {
-    var moved = false;
-    for (var slot = 0; slot < c.state.tray.length && !moved; slot++) {
-      if (c.state.tray[slot] == null) continue;
-      for (var r = 0; r < Board.size && !moved; r++) {
-        for (var col = 0; col < Board.size && !moved; col++) {
-          if (c.canPlace(slot, Cell(r, col))) {
-            c.place(slot, Cell(r, col));
-            moved = true;
+    if (!_playOneMove(c)) break;
+    guard++;
+  }
+}
+
+/// Plays one move like a real player: a direct placement if possible, else a
+/// rotation rescue (only spending charges on a piece that will actually fit).
+bool _playOneMove(GameController c) {
+  for (var slot = 0; slot < c.state.tray.length; slot++) {
+    if (c.state.tray[slot] == null) continue;
+    for (var r = 0; r < Board.size; r++) {
+      for (var col = 0; col < Board.size; col++) {
+        if (c.canPlace(slot, Cell(r, col))) {
+          c.place(slot, Cell(r, col));
+          return true;
+        }
+      }
+    }
+  }
+  final budget = c.state.rotationFree ? 3 : c.state.rotationCharges.clamp(0, 3);
+  for (var slot = 0; slot < c.state.tray.length; slot++) {
+    final piece = c.state.tray[slot];
+    if (piece == null) continue;
+    var rotated = piece;
+    for (var rot = 1; rot <= budget; rot++) {
+      rotated = rotated.rotatedCw();
+      if (c.state.board.hasAnyPlacement(rotated)) {
+        for (var i = 0; i < rot; i++) {
+          c.rotateTray(slot);
+        }
+        for (var r = 0; r < Board.size; r++) {
+          for (var col = 0; col < Board.size; col++) {
+            if (c.canPlace(slot, Cell(r, col))) {
+              c.place(slot, Cell(r, col));
+              return true;
+            }
           }
         }
       }
     }
-    if (!moved) break;
-    guard++;
   }
+  return false;
 }
 
 /// Rewarded ad that never grants (user closed it early).

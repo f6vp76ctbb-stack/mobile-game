@@ -15,10 +15,7 @@ class GameSession {
     this._board,
     this._clock,
     this.freeRotation,
-  ) {
-    _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
-    _recomputeGameOver();
-  }
+  );
 
   /// Starts a fresh run for the given [seed] (date seed for the Daily
   /// Challenge, or a random seed for endless).
@@ -31,7 +28,7 @@ class GameSession {
     DateTime Function()? clock,
     bool freeRotation = false,
   }) {
-    return GameSession._(
+    final s = GameSession._(
       seed,
       PieceGenerator(seed: seed),
       ScoreKeeper(),
@@ -39,6 +36,33 @@ class GameSession {
       clock ?? DateTime.now,
       freeRotation,
     );
+    s._tray = List<Piece?>.of(s._generator.nextTray(s._board, s._placements));
+    s._recomputeGameOver();
+    return s;
+  }
+
+  /// Test-only seam: builds a session with an explicit [board], [tray] and
+  /// rotation state, so game-over / rotation scenarios can be set up directly
+  /// (the seed-driven [newGame] can't reach arbitrary board states).
+  factory GameSession.forTest({
+    required Board board,
+    required List<Piece?> tray,
+    bool freeRotation = false,
+    int rotationCharges = startRotationCharges,
+    DateTime Function()? clock,
+  }) {
+    final s = GameSession._(
+      0,
+      PieceGenerator(seed: 0),
+      ScoreKeeper(),
+      board,
+      clock ?? DateTime.now,
+      freeRotation,
+    );
+    s._tray = List<Piece?>.of(tray);
+    s._rotationCharges = rotationCharges;
+    s._recomputeGameOver();
+    return s;
   }
 
   /// Maximum stored rotation charges; every clearing move refills one.
@@ -239,9 +263,28 @@ class GameSession {
   }
 
   void _recomputeGameOver() {
+    // A tray piece counts as playable if it fits as-is OR — while the player
+    // can still rotate (free, or with charges) — if any rotation reachable
+    // within the available charges fits. Ignoring rotation here caused false
+    // game-overs (e.g. at level 3+, where rotation costs charges): the board
+    // was declared dead even though a piece could have been rotated to fit.
+    final maxRotations = freeRotation ? 3 : _rotationCharges.clamp(0, 3);
     _gameOver = !_tray
         .whereType<Piece>()
-        .any((piece) => _board.hasAnyPlacement(piece));
+        .any((piece) => _hasPlacementWithin(piece, maxRotations));
+  }
+
+  /// Whether [piece] can be placed somewhere either as-is or after up to
+  /// [maxRotations] clockwise rotations (each costing one charge in normal
+  /// play). Rotating a single piece can use the whole charge budget, so this
+  /// checks each piece independently against the full budget.
+  bool _hasPlacementWithin(Piece piece, int maxRotations) {
+    var p = piece;
+    for (var r = 0; r <= maxRotations; r++) {
+      if (_board.hasAnyPlacement(p)) return true;
+      if (r < maxRotations) p = p.rotatedCw();
+    }
+    return false;
   }
 }
 

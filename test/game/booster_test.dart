@@ -3,16 +3,38 @@ import 'package:gridpop/game/board.dart';
 import 'package:gridpop/game/game_session.dart';
 import 'package:gridpop/game/piece.dart';
 
-/// Plays a single first-legal move; returns whether one was made.
+/// Plays a single move: a direct placement if possible, else a rotation
+/// rescue (only spending charges on a piece that will actually fit). Returns
+/// whether one was made.
 bool _placeFirstLegal(GameSession g) {
-  for (var slot = 0; slot < 3; slot++) {
-    if (g.tray[slot] == null) continue;
+  bool tryPlace(int slot) {
     for (var r = 0; r < Board.size; r++) {
       for (var c = 0; c < Board.size; c++) {
         if (g.canPlace(slot, Cell(r, c))) {
           g.place(slot, Cell(r, c));
           return true;
         }
+      }
+    }
+    return false;
+  }
+
+  for (var slot = 0; slot < 3; slot++) {
+    if (g.tray[slot] == null) continue;
+    if (tryPlace(slot)) return true;
+  }
+  final budget = g.freeRotation ? 3 : g.rotationCharges.clamp(0, 3);
+  for (var slot = 0; slot < 3; slot++) {
+    final piece = g.tray[slot];
+    if (piece == null) continue;
+    var rotated = piece;
+    for (var rot = 1; rot <= budget; rot++) {
+      rotated = rotated.rotatedCw();
+      if (g.board.hasAnyPlacement(rotated)) {
+        for (var i = 0; i < rot; i++) {
+          g.rotate(slot);
+        }
+        return tryPlace(slot);
       }
     }
   }

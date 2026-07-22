@@ -23,37 +23,49 @@ Future<GameController> _controller({AdService? ads}) async {
 }
 
 /// Drives the controller by always playing the first legal move it can find.
-/// Returns when the game is over or the guard trips.
+/// Plays like a real player: if nothing fits as-is, it rotates a piece that
+/// can be rescued within the rotation budget, then places. Returns when the
+/// game is over or the guard trips.
 void _playToGameOver(GameController c) {
   var guard = 0;
   while (!c.state.gameOver && guard < 5000) {
-    var moved = false;
-    for (var slot = 0; slot < c.state.tray.length && !moved; slot++) {
-      if (c.state.tray[slot] == null) continue;
-      for (var r = 0; r < Board.size && !moved; r++) {
-        for (var col = 0; col < Board.size && !moved; col++) {
-          if (c.canPlace(slot, Cell(r, col))) {
-            c.place(slot, Cell(r, col));
-            moved = true;
-          }
-        }
-      }
-    }
-    if (!moved) break;
+    if (!_placeOneLegalMove(c)) break;
     guard++;
   }
 }
 
-/// Plays a single first-legal move. Returns whether one was made.
+/// Plays a single move: a direct placement if possible, else a rotation
+/// rescue (only spending charges on a piece that will actually fit). Returns
+/// whether one was made.
 bool _placeOneLegalMove(GameController c) {
-  for (var slot = 0; slot < c.state.tray.length; slot++) {
-    if (c.state.tray[slot] == null) continue;
+  bool tryPlace(int slot) {
     for (var r = 0; r < Board.size; r++) {
       for (var col = 0; col < Board.size; col++) {
         if (c.canPlace(slot, Cell(r, col))) {
           c.place(slot, Cell(r, col));
           return true;
         }
+      }
+    }
+    return false;
+  }
+
+  for (var slot = 0; slot < c.state.tray.length; slot++) {
+    if (c.state.tray[slot] == null) continue;
+    if (tryPlace(slot)) return true;
+  }
+  final budget = c.state.rotationFree ? 3 : c.state.rotationCharges.clamp(0, 3);
+  for (var slot = 0; slot < c.state.tray.length; slot++) {
+    final piece = c.state.tray[slot];
+    if (piece == null) continue;
+    var rotated = piece;
+    for (var rot = 1; rot <= budget; rot++) {
+      rotated = rotated.rotatedCw();
+      if (c.state.board.hasAnyPlacement(rotated)) {
+        for (var i = 0; i < rot; i++) {
+          c.rotateTray(slot);
+        }
+        return tryPlace(slot);
       }
     }
   }
