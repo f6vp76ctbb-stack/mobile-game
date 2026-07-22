@@ -53,7 +53,14 @@ Spuren laufen parallel, die Nummern zeigen, was worauf wartet:
 - [ ] Keine Secrets im Repo (Keystore, `key.properties`,
       `google-services.json` — alle git-ignored; Repo ist öffentlich!).
 
-## 1. Android – Signing (einmalig)
+## 1. Android – Bauen ohne Computer (empfohlen)
+
+> **Ohne Rechner:** Nutze den GitHub-Auto-Build — Anleitung in
+> **`docs/BUILD-CI.md`**. Signatur-Schlüssel + Secrets sind einmalig
+> einzurichten (Claude erzeugt den Schlüssel), danach baust du die `.aab`
+> per Knopfdruck im Browser und lädst sie in die Play Console.
+
+## 1b. Android – Signing lokal (nur mit eigenem Rechner)
 
 1. 👤 Upload-Keystore erzeugen (sicher verwahren, **niemals** committen):
    ```bash
