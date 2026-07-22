@@ -33,15 +33,17 @@ void main() {
     expect(c.read(activeSkinProvider), BlockSkinStyle.solid);
   });
 
-  test('unlocking a skin spends coins and equips it', () async {
-    final c = await _container({'coins': 500});
+  test('unlocking a gold skin spends coins and equips it', () async {
+    final gradient = _skin('gradient');
+    final c = await _container({'coins': 2000});
     final ok = await c
         .read(skinControllerProvider.notifier)
-        .selectOrUnlock(_skin('gradient'));
+        .selectOrUnlock(gradient);
     expect(ok, isTrue);
+    expect(gradient.currency, SkinCurrency.gold);
     expect(c.read(skinControllerProvider).activeId, 'gradient');
     expect(c.read(activeSkinProvider), BlockSkinStyle.gradient);
-    expect(c.read(storageProvider).coins, 200); // 500 - 300
+    expect(c.read(storageProvider).coins, 2000 - gradient.cost);
   });
 
   test('cannot unlock without enough coins', () async {
@@ -53,13 +55,35 @@ void main() {
     expect(c.read(skinControllerProvider).activeId, 'classic');
   });
 
+  test('diamond skins cost diamonds, not coins', () async {
+    final glow = _skin('glow');
+    expect(glow.currency, SkinCurrency.diamond);
+
+    // Plenty of coins but no diamonds → cannot unlock.
+    final poor = await _container({'coins': 999999});
+    expect(
+      await poor.read(skinControllerProvider.notifier).selectOrUnlock(glow),
+      isFalse,
+    );
+
+    // Enough diamonds → unlocks and spends diamonds (coins untouched).
+    final rich = await _container({'coins': 0, 'diamonds': glow.cost});
+    expect(
+      await rich.read(skinControllerProvider.notifier).selectOrUnlock(glow),
+      isTrue,
+    );
+    expect(rich.read(skinControllerProvider).activeId, 'glow');
+    expect(rich.read(storageProvider).diamonds, 0);
+  });
+
   test('re-selecting an owned skin is free', () async {
-    final c = await _container({'coins': 500});
+    final c = await _container({'coins': 5000});
     final notifier = c.read(skinControllerProvider.notifier);
-    await notifier.selectOrUnlock(_skin('gradient')); // 200 left
+    final left = 5000 - _skin('gradient').cost;
+    await notifier.selectOrUnlock(_skin('gradient'));
     await notifier.selectOrUnlock(_skin('classic'));
     await notifier.selectOrUnlock(_skin('gradient')); // owned, free
     expect(c.read(skinControllerProvider).activeId, 'gradient');
-    expect(c.read(storageProvider).coins, 200);
+    expect(c.read(storageProvider).coins, left);
   });
 }

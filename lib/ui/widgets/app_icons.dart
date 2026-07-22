@@ -102,6 +102,108 @@ class _CoinPainter extends CustomPainter {
   bool shouldRepaint(_CoinPainter oldDelegate) => false;
 }
 
+/// The premium diamond — a cut blue gem. Consistent everywhere diamonds are
+/// shown, and clearly distinct from the gold coin.
+class DiamondIcon extends StatelessWidget {
+  const DiamondIcon({super.key, this.size = 18});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: CustomPaint(painter: _DiamondPainter()),
+    );
+  }
+}
+
+class _DiamondPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final top = h * 0.30; // girdle line
+
+    // Gem body: crown point up top, wide girdle, tapering to a bottom point.
+    final gem = Path()
+      ..moveTo(w * 0.5, h * 0.04)
+      ..lineTo(w * 0.90, top)
+      ..lineTo(w * 0.5, h * 0.97)
+      ..lineTo(w * 0.10, top)
+      ..close();
+    canvas.drawPath(
+      gem,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFB6F0FF), Color(0xFF48C6F5), Color(0xFF2A8FE0)],
+        ).createShader(Offset.zero & size),
+    );
+
+    // Bright table facet at the top.
+    canvas.drawPath(
+      Path()
+        ..moveTo(w * 0.5, h * 0.04)
+        ..lineTo(w * 0.72, top)
+        ..lineTo(w * 0.5, h * 0.52)
+        ..lineTo(w * 0.28, top)
+        ..close(),
+      Paint()..color = Colors.white.withValues(alpha: 0.35),
+    );
+
+    // Crisp outline.
+    canvas.drawPath(
+      gem,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = w * 0.05
+        ..color = const Color(0xFF1C6FB8),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_DiamondPainter oldDelegate) => false;
+}
+
+/// Diamond icon + amount, for premium (skin) prices and the diamond balance.
+class DiamondAmount extends StatelessWidget {
+  const DiamondAmount({
+    super.key,
+    required this.amount,
+    this.size = 18,
+    this.color,
+    this.fontWeight = FontWeight.w700,
+  });
+
+  final int amount;
+  final double size;
+  final Color? color;
+  final FontWeight fontWeight;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        DiamondIcon(size: size),
+        SizedBox(width: size * 0.3),
+        Text(
+          '$amount',
+          style: TextStyle(
+            color: color,
+            fontSize: size * 0.92,
+            fontWeight: fontWeight,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Coin icon + amount, the standard way to show a currency value inline.
 class CoinAmount extends StatelessWidget {
   const CoinAmount({
