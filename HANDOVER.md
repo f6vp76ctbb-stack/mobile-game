@@ -120,8 +120,10 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
 - **Menü-Partikel**: dezente Punkte im Home-Hintergrund
   (`menu_particles.dart`), themenfarben.
 - **Onboarding**: Pflicht-**Namenseingabe** beim ersten Start
-  (`NameEntryScreen` → `storage.playerName`, geräteweit, 2–14 Zeichen);
-  Name auf Home antippbar zum Ändern. 3 Coach-Hints in der ersten Runde.
+  (`NameEntryScreen` → `storage.playerName`, geräteweit, 2–14 Zeichen).
+  Name ist danach **fix** — kein Gratis-Ändern mehr (Nutzer-Entscheidung
+  Juli 2026: Umbenennen höchstens kostenpflichtig, „Diamanten"-Idee offen).
+  3 Coach-Hints in der ersten Runde.
 - **Game-Over**: „Nochmal spielen" = Hauptaktion (immer gratis, ohne Werbung);
   Revive = kleiner Link für **200 Münzen** (1×/Runde) — NIE per Video.
   **Monetarisierungs-Grundsatz (Nutzer-Entscheidung Juli 2026): keine
