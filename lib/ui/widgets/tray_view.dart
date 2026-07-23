@@ -14,21 +14,32 @@ import 'board_view.dart';
 import 'piece_view.dart';
 
 class TrayView extends ConsumerWidget {
-  const TrayView({super.key, required this.boardCell, required this.height});
+  const TrayView({
+    super.key,
+    required this.boardCell,
+    required this.height,
+    this.trayOverride,
+  });
 
   /// Board cell size — the feedback piece uses it so it matches the board 1:1.
   final double boardCell;
   final double height;
 
+  /// Optional fixed tray used by previews and widget tests.
+  final List<Piece?>? trayOverride;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tray = ref.watch(gameControllerProvider).tray;
+    final tray = trayOverride ?? ref.watch(gameControllerProvider).tray;
     final slotColors = ref.watch(activeThemeProvider).traySlots;
     final skin = ref.watch(activeSkinProvider);
-    // Tray pieces render a little smaller than board cells to leave padding.
+    // IconButton's compact Material layout is slightly taller than its explicit
+    // 22 px constraint. Reserve 28 px so a five-cell vertical piece cannot
+    // overflow the 96 px regular tray.
+    const rotateControlReserve = 28.0;
     final trayCell = boardCell < 12
         ? boardCell
-        : ((height - 24) / 5).clamp(12.0, boardCell);
+        : ((height - rotateControlReserve) / 5).clamp(12.0, boardCell);
 
     return SizedBox(
       height: height,
