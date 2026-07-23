@@ -217,7 +217,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               ),
                             ),
                             const SizedBox(height: gap),
-                            if (!compactLayout)
+                            if (!compactLayout && !snap.isDaily)
                               _BoosterBar(
                                 snap: snap,
                                 bombMode: effectiveBombMode,
@@ -380,27 +380,6 @@ class _BoosterBar extends ConsumerWidget {
               },
             ),
           ],
-          // Rotation status: not a coin booster — tapping a tray piece
-          // rotates it; this chip shows the remaining charges.
-          _BoosterButton(
-            icon: Icons.rotate_right_rounded,
-            label: 'Drehen',
-            sub: snap.rotationFree ? 'frei' : '${snap.rotationCharges}×',
-            enabled:
-                !snap.gameOver &&
-                (snap.rotationFree || snap.rotationCharges > 0),
-            active: false,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  duration: Duration(seconds: 2),
-                  content: Text(
-                    'Tippe ein Teil in der Ablage, um es zu drehen',
-                  ),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -414,18 +393,14 @@ class _BoosterButton extends StatelessWidget {
     required this.enabled,
     required this.active,
     required this.onTap,
-    this.sub,
-    this.cost,
+    required this.cost,
   });
 
   final IconData icon;
   final String label;
 
-  /// Coin cost, rendered with the coin icon. Mutually exclusive with [sub].
-  final int? cost;
-
-  /// Non-currency sub-line (e.g. rotation charges). Used when [cost] is null.
-  final String? sub;
+  /// Coin cost rendered with the coin icon.
+  final int cost;
 
   final bool enabled;
   final bool active;
@@ -450,21 +425,12 @@ class _BoosterButton extends StatelessWidget {
               Icon(icon, color: color, size: 22),
               const SizedBox(height: 2),
               Text(label, style: TextStyle(color: color, fontSize: 12)),
-              if (cost != null)
-                CoinAmount(
-                  amount: cost!,
-                  size: 12,
-                  color: GridColors.textMuted,
-                  fontWeight: FontWeight.w600,
-                )
-              else
-                Text(
-                  sub ?? '',
-                  style: const TextStyle(
-                    color: GridColors.textMuted,
-                    fontSize: 11,
-                  ),
-                ),
+              CoinAmount(
+                amount: cost,
+                size: 12,
+                color: GridColors.textMuted,
+                fontWeight: FontWeight.w600,
+              ),
             ],
           ),
         ),
