@@ -33,13 +33,11 @@ class TrayView extends ConsumerWidget {
     final tray = trayOverride ?? ref.watch(gameControllerProvider).tray;
     final slotColors = ref.watch(activeThemeProvider).traySlots;
     final skin = ref.watch(activeSkinProvider);
-    // IconButton's compact Material layout is slightly taller than its explicit
-    // 22 px constraint. Reserve 28 px so a five-cell vertical piece cannot
-    // overflow the 96 px regular tray.
-    const rotateControlReserve = 28.0;
+    // Tray pieces use a stable base size. The slot layout below scales only
+    // unusually tall pieces down to the space left by the Material button.
     final trayCell = boardCell < 12
         ? boardCell
-        : ((height - rotateControlReserve) / 5).clamp(12.0, boardCell);
+        : ((height - 24) / 5).clamp(12.0, boardCell);
 
     return SizedBox(
       height: height,
@@ -114,9 +112,19 @@ class TrayView extends ConsumerWidget {
         ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
-          PieceView(piece: piece, cellSize: trayCell, color: color, skin: skin),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: PieceView(
+                piece: piece,
+                cellSize: trayCell,
+                color: color,
+                skin: skin,
+              ),
+            ),
+          ),
           Tooltip(
             message: 'Teil drehen',
             child: IconButton(
