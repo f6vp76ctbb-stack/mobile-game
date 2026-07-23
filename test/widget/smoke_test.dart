@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:gridpop/game/piece.dart';
 import 'package:gridpop/services/storage.dart';
 import 'package:gridpop/ui/screens/game_screen.dart';
 import 'package:gridpop/ui/screens/home_screen.dart';
 import 'package:gridpop/ui/screens/puzzle_screen.dart';
 import 'package:gridpop/ui/state/game_controller.dart';
 import 'package:gridpop/ui/theme.dart';
+import 'package:gridpop/ui/widgets/tray_view.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<Widget> _app(Widget home) async {
@@ -40,6 +42,26 @@ void main() {
     await tester.pumpWidget(await _app(const GameScreen()));
     await tester.pumpAndSettle();
     expect(find.text('PUNKTE'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tray fits a five-cell vertical piece without overflow',
+      (tester) async {
+    final line5 = buildCatalog().firstWhere((piece) => piece.id == 'line5_v');
+    await tester.pumpWidget(
+      await _app(
+        Scaffold(
+          body: Center(
+            child: TrayView(
+              boardCell: 20,
+              height: 96,
+              trayOverride: [line5, line5, line5],
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byType(TrayView), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

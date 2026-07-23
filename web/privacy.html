@@ -38,15 +38,17 @@
   </header>
 
   <h2>1. Überblick</h2>
-  <p>Qubble ist ein Offline-Block-Puzzle. Das Spiel selbst benötigt <strong>kein Nutzerkonto und
-  keinen eigenen Server</strong>. Spielstände (Highscore, Münzen, Streak, Einstellungen, gekaufte
-  Inhalte) werden <strong>nur lokal auf deinem Gerät</strong> gespeichert. Personenbezogene Daten
-  werden nur im Rahmen der unten genannten Drittdienste (Werbung, Analyse, Käufe) verarbeitet.</p>
+  <p>Qubble ist ein Offline-Block-Puzzle und benötigt <strong>kein sichtbares Nutzerkonto</strong>.
+  Dein Spielfortschritt (Highscore, Münzen, Streak, Einstellungen und freigeschaltete Inhalte)
+  wird grundsätzlich <strong>lokal auf deinem Gerät</strong> gespeichert. Für die optionale
+  Bestenliste sowie in der nativen Android-App für Werbung, Analyse, Absturzberichte und Käufe
+  werden die unten beschriebenen Drittdienste eingesetzt.</p>
 
   <h2>2. Lokale Speicherung</h2>
   <p>Auf dem Gerät gespeichert: Highscore, Münzstand, Daily-Streak, aktives Theme, freigeschaltete
-  Themes/Skins, Kauf-Status, Einstellungen. Diese Daten verlassen das Gerät nicht und werden beim
-  Deinstallieren gelöscht.</p>
+  Themes/Skins, Kauf-Status und Einstellungen. Diese lokalen Daten werden beim Deinstallieren
+  gelöscht. Davon getrennt werden bei Nutzung der Bestenliste Anzeigename, Bestwert und eine
+  anonyme technische Kennung an Google Firebase übertragen (siehe Abschnitt 5).</p>
 
   <h2>3. Werbung (Google AdMob)</h2>
   <p>Die App zeigt <strong>keine erzwungene Werbung</strong>. Das einzige Werbeformat sind
@@ -57,20 +59,25 @@
     <li><strong>Einwilligung (EU/EWR/UK):</strong> Vor der ersten Anzeige durchläufst du einen
       Consent-Dialog (Google UMP). Ohne Einwilligung werden – soweit möglich – nur
       nicht-personalisierte Anzeigen ausgeliefert.</li>
+    <li>Deine Auswahl kannst du in der App unter
+      <strong>Einstellungen → Datenschutzeinstellungen</strong> erneut öffnen und ändern.</li>
     <li>Google-Datenschutz: <a href="https://policies.google.com/privacy">policies.google.com/privacy</a></li>
   </ul>
 
   <h2>4. Analyse &amp; Absturzberichte (Firebase)</h2>
-  <p>Sofern aktiviert, nutzt die App Firebase Analytics und Crashlytics (Google), um anonymisierte
-  Nutzungs- und Absturzdaten zur Verbesserung der App zu erfassen (z. B. gestartete Runden,
-  Absturz-Stacktraces). Es werden keine Klarnamen erhoben. Details:
+  <p>Die native Android-App nutzt Firebase Analytics und Crashlytics (Google), um Nutzungs- und
+  Absturzdaten zur Verbesserung der App zu erfassen (z. B. gestartete Runden, Geräteinformationen
+  und Absturz-Stacktraces). Der von dir gewählte Bestenlistenname wird nicht als
+  Analytics-Parameter gesendet. Die Web-Version initialisiert diese Dienste derzeit nicht. Details:
   <a href="https://firebase.google.com/support/privacy">firebase.google.com/support/privacy</a></p>
 
   <h2>5. Bestenliste</h2>
   <p>Wenn du an der Bestenliste teilnimmst, werden dein selbst gewählter <strong>Anzeigename</strong>
   und dein <strong>Punktestand</strong> unter einer anonymen Kennung gespeichert und öffentlich in
   der Bestenliste angezeigt. Es ist kein Login und keine E-Mail nötig; ein Klarname wird nicht
-  erhoben. Wähle daher bitte keinen Namen, der dich persönlich identifiziert.</p>
+  erhoben. Technisch wird beim ersten Senden eine anonyme Firebase-Authentifizierungskennung
+  erstellt und lokal gespeichert. Wähle bitte keinen Anzeigenamen, der dich persönlich
+  identifiziert.</p>
 
   <h2>6. In-App-Käufe</h2>
   <p>Alle Käufe (Unterstützer-Paket, Münzpakete, Starter-Paket) sind optional und werden über den
@@ -83,9 +90,10 @@
 
   <h2>8. Deine Rechte</h2>
   <p>Du hast im Rahmen der DSGVO Rechte auf Auskunft, Berichtigung, Löschung, Einschränkung und
-  Widerspruch. Da wir selbst keine personenbezogenen Daten auf einem eigenen Server speichern (außer
-  dem Bestenlisten-Eintrag), richte Anfragen zu Werbe-/Analysedaten bitte an Google bzw. nutze die
-  Consent-/Geräteeinstellungen. Zur Löschung deines Bestenlisten-Eintrags oder für sonstige Anliegen:
+  Widerspruch. Qubble betreibt keinen eigenen Nutzerkonto-Server; der Bestenlisten-Eintrag liegt bei
+  Google Firebase. Richte Anfragen zu Werbe-/Analysedaten bitte an Google bzw. nutze die
+  Datenschutz- und Geräteeinstellungen. Zur Löschung deines Bestenlisten-Eintrags oder für sonstige
+  Anliegen:
   <a href="mailto:thinkube@outlook.de">thinkube@outlook.de</a>.</p>
 
   <h2>9. Änderungen</h2>
@@ -93,10 +101,10 @@
 
   <footer>
     <p class="muted"><a href="impressum.html">Impressum</a></p>
-    <p class="muted"><em>English summary:</em> Qubble stores game progress only locally on your device
-    and has no account or backend. Third-party services: Google AdMob (ads, with GDPR consent via UMP),
-    Firebase Analytics/Crashlytics (if enabled), a public leaderboard (self-chosen display name + score
-    under an anonymous ID), and store-handled in-app purchases.</p>
+    <p class="muted"><em>English summary:</em> Qubble stores core game progress locally and needs no
+    visible account. Third-party services in the native app include Google AdMob (optional rewarded
+    ads with consent via UMP), Firebase Analytics/Crashlytics, an optional public Firestore
+    leaderboard (display name + score under an anonymous ID), and store-handled in-app purchases.</p>
   </footer>
 </div>
 </body>

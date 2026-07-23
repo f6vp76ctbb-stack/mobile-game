@@ -85,7 +85,7 @@ void main() {
       }
       final o = LevelSystem.applyXp(level: 2, xpIntoLevel: 0, gainedXp: xp);
       expect(o.level, 6);
-      expect(o.rewards.map((r) => r.id), ['neon', 'gradient']);
+      expect(o.rewards.map((r) => r.id), ['fade', 'gradient']);
     });
   });
 

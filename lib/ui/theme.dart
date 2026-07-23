@@ -143,9 +143,24 @@ const List<ThemeEntry> kThemeCatalog = [
     ),
   ),
   ThemeEntry(
+    id: 'fade',
+    name: 'Fade',
+    cost: 350,
+    theme: GameTheme(
+      background: Color(0xFF171A2D),
+      boardBackground: Color(0xFF242842),
+      emptyCell: Color(0xFF303651),
+      placed: Color(0xFF9EA8FF),
+      traySlots: [Color(0xFF9EA8FF), Color(0xFFC4A7FF), Color(0xFF8AD9D0)],
+      validPreview: Color(0x669EA8FF),
+      invalidPreview: Color(0x66FF7A9B),
+      fever: Color(0xFFFFCE72),
+    ),
+  ),
+  ThemeEntry(
     id: 'neon',
     name: 'Neon',
-    cost: 500,
+    cost: 250,
     theme: GameTheme(
       background: Color(0xFF07070C),
       boardBackground: Color(0xFF12121C),
@@ -238,9 +253,6 @@ const List<ThemeEntry> kThemeCatalog = [
 
 GameTheme themeById(String id) {
   return kThemeCatalog
-      .firstWhere(
-        (e) => e.id == id,
-        orElse: () => kThemeCatalog.first,
-      )
+      .firstWhere((e) => e.id == id, orElse: () => kThemeCatalog.first)
       .theme;
 }

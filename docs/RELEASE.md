@@ -88,9 +88,10 @@ flutter build appbundle        # -> build/app/outputs/bundle/release/app-release
 flutter build apk --release
 ```
 
-Optional Code-Shrinking (kleinere App): in `android/app/build.gradle.kts`
-`isMinifyEnabled`/`isShrinkResources` auf `true` setzen (Keep-Regeln liegen in
-`proguard-rules.pro`) und **einen Release-Build testen**, bevor du hochlädst.
+Code- und Ressourcenoptimierung sind für Release-Builds mit R8 aktiviert.
+Der GitHub-Workflow erzeugt neben der `.aab` die zugehörige `mapping.txt`.
+Diese Offenlegungsdatei beim jeweiligen Build in der Play Console hochladen
+und gemeinsam mit der `.aab` archivieren.
 
 ## 3. iOS – Build  *(später/optional – beim Play-first-Launch überspringen)*
 

@@ -78,6 +78,13 @@ jobs:
           path: build/app/outputs/bundle/release/app-release.aab
           if-no-files-found: error
 
+      - name: Upload the R8 deobfuscation mapping
+        uses: actions/upload-artifact@v4
+        with:
+          name: qubble-r8-mapping
+          path: build/app/outputs/mapping/release/mapping.txt
+          if-no-files-found: error
+
       # Clean up secrets from the workspace (defensive; runners are ephemeral).
       - if: always()
         run: rm -f android/app/upload-keystore.jks android/key.properties android/app/google-services.json

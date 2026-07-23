@@ -20,8 +20,8 @@ class ThemeState {
 
 final themeControllerProvider =
     StateNotifierProvider<ThemeController, ThemeState>((ref) {
-  return ThemeController(ref.read(storageProvider), ref);
-});
+      return ThemeController(ref.read(storageProvider), ref);
+    });
 
 /// The currently active board palette, derived from the active id.
 final activeThemeProvider = Provider<GameTheme>((ref) {
@@ -30,10 +30,12 @@ final activeThemeProvider = Provider<GameTheme>((ref) {
 
 class ThemeController extends StateNotifier<ThemeState> {
   ThemeController(this._storage, this._ref)
-      : super(ThemeState(
+    : super(
+        ThemeState(
           activeId: _storage.activeTheme,
           unlocked: _storage.unlockedThemes,
-        ));
+        ),
+      );
 
   final Storage _storage;
   final Ref _ref;
@@ -61,8 +63,11 @@ class ThemeController extends StateNotifier<ThemeState> {
       return true;
     }
     if (entry.supporterOnly) return false;
-    final paid =
-        await _ref.read(gameControllerProvider.notifier).trySpendCoins(entry.cost);
+    final paid = await (entry.id == 'neon'
+        ? _ref
+              .read(gameControllerProvider.notifier)
+              .trySpendDiamonds(entry.cost)
+        : _ref.read(gameControllerProvider.notifier).trySpendCoins(entry.cost));
     if (!paid) return false;
 
     final unlocked = {...state.unlocked, entry.id};

@@ -70,11 +70,14 @@ android {
             } else {
                 signingConfigs.getByName("debug")
             }
-            // R8/minify is left off by default (Flutter's default). To enable
-            // code shrinking, set both to true and test a release build — a
-            // ready keep-rules file lives at proguard-rules.pro (see docs/RELEASE.md).
-            isMinifyEnabled = false
-            isShrinkResources = false
+            // Optimize release builds with R8 and remove resources that are
+            // unreachable after code shrinking.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro",
+            )
         }
     }
 }

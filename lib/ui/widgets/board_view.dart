@@ -132,6 +132,7 @@ class BoardView extends ConsumerWidget {
           previewValid: preview?.valid ?? false,
           emptyColor: theme.emptyCell,
           placedColor: theme.placed,
+          placedColors: theme.traySlots,
           validColor: theme.validPreview,
           invalidColor: theme.invalidPreview,
           skin: skin,
@@ -160,6 +161,7 @@ class _BoardPainter extends CustomPainter {
     required this.previewValid,
     required this.emptyColor,
     required this.placedColor,
+    required this.placedColors,
     required this.validColor,
     required this.invalidColor,
     required this.skin,
@@ -172,6 +174,7 @@ class _BoardPainter extends CustomPainter {
   final bool previewValid;
   final Color emptyColor;
   final Color placedColor;
+  final List<Color> placedColors;
   final Color validColor;
   final Color invalidColor;
   final BlockSkinStyle skin;
@@ -183,11 +186,11 @@ class _BoardPainter extends CustomPainter {
     const inset = 1.5;
 
     Rect cellRect(int row, int col) => Rect.fromLTWH(
-          col * cell + inset,
-          row * cell + inset,
-          cell - inset * 2,
-          cell - inset * 2,
-        );
+      col * cell + inset,
+      row * cell + inset,
+      cell - inset * 2,
+      cell - inset * 2,
+    );
 
     void drawCell(int row, int col, Color color) {
       canvas.drawRRect(
@@ -200,7 +203,13 @@ class _BoardPainter extends CustomPainter {
     for (var r = 0; r < Board.size; r++) {
       for (var c = 0; c < Board.size; c++) {
         if (board.filledAt(r, c)) {
-          paintCell(canvas, cellRect(r, c), radiusValue, placedColor, skin);
+          paintCell(
+            canvas,
+            cellRect(r, c),
+            radiusValue,
+            placedColors[(board.colorAt(r, c) ?? 0) % placedColors.length],
+            skin,
+          );
         } else {
           drawCell(r, c, emptyColor);
         }
@@ -229,6 +238,7 @@ class _BoardPainter extends CustomPainter {
       old.previewOrigin != previewOrigin ||
       old.previewValid != previewValid ||
       old.placedColor != placedColor ||
+      old.placedColors != placedColors ||
       old.emptyColor != emptyColor ||
       old.skin != skin;
 }

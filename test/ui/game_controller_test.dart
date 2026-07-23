@@ -160,7 +160,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-          NoopAnalytics(),
+        NoopAnalytics(),
       );
       c.newGame(seed: 3);
       final scoreBefore = c.state.score;
@@ -181,7 +181,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-          NoopAnalytics(),
+        NoopAnalytics(),
       );
       c.newGame(seed: 3);
       _placeOneLegalMove(c);
@@ -197,7 +197,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-          NoopAnalytics(),
+        NoopAnalytics(),
       );
       c.newGame(seed: 5);
       final before = c.state.tray.map((p) => p?.id).toList();
@@ -215,7 +215,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-          NoopAnalytics(),
+        NoopAnalytics(),
       );
       c.newGame(seed: 5);
       final ok = await c.tryBomb(const Cell(4, 4));
@@ -233,7 +233,7 @@ void main() {
   });
 
   test('reaching a milestone level unlocks its cosmetic reward', () async {
-    // One XP shy of level 3 (neon theme milestone); any run earns >=1 XP.
+    // One XP shy of level 3 (fade theme milestone); any run earns >=1 XP.
     SharedPreferences.setMockInitialValues({
       'playerLevel': 2,
       'xp': LevelSystem.xpForNext(2) - 1,
@@ -253,11 +253,8 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
     expect(storage.playerLevel, greaterThanOrEqualTo(3));
-    expect(storage.unlockedThemes, contains('neon'));
-    expect(
-      c.state.rewardsUnlockedThisRun.map((r) => r.id),
-      contains('neon'),
-    );
+    expect(storage.unlockedThemes, contains('fade'));
+    expect(c.state.rewardsUnlockedThisRun.map((r) => r.id), contains('fade'));
     expect(cosmeticsCallbackFired, isTrue);
   });
 
@@ -265,7 +262,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'playerLevel': 2,
       'xp': LevelSystem.xpForNext(2) - 1,
-      'unlockedThemes': <String>['neon'],
+      'unlockedThemes': <String>['fade'],
     });
     final storage = await Storage.create();
     final c = GameController(
@@ -279,7 +276,7 @@ void main() {
     _playToGameOver(c);
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
-    // Crossed level 3 but already owned neon → nothing new to announce.
+    // Crossed level 3 but already owned fade → nothing new to announce.
     expect(storage.playerLevel, greaterThanOrEqualTo(3));
     expect(c.state.rewardsUnlockedThisRun, isEmpty);
   });

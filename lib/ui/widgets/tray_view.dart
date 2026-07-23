@@ -18,19 +18,26 @@ class TrayView extends ConsumerWidget {
     super.key,
     required this.boardCell,
     required this.height,
+    this.trayOverride,
   });
 
   /// Board cell size — the feedback piece uses it so it matches the board 1:1.
   final double boardCell;
   final double height;
 
+  /// Optional fixed tray used by previews and widget tests.
+  final List<Piece?>? trayOverride;
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tray = ref.watch(gameControllerProvider).tray;
+    final tray = trayOverride ?? ref.watch(gameControllerProvider).tray;
     final slotColors = ref.watch(activeThemeProvider).traySlots;
     final skin = ref.watch(activeSkinProvider);
-    // Tray pieces render a little smaller than board cells to leave padding.
-    final trayCell = (height / 5).clamp(16.0, boardCell);
+    // Tray pieces use a stable base size. The slot layout below scales only
+    // unusually tall pieces down to the space left by the Material button.
+    final trayCell = boardCell < 12
+        ? boardCell
+        : ((height - 24) / 5).clamp(12.0, boardCell);
 
     return SizedBox(
       height: height,
@@ -85,15 +92,16 @@ class TrayView extends ConsumerWidget {
 
     return Draggable<int>(
       data: slot,
-      dragAnchorStrategy: (draggable, context, position) => Offset(
-        feedbackW / 2,
-        feedbackH / 2 + kFingerLiftCells * boardCell,
-      ),
+      dragAnchorStrategy: (draggable, context, position) =>
+          Offset(feedbackW / 2, feedbackH / 2 + kFingerLiftCells * boardCell),
       // Safety net: whatever way the drag ends, never leave a stale preview.
-      onDragEnd: (_) =>
-          ref.read(dragPreviewProvider.notifier).state = null,
-      feedback:
-          PieceView(piece: piece, cellSize: boardCell, color: color, skin: skin),
+      onDragEnd: (_) => ref.read(dragPreviewProvider.notifier).state = null,
+      feedback: PieceView(
+        piece: piece,
+        cellSize: boardCell,
+        color: color,
+        skin: skin,
+      ),
       childWhenDragging: Opacity(
         opacity: 0.25,
         child: PieceView(
@@ -103,14 +111,31 @@ class TrayView extends ConsumerWidget {
           skin: skin,
         ),
       ),
-      child: GestureDetector(
-        onTap: rotate,
-        child: PieceView(
-          piece: piece,
-          cellSize: trayCell,
-          color: color,
-          skin: skin,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: PieceView(
+                piece: piece,
+                cellSize: trayCell,
+                color: color,
+                skin: skin,
+              ),
+            ),
+          ),
+          Tooltip(
+            message: 'Teil drehen',
+            child: IconButton(
+              onPressed: rotate,
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 22),
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.rotate_right_rounded, size: 21),
+            ),
+          ),
+        ],
       ),
     );
   }

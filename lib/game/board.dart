@@ -32,34 +32,46 @@ class PlacementResult {
 
 /// An immutable 8x8 grid. Filled cells are `true`.
 class Board {
-  Board._(this._cells);
+  Board._(this._cells, this._colors);
 
   /// Standard board edge length.
   static const int size = 8;
 
   final List<bool> _cells; // row-major, length == size * size
+  final List<int> _colors; // tray-slot palette index; -1 for empty cells
 
-  factory Board.empty() => Board._(List<bool>.filled(size * size, false));
+  factory Board.empty() => Board._(
+    List<bool>.filled(size * size, false),
+    List<int>.filled(size * size, -1),
+  );
 
   /// Builds a board from ASCII rows. `#`/`X`/`■` = filled, anything else empty.
   /// Must be exactly [size] rows of [size] characters.
-  factory Board.fromAscii(List<String> rows) {
+  factory Board.fromAscii(List<String> rows, {List<List<int>>? colors}) {
     assert(rows.length == size, 'expected $size rows, got ${rows.length}');
     final cells = List<bool>.filled(size * size, false);
+    final palette = List<int>.filled(size * size, -1);
     for (var r = 0; r < size; r++) {
       final row = rows[r];
       assert(row.length == size, 'row $r must have $size chars: "$row"');
       for (var c = 0; c < size; c++) {
         final ch = row[c];
-        cells[r * size + c] = ch == '#' || ch == 'X' || ch == '■';
+        final index = r * size + c;
+        cells[index] = ch != '.';
+        if (cells[index]) palette[index] = colors?[r][c] ?? 0;
       }
     }
-    return Board._(cells);
+    return Board._(cells, palette);
   }
 
   static int _idx(int r, int c) => r * size + c;
 
   bool filledAt(int r, int c) => _cells[_idx(r, c)];
+
+  int? colorAt(int r, int c) {
+    final color = _colors[_idx(r, c)];
+    return color < 0 ? null : color;
+  }
 
   bool get isEmpty => !_cells.contains(true);
 
@@ -90,11 +102,14 @@ class Board {
 
   /// Places [piece] at [origin] and clears any full rows/columns.
   /// Caller must ensure [canPlace] is true.
-  PlacementResult place(Piece piece, Cell origin) {
+  PlacementResult place(Piece piece, Cell origin, {int colorIndex = 0}) {
     assert(canPlace(piece, origin), 'illegal placement of ${piece.id}');
     final next = List<bool>.of(_cells);
+    final nextColors = List<int>.of(_colors);
     for (final offset in piece.cells) {
-      next[_idx(origin.row + offset.row, origin.col + offset.col)] = true;
+      final index = _idx(origin.row + offset.row, origin.col + offset.col);
+      next[index] = true;
+      nextColors[index] = colorIndex;
     }
 
     final fullRows = <int>[];
@@ -133,11 +148,13 @@ class Board {
       }
     }
     for (final cell in cleared) {
-      next[_idx(cell.row, cell.col)] = false;
+      final index = _idx(cell.row, cell.col);
+      next[index] = false;
+      nextColors[index] = -1;
     }
 
     return PlacementResult(
-      board: Board._(next),
+      board: Board._(next, nextColors),
       clearedRows: fullRows.length,
       clearedCols: fullCols.length,
       clearedCells: cleared,
@@ -145,13 +162,25 @@ class Board {
     );
   }
 
+  Board clearCells(Iterable<Cell> cells) {
+    final next = List<bool>.of(_cells);
+    final nextColors = List<int>.of(_colors);
+    for (final cell in cells) {
+      if (!_inBounds(cell.row, cell.col)) continue;
+      final index = _idx(cell.row, cell.col);
+      next[index] = false;
+      nextColors[index] = -1;
+    }
+    return Board._(next, nextColors);
+  }
+
   /// Renders the board as ASCII rows (`#` filled, `.` empty) for tests/debug.
   List<String> toAscii() => [
-        for (var r = 0; r < size; r++)
-          String.fromCharCodes([
-            for (var c = 0; c < size; c++) filledAt(r, c) ? 0x23 : 0x2e,
-          ]),
-      ];
+    for (var r = 0; r < size; r++)
+      String.fromCharCodes([
+        for (var c = 0; c < size; c++) filledAt(r, c) ? 0x23 : 0x2e,
+      ]),
+  ];
 
   @override
   String toString() => toAscii().join('\n');

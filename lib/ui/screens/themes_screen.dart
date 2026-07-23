@@ -110,10 +110,15 @@ class _ThemeTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (!active && !owned && !entry.supporterOnly)
+                  if (!active &&
+                      !owned &&
+                      !entry.supporterOnly &&
+                      entry.cost >= 0)
                     Row(
                       children: [
-                        const CoinIcon(size: 14),
+                        entry.id == 'neon'
+                            ? const DiamondIcon(size: 14)
+                            : const CoinIcon(size: 14),
                         const SizedBox(width: 5),
                         Text(
                           '${entry.cost} zum Freischalten',
@@ -129,8 +134,8 @@ class _ThemeTile extends StatelessWidget {
                       active
                           ? 'Aktiv'
                           : owned
-                              ? 'Tippen zum Aktivieren'
-                              : 'Im Unterstützer-Paket ❤️',
+                          ? 'Tippen zum Aktivieren'
+                          : 'Im Unterstützer-Paket ❤️',
                       style: const TextStyle(
                         color: GridColors.textMuted,
                         fontSize: 14,

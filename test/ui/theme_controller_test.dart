@@ -30,25 +30,25 @@ void main() {
     final state = c.read(themeControllerProvider);
     expect(state.activeId, 'classic');
     expect(state.isUnlocked('classic'), isTrue);
-    expect(state.isUnlocked('neon'), isFalse);
+    expect(state.isUnlocked('fade'), isFalse);
   });
 
   test('unlocking a theme spends coins and equips it', () async {
     final c = await _container({'coins': 600});
     final ok = await c
         .read(themeControllerProvider.notifier)
-        .selectOrUnlock(_entry('neon'));
+        .selectOrUnlock(_entry('fade'));
     expect(ok, isTrue);
-    expect(c.read(themeControllerProvider).activeId, 'neon');
-    expect(c.read(themeControllerProvider).isUnlocked('neon'), isTrue);
-    expect(c.read(storageProvider).coins, 100); // 600 - 500
+    expect(c.read(themeControllerProvider).activeId, 'fade');
+    expect(c.read(themeControllerProvider).isUnlocked('fade'), isTrue);
+    expect(c.read(storageProvider).coins, 250); // 600 - 350
   });
 
   test('cannot unlock without enough coins', () async {
     final c = await _container({'coins': 100});
     final ok = await c
         .read(themeControllerProvider.notifier)
-        .selectOrUnlock(_entry('neon'));
+        .selectOrUnlock(_entry('fade'));
     expect(ok, isFalse);
     expect(c.read(themeControllerProvider).activeId, 'classic');
     expect(c.read(storageProvider).coins, 100); // unchanged
@@ -57,10 +57,10 @@ void main() {
   test('re-selecting an owned theme is free', () async {
     final c = await _container({'coins': 600});
     final notifier = c.read(themeControllerProvider.notifier);
-    await notifier.selectOrUnlock(_entry('neon')); // buy -> 100 left
+    await notifier.selectOrUnlock(_entry('fade')); // buy -> 100 left
     await notifier.selectOrUnlock(_entry('classic')); // switch back, free
-    await notifier.selectOrUnlock(_entry('neon')); // owned, free
-    expect(c.read(themeControllerProvider).activeId, 'neon');
-    expect(c.read(storageProvider).coins, 100);
+    await notifier.selectOrUnlock(_entry('fade')); // owned, free
+    expect(c.read(themeControllerProvider).activeId, 'fade');
+    expect(c.read(storageProvider).coins, 250);
   });
 }

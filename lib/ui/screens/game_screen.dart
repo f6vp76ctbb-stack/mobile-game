@@ -56,8 +56,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       notifier.state = null;
       return;
     }
-    final valid =
-        ref.read(gameControllerProvider.notifier).canPlace(slot, origin);
+    final valid = ref
+        .read(gameControllerProvider.notifier)
+        .canPlace(slot, origin);
     notifier.state = DragPreview(piece: piece, origin: origin, valid: valid);
   }
 
@@ -77,8 +78,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   }
 
   Future<void> _handleBombTap(Cell cell) async {
-    final ok =
-        await ref.read(gameControllerProvider.notifier).tryBomb(cell);
+    final ok = await ref.read(gameControllerProvider.notifier).tryBomb(cell);
     ref.read(bombModeProvider.notifier).state = false;
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -95,6 +95,8 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     final snap = ref.watch(gameControllerProvider);
     final theme = ref.watch(activeThemeProvider);
     final bombMode = ref.watch(bombModeProvider);
+    final effectiveBombMode = bombMode && !snap.isDaily;
+    final compactLayout = MediaQuery.sizeOf(context).height < 560;
 
     return Scaffold(
       backgroundColor: theme.background,
@@ -113,36 +115,42 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                   isDaily: snap.isDaily,
                   feverColor: theme.fever,
                 ),
-                if (!snap.gameOver)
+                if (!compactLayout && !snap.gameOver && !snap.isDaily)
                   TextButton.icon(
                     onPressed: () =>
                         ref.read(gameControllerProvider.notifier).luckyBlock(),
                     icon: const Icon(Icons.card_giftcard, size: 18),
                     label: const Text('Neue Teile (Video)'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.fever,
-                    ),
+                    style: TextButton.styleFrom(foregroundColor: theme.fever),
                   ),
                 Expanded(
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      const trayHeight = 96.0;
+                      final trayHeight = compactLayout ? 104.0 : 96.0;
                       const gap = 16.0;
-                      const boosterHeight = 64.0;
+                      final boosterHeight = compactLayout ? 0.0 : 64.0;
                       final hintReserve =
-                          (snap.onboardingHint != null || bombMode)
-                              ? 52.0
-                              : 0.0;
-                      final maxBoard = constraints.maxWidth - 24;
-                      final boardSize = maxBoard.clamp(
-                        0.0,
-                        constraints.maxHeight -
-                            trayHeight -
-                            boosterHeight -
-                            gap -
-                            hintReserve -
-                            2,
-                      );
+                          !compactLayout &&
+                              (snap.onboardingHint != null ||
+                                  snap.contextualHint != null ||
+                                  effectiveBombMode)
+                          ? 52.0
+                          : 0.0;
+                      final maxBoard = (constraints.maxWidth - 24)
+                          .clamp(0.0, double.infinity)
+                          .toDouble();
+                      final availableBoardHeight =
+                          (constraints.maxHeight -
+                                  trayHeight -
+                                  boosterHeight -
+                                  gap -
+                                  hintReserve -
+                                  2)
+                              .clamp(0.0, double.infinity)
+                              .toDouble();
+                      final boardSize = maxBoard < availableBoardHeight
+                          ? maxBoard
+                          : availableBoardHeight;
                       // The DragTarget spans board AND tray: with the
                       // finger-lift the finger sits below the hovering piece,
                       // so drops targeting the bottom rows happen while the
@@ -177,8 +185,9 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                                           size: boardSize,
                                           board: snap.board,
                                           boardKey: _boardKey,
-                                          onCellTap:
-                                              bombMode ? _handleBombTap : null,
+                                          onCellTap: effectiveBombMode
+                                              ? _handleBombTap
+                                              : null,
                                         ),
                                       ),
                                       Positioned.fill(
@@ -208,12 +217,21 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               ),
                             ),
                             const SizedBox(height: gap),
-                            _BoosterBar(snap: snap, bombMode: bombMode),
-                            if (bombMode)
+                            if (!compactLayout)
+                              _BoosterBar(
+                                snap: snap,
+                                bombMode: effectiveBombMode,
+                              ),
+                            if (!compactLayout && effectiveBombMode)
                               const _CoachHint(
-                                  text: 'Tippe auf eine Zelle im Board')
-                            else if (snap.onboardingHint != null)
-                              _CoachHint(text: snap.onboardingHint!),
+                                text: 'Tippe auf eine Zelle im Board',
+                              )
+                            else if (!compactLayout &&
+                                snap.onboardingHint != null)
+                              _CoachHint(text: snap.onboardingHint!)
+                            else if (!compactLayout &&
+                                snap.contextualHint != null)
+                              _CoachHint(text: snap.contextualHint!),
                             TrayView(
                               boardCell: boardSize / 8,
                               height: trayHeight,
@@ -330,50 +348,55 @@ class _BoosterBar extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _BoosterButton(
-            icon: AppIcons.undo,
-            label: 'Undo',
-            cost: BoosterCosts.undo,
-            enabled: snap.canUndo &&
-                !snap.gameOver &&
-                snap.coins >= BoosterCosts.undo,
-            active: false,
-            onTap: () => run(controller.tryUndo()),
-          ),
-          _BoosterButton(
-            icon: AppIcons.swap,
-            label: 'Tausch',
-            cost: BoosterCosts.swap,
-            enabled: !snap.gameOver && snap.coins >= BoosterCosts.swap,
-            active: false,
-            onTap: () => run(controller.trySwapPieces()),
-          ),
-          _BoosterButton(
-            icon: AppIcons.bomb,
-            label: 'Bombe',
-            cost: BoosterCosts.bomb,
-            enabled: !snap.gameOver && snap.coins >= BoosterCosts.bomb,
-            active: bombMode,
-            onTap: () {
-              final notifier = ref.read(bombModeProvider.notifier);
-              notifier.state = !notifier.state;
-            },
-          ),
+          if (!snap.isDaily) ...[
+            _BoosterButton(
+              icon: AppIcons.undo,
+              label: 'Undo',
+              cost: BoosterCosts.undo,
+              enabled:
+                  snap.canUndo &&
+                  !snap.gameOver &&
+                  snap.coins >= BoosterCosts.undo,
+              active: false,
+              onTap: () => run(controller.tryUndo()),
+            ),
+            _BoosterButton(
+              icon: AppIcons.swap,
+              label: 'Tausch',
+              cost: BoosterCosts.swap,
+              enabled: !snap.gameOver && snap.coins >= BoosterCosts.swap,
+              active: false,
+              onTap: () => run(controller.trySwapPieces()),
+            ),
+            _BoosterButton(
+              icon: AppIcons.bomb,
+              label: 'Bombe',
+              cost: BoosterCosts.bomb,
+              enabled: !snap.gameOver && snap.coins >= BoosterCosts.bomb,
+              active: bombMode,
+              onTap: () {
+                final notifier = ref.read(bombModeProvider.notifier);
+                notifier.state = !notifier.state;
+              },
+            ),
+          ],
           // Rotation status: not a coin booster — tapping a tray piece
           // rotates it; this chip shows the remaining charges.
           _BoosterButton(
             icon: Icons.rotate_right_rounded,
             label: 'Drehen',
             sub: snap.rotationFree ? 'frei' : '${snap.rotationCharges}×',
-            enabled: !snap.gameOver &&
+            enabled:
+                !snap.gameOver &&
                 (snap.rotationFree || snap.rotationCharges > 0),
             active: false,
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
                   duration: Duration(seconds: 2),
-                  content:
-                      Text('Tippe ein Teil in der Ablage, um es zu drehen'),
+                  content: Text(
+                    'Tippe ein Teil in der Ablage, um es zu drehen',
+                  ),
                 ),
               );
             },
@@ -413,8 +436,8 @@ class _BoosterButton extends StatelessWidget {
     final color = active
         ? GridColors.fever
         : enabled
-            ? GridColors.textPrimary
-            : GridColors.textMuted;
+        ? GridColors.textPrimary
+        : GridColors.textMuted;
     return Expanded(
       child: Opacity(
         opacity: enabled ? 1.0 : 0.4,
@@ -458,25 +481,32 @@ class _CoachHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      key: ValueKey(text),
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 300),
-      builder: (context, t, child) => Opacity(opacity: t, child: child),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: GridColors.boardBackground,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: GridColors.gridLine),
-        ),
-        child: Text(
-          text,
-          style: const TextStyle(
-            color: GridColors.textPrimary,
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
+    return Semantics(
+      container: true,
+      liveRegion: true,
+      label: text,
+      child: ExcludeSemantics(
+        child: TweenAnimationBuilder<double>(
+          key: ValueKey(text),
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 300),
+          builder: (context, t, child) => Opacity(opacity: t, child: child),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: GridColors.boardBackground,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: GridColors.gridLine),
+            ),
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: GridColors.textPrimary,
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ),
         ),
       ),
@@ -562,8 +592,9 @@ class _Header extends StatelessWidget {
 
   Widget _stat(String label, String value, {bool alignEnd = false}) {
     return Column(
-      crossAxisAlignment:
-          alignEnd ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: alignEnd
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -602,10 +633,8 @@ class _ComboBadge extends StatelessWidget {
       tween: Tween(begin: 1.35, end: 1.0),
       duration: const Duration(milliseconds: 240),
       curve: Curves.easeOut,
-      builder: (context, scale, child) => Transform.scale(
-        scale: scale,
-        child: child,
-      ),
+      builder: (context, scale, child) =>
+          Transform.scale(scale: scale, child: child),
       child: Text(
         'COMBO x$combo',
         style: TextStyle(
@@ -699,8 +728,10 @@ class _GameOverOverlay extends ConsumerWidget {
             const SizedBox(height: 12),
             Text(
               '${snap.score} Punkte',
-              style:
-                  const TextStyle(color: GridColors.textPrimary, fontSize: 22),
+              style: const TextStyle(
+                color: GridColors.textPrimary,
+                fontSize: 22,
+              ),
             ),
             if (snap.isNewHighscore)
               const Padding(
@@ -725,13 +756,18 @@ class _GameOverOverlay extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(AppIcons.streak,
-                        size: 17, color: GridColors.fever),
+                    const Icon(
+                      AppIcons.streak,
+                      size: 17,
+                      color: GridColors.fever,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       '${snap.streak} Tage Streak',
                       style: const TextStyle(
-                          color: GridColors.fever, fontSize: 16),
+                        color: GridColors.fever,
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
@@ -752,9 +788,10 @@ class _GameOverOverlay extends ConsumerWidget {
                       const Text(
                         '  ×2',
                         style: TextStyle(
-                            color: GridColors.fever,
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold),
+                          color: GridColors.fever,
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                   ],
                 ),
@@ -778,13 +815,18 @@ class _GameOverOverlay extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.check_circle_rounded,
-                        size: 15, color: GridColors.placed),
+                    const Icon(
+                      Icons.check_circle_rounded,
+                      size: 15,
+                      color: GridColors.placed,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       mission,
                       style: const TextStyle(
-                          color: GridColors.placed, fontSize: 14),
+                        color: GridColors.placed,
+                        fontSize: 14,
+                      ),
                     ),
                   ],
                 ),
@@ -795,8 +837,11 @@ class _GameOverOverlay extends ConsumerWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(AppIcons.trophy,
-                        size: 15, color: GridColors.fever),
+                    const Icon(
+                      AppIcons.trophy,
+                      size: 15,
+                      color: GridColors.fever,
+                    ),
                     const SizedBox(width: 5),
                     Text(
                       'Erfolg: ${a.title}',
@@ -839,14 +884,16 @@ class _GameOverOverlay extends ConsumerWidget {
             FilledButton(
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
-                textStyle:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               onPressed: () => controller.newGame(),
               child: const Text('Nochmal spielen'),
             ),
             const SizedBox(height: 8),
-            if (!snap.reviveUsed)
+            if (!snap.isDaily && !snap.reviveUsed)
               TextButton.icon(
                 onPressed: snap.coins >= BoosterCosts.revive
                     ? () => controller.reviveWithCoins()

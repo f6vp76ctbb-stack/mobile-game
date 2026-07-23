@@ -5,13 +5,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../game/starter_offer.dart';
-import '../game/supporter_pack.dart';
-import '../monetization/iap.dart';
-import '../services/analytics.dart';
+import '../monetization/purchase_delivery.dart';
 import '../services/notification_planner.dart';
 import 'screens/home_screen.dart';
-import 'screens/name_entry_screen.dart';
 import 'state/game_controller.dart';
 import 'state/notifications_controller.dart';
 import 'state/settings_controller.dart';
@@ -26,6 +22,8 @@ class AppBootstrap extends ConsumerStatefulWidget {
 }
 
 class _AppBootstrapState extends ConsumerState<AppBootstrap> {
+  PurchaseDelivery? _purchaseDelivery;
+
   @override
   void initState() {
     super.initState();
@@ -34,12 +32,30 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
   }
 
   Future<void> _init() async {
-    // Force settings creation so sound/haptics flags are applied to the live
-    // services from launch.
+    // Force settings creation so sound/haptics flags apply from launch. Each
+    // external subsystem is isolated: a store, notification or consent outage
+    // must never prevent the remaining startup work.
     ref.read(settingsControllerProvider);
-    await ref.read(adServiceProvider).initialize();
-    await ref.read(iapServiceProvider).initialize(_deliver);
-    await _sessionStartHousekeeping();
+    await _runSafely(
+      'in-app purchases',
+      () => ref.read(iapServiceProvider).initialize(_deliver),
+    );
+    await _runSafely('session housekeeping', _sessionStartHousekeeping);
+    await _runSafely(
+      'ads/consent',
+      () => ref.read(adServiceProvider).initialize(),
+    );
+  }
+
+  Future<void> _runSafely(
+    String subsystem,
+    Future<void> Function() task,
+  ) async {
+    try {
+      await task();
+    } catch (error) {
+      debugPrint('$subsystem initialization failed: $error');
+    }
   }
 
   /// Comeback gift, app-open counting, opt-in prompt, and re-scheduling.
@@ -72,9 +88,7 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
     await ref.read(notificationsControllerProvider.notifier).refresh();
 
     // Opt-in on the second launch (never on the very first).
-    if (opens == 2 &&
-        !storage.notificationsEnabled &&
-        mounted) {
+    if (opens == 2 && !storage.notificationsEnabled && mounted) {
       await _promptNotificationsOptIn();
     }
   }
@@ -105,44 +119,29 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
     }
   }
 
-  /// Applies a purchased/restored entitlement. Idempotent.
-  Future<void> _deliver(String productId) async {
+  PurchaseDelivery _createPurchaseDelivery() {
     final controller = ref.read(gameControllerProvider.notifier);
-    if (productId == IapProducts.supporter) {
-      await controller.grantCoins(SupporterPack.coins);
-      await ref
-          .read(themeControllerProvider.notifier)
-          .grantTheme(SupporterPack.themeId);
-      await ref
-          .read(skinControllerProvider.notifier)
-          .grantSkin(SupporterPack.skinId);
-      await controller.applySupporter();
-    } else if (productId == IapProducts.rename) {
-      await controller.grantRenameCredit();
-    } else if (productId == IapProducts.starter) {
-      await controller.grantCoins(StarterOffer.coins);
-      await ref
-          .read(themeControllerProvider.notifier)
-          .grantTheme(StarterOffer.themeId);
-      await controller.markStarterPurchased();
-    } else {
-      await controller.grantCoins(IapProducts.coinAmounts[productId] ?? 0);
-    }
-    ref
-        .read(analyticsProvider)
-        .logEvent(AnalyticsEvent.purchase, {'product': productId});
+    return PurchaseDelivery(
+      storage: ref.read(storageProvider),
+      grantCoins: controller.grantCoins,
+      grantTheme: ref.read(themeControllerProvider.notifier).grantTheme,
+      grantSkin: ref.read(skinControllerProvider.notifier).grantSkin,
+      markSupporter: controller.applySupporter,
+      markStarterPurchased: controller.markStarterPurchased,
+      grantRenameCredit: controller.grantRenameCredit,
+      analytics: ref.read(analyticsProvider),
+    );
+  }
+
+  /// Applies a purchased/restored product through one serialized delivery
+  /// queue for the lifetime of this app instance.
+  Future<void> _deliver(String productId) {
+    final delivery = _purchaseDelivery ??= _createPurchaseDelivery();
+    return delivery.deliver(productId);
   }
 
   @override
   Widget build(BuildContext context) {
-    // A name is required before playing (leaderboard identity).
-    final hasName = ref.watch(gameControllerProvider).playerName.isNotEmpty;
-    if (!hasName) {
-      return NameEntryScreen(
-        onSubmit: (name) =>
-            ref.read(gameControllerProvider.notifier).setPlayerName(name),
-      );
-    }
     return const HomeScreen();
   }
 }

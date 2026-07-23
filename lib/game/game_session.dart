@@ -27,18 +27,92 @@ class GameSession {
     required int seed,
     DateTime Function()? clock,
     bool freeRotation = false,
+    int earlyPhaseMoves = PieceGenerator.defaultEarlyPhaseMoves,
   }) {
     final s = GameSession._(
       seed,
-      PieceGenerator(seed: seed),
+      PieceGenerator(seed: seed, earlyPhaseMoves: earlyPhaseMoves),
       ScoreKeeper(),
       Board.empty(),
       clock ?? DateTime.now,
       freeRotation,
     );
-    s._tray = List<Piece?>.of(s._generator.nextTray(s._board, s._placements));
+    s._drawNextTray();
     s._recomputeGameOver();
     return s;
+  }
+
+  /// Restores an unfinished Endless run saved by [toCheckpoint]. Corrupt or
+  /// obsolete data throws [FormatException] so callers can safely discard it.
+  factory GameSession.fromCheckpoint(
+    Map<String, dynamic> data, {
+    DateTime Function()? clock,
+  }) {
+    if (data['version'] != 1) throw const FormatException('checkpoint version');
+    final seed = _int(data['seed'], 'seed');
+    final earlyPhaseMoves = _int(data['earlyPhaseMoves'], 'earlyPhaseMoves');
+    final freeRotation = data['freeRotation'];
+    if (freeRotation is! bool || earlyPhaseMoves < 0) {
+      throw const FormatException('checkpoint settings');
+    }
+    final rawBoard = data['board'];
+    if (rawBoard is! List ||
+        rawBoard.length != Board.size ||
+        rawBoard.any((row) => row is! String || row.length != Board.size)) {
+      throw const FormatException('checkpoint board');
+    }
+    final rawColors = data['boardColors'];
+    final colors = rawColors is List && rawColors.length == Board.size
+        ? [
+            for (final row in rawColors)
+              [for (final color in row as List) _int(color, 'board color')],
+          ]
+        : null;
+    final rawTray = data['tray'];
+    if (rawTray is! List || rawTray.length != 3) {
+      throw const FormatException('checkpoint tray');
+    }
+    final rawScore = data['score'];
+    if (rawScore is! Map) throw const FormatException('checkpoint score');
+
+    final session = GameSession._(
+      seed,
+      PieceGenerator(seed: seed, earlyPhaseMoves: earlyPhaseMoves),
+      ScoreKeeper(),
+      Board.fromAscii(rawBoard.cast<String>(), colors: colors),
+      clock ?? DateTime.now,
+      freeRotation,
+    );
+    session._tray = [for (final raw in rawTray) _pieceFromCheckpoint(raw)];
+    session._generatedTrays = _int(data['generatedTrays'], 'generated trays');
+    if (session._generatedTrays < 1) {
+      throw const FormatException('checkpoint generated trays');
+    }
+    for (var i = 0; i < session._generatedTrays; i++) {
+      session._generator.nextTray(Board.empty(), 0);
+    }
+    session._placements = _int(data['placements'], 'placements');
+    session._rotationCharges = _int(
+      data['rotationCharges'],
+      'rotationCharges',
+    ).clamp(0, maxRotationCharges);
+    session._linesCleared = _int(data['linesCleared'], 'linesCleared');
+    session._maxCombo = _int(data['maxCombo'], 'maxCombo');
+    final lastClearMillis = rawScore['lastClearMillis'];
+    session._scorer.restore(
+      ScoreMemento(
+        _int(rawScore['total'], 'score total'),
+        _int(rawScore['combo'], 'score combo'),
+        _double(rawScore['fever'], 'score fever').clamp(0.0, 1.0),
+        lastClearMillis == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(
+                _int(lastClearMillis, 'last clear'),
+              ),
+      ),
+    );
+    session._recomputeGameOver();
+    return session;
   }
 
   /// Test-only seam: builds a session with an explicit [board], [tray] and
@@ -76,12 +150,16 @@ class GameSession {
   final ScoreKeeper _scorer;
   final DateTime Function() _clock;
 
+  /// Number of opening placements that receive the fairness weight bonus.
+  int get earlyPhaseMoves => _generator.earlyPhaseMoves;
+
   /// True while rotation is free (beginner mode) — charges are not consumed.
   final bool freeRotation;
 
   Board _board;
   late List<Piece?> _tray; // 3 slots; null once placed
   int _placements = 0;
+  int _generatedTrays = 0;
   int _rotationCharges = startRotationCharges;
   int _linesCleared = 0;
   int _maxCombo = 0;
@@ -104,15 +182,15 @@ class GameSession {
   bool get canUndo => _undoMemento != null;
 
   _SessionMemento _snapshot() => _SessionMemento(
-        board: _board,
-        tray: List<Piece?>.of(_tray),
-        placements: _placements,
-        linesCleared: _linesCleared,
-        maxCombo: _maxCombo,
-        score: _scorer.save(),
-        lastClearedCells: _lastClearedCells,
-        rotationCharges: _rotationCharges,
-      );
+    board: _board,
+    tray: List<Piece?>.of(_tray),
+    placements: _placements,
+    linesCleared: _linesCleared,
+    maxCombo: _maxCombo,
+    score: _scorer.save(),
+    lastClearedCells: _lastClearedCells,
+    rotationCharges: _rotationCharges,
+  );
 
   Board get board => _board;
   List<Piece?> get tray => List.unmodifiable(_tray);
@@ -151,11 +229,11 @@ class GameSession {
 
   /// A snapshot of the current run's stats.
   GameStats get stats => GameStats(
-        score: score,
-        piecesPlaced: _placements,
-        linesCleared: _linesCleared,
-        maxCombo: _maxCombo,
-      );
+    score: score,
+    piecesPlaced: _placements,
+    linesCleared: _linesCleared,
+    maxCombo: _maxCombo,
+  );
 
   /// Whether the piece in [slot] can legally be placed at [origin].
   bool canPlace(int slot, Cell origin) {
@@ -174,7 +252,7 @@ class GameSession {
 
     _undoMemento = _snapshot();
 
-    final result = _board.place(piece, origin);
+    final result = _board.place(piece, origin, colorIndex: slot);
     _board = result.board;
     _tray[slot] = null;
     _placements += 1;
@@ -196,7 +274,7 @@ class GameSession {
     if (event.combo > _maxCombo) _maxCombo = event.combo;
 
     if (_tray.every((p) => p == null)) {
-      _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
+      _drawNextTray();
     }
     _recomputeGameOver();
     return event;
@@ -234,7 +312,7 @@ class GameSession {
         }
       }
     }
-    _board = Board.fromAscii(rows.map((r) => r.join()).toList());
+    _board = _board.clearCells(hit);
     _undoMemento = null;
     _recomputeGameOver();
     return hit;
@@ -243,7 +321,7 @@ class GameSession {
   /// Draws a fresh tray (used by "Lucky Block" and the swap booster) and
   /// rechecks the game-over state. Cannot be undone.
   void rerollTray() {
-    _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
+    _drawNextTray();
     _undoMemento = null;
     _recomputeGameOver();
   }
@@ -251,15 +329,46 @@ class GameSession {
   /// Empties the central 4x4 block (used by the "Revive" reward) and clears
   /// the game-over flag if a move becomes possible again.
   void reviveClearCenter() {
-    final rows = _board.toAscii().map((r) => r.split('')).toList();
+    final hit = <Cell>[];
     for (var r = 2; r < 6; r++) {
       for (var c = 2; c < 6; c++) {
-        rows[r][c] = '.';
+        hit.add(Cell(r, c));
       }
     }
-    _board = Board.fromAscii(rows.map((r) => r.join()).toList());
+    _board = _board.clearCells(hit);
     _undoMemento = null;
     _recomputeGameOver();
+  }
+
+  /// Serializable state for persisting an unfinished run. One-step undo and
+  /// transient effects are intentionally omitted so a killed process resumes
+  /// predictably without reviving an already-used undo.
+  Map<String, Object?> toCheckpoint() {
+    final score = _scorer.save();
+    return {
+      'version': 1,
+      'seed': seed,
+      'earlyPhaseMoves': earlyPhaseMoves,
+      'freeRotation': freeRotation,
+      'board': _board.toAscii(),
+      'tray': [for (final piece in _tray) _pieceToCheckpoint(piece)],
+      'placements': _placements,
+      'generatedTrays': _generatedTrays,
+      'rotationCharges': _rotationCharges,
+      'linesCleared': _linesCleared,
+      'maxCombo': _maxCombo,
+      'score': {
+        'total': score.total,
+        'combo': score.combo,
+        'fever': score.fever,
+        'lastClearMillis': score.lastClearAt?.millisecondsSinceEpoch,
+      },
+    };
+  }
+
+  void _drawNextTray() {
+    _tray = List<Piece?>.of(_generator.nextTray(_board, _placements));
+    _generatedTrays += 1;
   }
 
   void _recomputeGameOver() {
@@ -269,9 +378,9 @@ class GameSession {
     // game-overs (e.g. at level 3+, where rotation costs charges): the board
     // was declared dead even though a piece could have been rotated to fit.
     final maxRotations = freeRotation ? 3 : _rotationCharges.clamp(0, 3);
-    _gameOver = !_tray
-        .whereType<Piece>()
-        .any((piece) => _hasPlacementWithin(piece, maxRotations));
+    _gameOver = !_tray.whereType<Piece>().any(
+      (piece) => _hasPlacementWithin(piece, maxRotations),
+    );
   }
 
   /// Whether [piece] can be placed somewhere either as-is or after up to
@@ -286,6 +395,44 @@ class GameSession {
     }
     return false;
   }
+
+  static int _int(Object? value, String label) {
+    if (value is num) return value.toInt();
+    throw FormatException('checkpoint $label');
+  }
+
+  static double _double(Object? value, String label) {
+    if (value is num) return value.toDouble();
+    throw FormatException('checkpoint $label');
+  }
+
+  static Piece? _pieceFromCheckpoint(Object? raw) {
+    if (raw == null) return null;
+    if (raw is! Map) throw const FormatException('checkpoint piece');
+    final id = raw['id'];
+    final weight = raw['weight'];
+    final cells = raw['cells'];
+    if (id is! String || weight is! num || cells is! List || cells.isEmpty) {
+      throw const FormatException('checkpoint piece fields');
+    }
+    return Piece(id, [
+      for (final cell in cells)
+        if (cell is List && cell.length == 2)
+          Cell(_int(cell[0], 'piece row'), _int(cell[1], 'piece col'))
+        else
+          throw const FormatException('checkpoint piece cell'),
+    ], weight.toInt());
+  }
+
+  static Object? _pieceToCheckpoint(Piece? piece) => piece == null
+      ? null
+      : {
+          'id': piece.id,
+          'weight': piece.weight,
+          'cells': [
+            for (final cell in piece.cells) [cell.row, cell.col],
+          ],
+        };
 }
 
 /// Captured pre-move state for one-step undo. [Board] and [ScoreMemento] are
