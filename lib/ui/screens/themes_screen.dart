@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/block_skin.dart';
+import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
@@ -40,6 +41,10 @@ class ThemesScreen extends ConsumerWidget {
             owned: owned,
             active: active,
             onTap: () async {
+              if (!owned && entry.id == 'neon') {
+                await ref.read(iapServiceProvider).buy(IapProducts.neonTheme);
+                return;
+              }
               final ok = await ref
                   .read(themeControllerProvider.notifier)
                   .selectOrUnlock(entry);
@@ -110,7 +115,10 @@ class _ThemeTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  if (!active && !owned && !entry.supporterOnly)
+                  if (!active &&
+                      !owned &&
+                      !entry.supporterOnly &&
+                      entry.cost >= 0)
                     Row(
                       children: [
                         const CoinIcon(size: 14),
@@ -129,8 +137,8 @@ class _ThemeTile extends StatelessWidget {
                       active
                           ? 'Aktiv'
                           : owned
-                              ? 'Tippen zum Aktivieren'
-                              : 'Im Unterstützer-Paket ❤️',
+                          ? 'Tippen zum Aktivieren'
+                          : 'Im Unterstützer-Paket ❤️',
                       style: const TextStyle(
                         color: GridColors.textMuted,
                         fontSize: 14,

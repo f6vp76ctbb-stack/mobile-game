@@ -17,15 +17,20 @@ import 'board.dart';
 import 'piece.dart';
 
 class PieceGenerator {
-  PieceGenerator({required int seed, List<Piece>? catalog})
-      : _rng = Random(seed),
-        catalog = catalog ?? buildCatalog();
+  PieceGenerator({
+    required int seed,
+    List<Piece>? catalog,
+    this.earlyPhaseMoves = defaultEarlyPhaseMoves,
+  }) : assert(earlyPhaseMoves >= 0),
+       _rng = Random(seed),
+       catalog = catalog ?? buildCatalog();
 
-  static const int earlyPhaseMoves = 10;
+  static const int defaultEarlyPhaseMoves = 10;
   static const double earlyPlaceableBonus = 1.5;
 
   final Random _rng;
   final List<Piece> catalog;
+  final int earlyPhaseMoves;
 
   /// Draws a tray of 3 pieces for the given [board] state and the number of
   /// [placementsSoFar] in the current run.

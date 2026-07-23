@@ -14,11 +14,7 @@ import 'board_view.dart';
 import 'piece_view.dart';
 
 class TrayView extends ConsumerWidget {
-  const TrayView({
-    super.key,
-    required this.boardCell,
-    required this.height,
-  });
+  const TrayView({super.key, required this.boardCell, required this.height});
 
   /// Board cell size — the feedback piece uses it so it matches the board 1:1.
   final double boardCell;
@@ -30,7 +26,9 @@ class TrayView extends ConsumerWidget {
     final slotColors = ref.watch(activeThemeProvider).traySlots;
     final skin = ref.watch(activeSkinProvider);
     // Tray pieces render a little smaller than board cells to leave padding.
-    final trayCell = (height / 5).clamp(16.0, boardCell);
+    final trayCell = boardCell < 12
+        ? boardCell
+        : ((height - 24) / 5).clamp(12.0, boardCell);
 
     return SizedBox(
       height: height,
@@ -85,15 +83,16 @@ class TrayView extends ConsumerWidget {
 
     return Draggable<int>(
       data: slot,
-      dragAnchorStrategy: (draggable, context, position) => Offset(
-        feedbackW / 2,
-        feedbackH / 2 + kFingerLiftCells * boardCell,
-      ),
+      dragAnchorStrategy: (draggable, context, position) =>
+          Offset(feedbackW / 2, feedbackH / 2 + kFingerLiftCells * boardCell),
       // Safety net: whatever way the drag ends, never leave a stale preview.
-      onDragEnd: (_) =>
-          ref.read(dragPreviewProvider.notifier).state = null,
-      feedback:
-          PieceView(piece: piece, cellSize: boardCell, color: color, skin: skin),
+      onDragEnd: (_) => ref.read(dragPreviewProvider.notifier).state = null,
+      feedback: PieceView(
+        piece: piece,
+        cellSize: boardCell,
+        color: color,
+        skin: skin,
+      ),
       childWhenDragging: Opacity(
         opacity: 0.25,
         child: PieceView(
@@ -103,14 +102,21 @@ class TrayView extends ConsumerWidget {
           skin: skin,
         ),
       ),
-      child: GestureDetector(
-        onTap: rotate,
-        child: PieceView(
-          piece: piece,
-          cellSize: trayCell,
-          color: color,
-          skin: skin,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PieceView(piece: piece, cellSize: trayCell, color: color, skin: skin),
+          Tooltip(
+            message: 'Teil drehen',
+            child: IconButton(
+              onPressed: rotate,
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints.tightFor(width: 28, height: 22),
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.rotate_right_rounded, size: 21),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -9,6 +9,7 @@ import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../game/coach_hints.dart';
 import '../game/piggy_bank.dart';
 import '../game/stats.dart';
 
@@ -30,6 +31,10 @@ class Storage {
   static const _kPuzzleStars = 'puzzleStars';
   static const _kLifetimeStats = 'lifetimeStats';
   static const _kOnboardingDone = 'onboardingDone';
+  static const _kHintCombo = 'hint.combo';
+  static const _kHintFever = 'hint.fever';
+  static const _kHintRotation = 'hint.rotation';
+  static const _kHintBooster = 'hint.booster';
   static const _kLastStreakRepair = 'lastStreakRepairDate';
   static const _kXp = 'xp';
   static const _kPlayerLevel = 'playerLevel';
@@ -49,6 +54,7 @@ class Storage {
   static const _kPlayerName = 'playerName';
   static const _kRenameCredits = 'renameCredits';
   static const _kLastSubmittedScore = 'lastSubmittedScore';
+  static const _kActiveRun = 'activeRun.v1';
   static const _kAchievements = 'achievements';
 
   static const int startingCoins = 100;
@@ -78,6 +84,25 @@ class Storage {
   int get lastSubmittedScore => _prefs.getInt(_kLastSubmittedScore) ?? 0;
   Future<void> setLastSubmittedScore(int value) =>
       _prefs.setInt(_kLastSubmittedScore, value);
+
+  /// Opaque checkpoint for one unfinished Endless run. Invalid JSON is treated
+  /// as absent; the controller performs stricter semantic validation.
+  Map<String, dynamic>? get activeRunCheckpoint {
+    final raw = _prefs.getString(_kActiveRun);
+    if (raw == null) return null;
+    try {
+      final decoded = jsonDecode(raw);
+      return decoded is Map ? Map<String, dynamic>.from(decoded) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setActiveRunCheckpoint(Map<String, Object?> checkpoint) =>
+      _prefs.setString(_kActiveRun, jsonEncode(checkpoint));
+  Future<void> clearActiveRunCheckpoint() async {
+    await _prefs.remove(_kActiveRun);
+  }
 
   // ---------------------------------------------------------------------------
   // Progress
@@ -154,16 +179,15 @@ class Storage {
   Future<void> setStreak(int value) => _prefs.setInt(_kStreak, value);
 
   int get playerLevel => _prefs.getInt(_kPlayerLevel) ?? 1;
-  Future<void> setPlayerLevel(int value) =>
-      _prefs.setInt(_kPlayerLevel, value);
+  Future<void> setPlayerLevel(int value) => _prefs.setInt(_kPlayerLevel, value);
 
   int get xp => _prefs.getInt(_kXp) ?? 0;
   Future<void> setXp(int value) => _prefs.setInt(_kXp, value);
 
   PiggyBank get piggyBank => PiggyBank(
-        coins: _prefs.getInt(_kPiggyCoins) ?? 0,
-        capacity: _prefs.getInt(_kPiggyCapacity) ?? PiggyBank.baseCapacity,
-      );
+    coins: _prefs.getInt(_kPiggyCoins) ?? 0,
+    capacity: _prefs.getInt(_kPiggyCapacity) ?? PiggyBank.baseCapacity,
+  );
 
   Future<void> setPiggyBank(PiggyBank piggy) async {
     await _prefs.setInt(_kPiggyCoins, piggy.coins);
@@ -182,9 +206,25 @@ class Storage {
   Future<void> setOnboardingDone(bool value) =>
       _prefs.setBool(_kOnboardingDone, value);
 
+  Set<CoachHintType> get seenCoachHints => {
+    if (_prefs.getBool(_kHintCombo) ?? false) CoachHintType.combo,
+    if (_prefs.getBool(_kHintFever) ?? false) CoachHintType.fever,
+    if (_prefs.getBool(_kHintRotation) ?? false) CoachHintType.rotation,
+    if (_prefs.getBool(_kHintBooster) ?? false) CoachHintType.booster,
+  };
+
+  Future<void> markCoachHintSeen(CoachHintType hint) =>
+      _prefs.setBool(_coachHintKey(hint), true);
+
+  static String _coachHintKey(CoachHintType hint) => switch (hint) {
+    CoachHintType.combo => _kHintCombo,
+    CoachHintType.fever => _kHintFever,
+    CoachHintType.rotation => _kHintRotation,
+    CoachHintType.booster => _kHintBooster,
+  };
+
   String get activeTheme => _prefs.getString(_kActiveTheme) ?? 'classic';
-  Future<void> setActiveTheme(String id) =>
-      _prefs.setString(_kActiveTheme, id);
+  Future<void> setActiveTheme(String id) => _prefs.setString(_kActiveTheme, id);
 
   /// Theme ids the player owns. 'classic' is always included.
   Set<String> get unlockedThemes {
@@ -204,8 +244,7 @@ class Storage {
   }
 
   String get activeSkin => _prefs.getString(_kActiveSkin) ?? 'classic';
-  Future<void> setActiveSkin(String id) =>
-      _prefs.setString(_kActiveSkin, id);
+  Future<void> setActiveSkin(String id) => _prefs.setString(_kActiveSkin, id);
 
   Set<String> get unlockedSkins {
     final list = _prefs.getStringList(_kUnlockedSkins) ?? const [];

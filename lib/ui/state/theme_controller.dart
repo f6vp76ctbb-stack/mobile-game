@@ -60,7 +60,7 @@ class ThemeController extends StateNotifier<ThemeState> {
       await setActive(entry.id);
       return true;
     }
-    if (entry.supporterOnly) return false;
+    if (entry.supporterOnly || entry.cost < 0) return false;
     final paid =
         await _ref.read(gameControllerProvider.notifier).trySpendCoins(entry.cost);
     if (!paid) return false;

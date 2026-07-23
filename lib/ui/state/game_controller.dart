@@ -9,9 +9,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/achievements.dart';
 import '../../game/board.dart';
+import '../../game/coach_hints.dart';
 import '../../game/daily.dart';
 import '../../game/economy.dart';
 import '../../game/game_session.dart';
+import '../../game/generator.dart';
 import '../../game/leveling.dart';
 import '../../game/missions.dart';
 import '../../game/piece.dart';
@@ -74,6 +76,7 @@ class GameSnapshot {
     required this.isDaily,
     required this.streak,
     required this.onboardingHint,
+    required this.contextualHint,
     required this.clearEventId,
     required this.clearedCells,
     required this.supporter,
@@ -125,6 +128,9 @@ class GameSnapshot {
 
   /// Short coach hint for the first-run guided moves, or null when inactive.
   final String? onboardingHint;
+
+  /// One-time hint triggered by the first combo, fever, rotation or booster.
+  final String? contextualHint;
 
   /// Increments on every move that clears lines — the UI keys clear-burst
   /// particle animations off this so each clear fires exactly once.
@@ -235,20 +241,20 @@ const int kAllClearCoins = 25;
 
 final gameControllerProvider =
     StateNotifierProvider<GameController, GameSnapshot>((ref) {
-  return GameController(
-    ref.read(storageProvider),
-    ref.read(hapticsProvider),
-    ref.read(audioProvider),
-    ref.read(adServiceProvider),
-    ref.read(analyticsProvider),
-    leaderboard: ref.read(leaderboardServiceProvider),
-    onCosmeticsGranted: () {
-      // Level-up unlocks changed the owned themes/skins — rebuild the caches.
-      ref.invalidate(themeControllerProvider);
-      ref.invalidate(skinControllerProvider);
-    },
-  );
-});
+      return GameController(
+        ref.read(storageProvider),
+        ref.read(hapticsProvider),
+        ref.read(audioProvider),
+        ref.read(adServiceProvider),
+        ref.read(analyticsProvider),
+        leaderboard: ref.read(leaderboardServiceProvider),
+        onCosmeticsGranted: () {
+          // Level-up unlocks changed the owned themes/skins — rebuild the caches.
+          ref.invalidate(themeControllerProvider);
+          ref.invalidate(skinControllerProvider);
+        },
+      );
+    });
 
 class GameController extends StateNotifier<GameSnapshot> {
   GameController(
@@ -261,13 +267,18 @@ class GameController extends StateNotifier<GameSnapshot> {
     this.onCosmeticsGranted,
     LeaderboardService? leaderboard,
     // ignore: prefer_initializing_formals
-  })  : _leaderboard = leaderboard,
-        _missions = MissionEngine(progress: _storage.missionProgress),
-        _session = GameSession.newGame(
-          seed: seed ?? _randomSeed(),
-          freeRotation: _storage.playerLevel <= 2,
-        ),
-        super(_initialSnapshot(_storage)) {
+  }) : _leaderboard = leaderboard,
+       _missions = MissionEngine(progress: _storage.missionProgress),
+       _session =
+           _restoreEndlessSession(_storage) ??
+           GameSession.newGame(
+             seed: seed ?? _randomSeed(),
+             freeRotation: _storage.playerLevel <= 2,
+             earlyPhaseMoves: _storage.lifetimeStats.games == 0
+                 ? firstRunEarlyPhaseMoves
+                 : PieceGenerator.defaultEarlyPhaseMoves,
+           ),
+       super(_initialSnapshot(_storage)) {
     _emit();
   }
 
@@ -279,6 +290,12 @@ class GameController extends StateNotifier<GameSnapshot> {
   /// endless mode only; the Daily Challenge is competitive, so everyone plays
   /// with the same charge rules there.
   bool get _freeRotationForEndless => _storage.playerLevel <= 2;
+
+  static const int firstRunEarlyPhaseMoves = 20;
+
+  int get _earlyPhaseMovesForEndless => _storage.lifetimeStats.games == 0
+      ? firstRunEarlyPhaseMoves
+      : PieceGenerator.defaultEarlyPhaseMoves;
 
   final Storage _storage;
   final Haptics _haptics;
@@ -292,6 +309,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   final MissionEngine _missions;
 
   GameSession _session;
+  Future<void> _runPersistenceQueue = Future.value();
   bool _isNewHighscore = false;
   bool _isDaily = false;
   bool _finalized = false;
@@ -312,6 +330,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   int _clearEventId = 0;
   List<Cell> _clearedCells = const [];
   int _lastGained = 0;
+  String? _contextualHint;
 
   static const _onboardingHints = <String>[
     'Zieh einen Stein ins Gitter 👆',
@@ -326,6 +345,25 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
   static int _randomSeed() => Random().nextInt(1 << 31);
+
+  static GameSession? _restoreEndlessSession(Storage storage) {
+    final checkpoint = storage.activeRunCheckpoint;
+    if (checkpoint == null) return null;
+    try {
+      final session = GameSession.fromCheckpoint(checkpoint);
+      if (session.placements == 0 || session.isGameOver) {
+        unawaited(storage.clearActiveRunCheckpoint());
+        return null;
+      }
+      return session;
+    } catch (_) {
+      unawaited(storage.clearActiveRunCheckpoint());
+      return null;
+    }
+  }
+
+  @visibleForTesting
+  int get earlyPhaseMovesForTest => _session.earlyPhaseMoves;
 
   static GameSnapshot _initialSnapshot(Storage storage) {
     final s = GameSession.newGame(seed: 0);
@@ -344,8 +382,10 @@ class GameController extends StateNotifier<GameSnapshot> {
       completedMissions: const [],
       isDaily: false,
       streak: storage.streak,
-      onboardingHint:
-          storage.onboardingDone ? null : 'Zieh einen Stein ins Gitter 👆',
+      onboardingHint: storage.onboardingDone
+          ? null
+          : 'Zieh einen Stein ins Gitter 👆',
+      contextualHint: null,
       clearEventId: 0,
       clearedCells: const [],
       supporter: storage.supporter,
@@ -393,9 +433,12 @@ class GameController extends StateNotifier<GameSnapshot> {
     _session = GameSession.newGame(
       seed: seed ?? _randomSeed(),
       freeRotation: _freeRotationForEndless,
+      earlyPhaseMoves: _earlyPhaseMovesForEndless,
     );
     _resetRunState(daily: false);
+    _queueActiveRunCheckpoint();
     _analytics.logEvent(AnalyticsEvent.gameStart, {'mode': 'endless'});
+    _queueContextualHint();
     _emit();
   }
 
@@ -403,19 +446,23 @@ class GameController extends StateNotifier<GameSnapshot> {
   void startDaily({DateTime? now}) {
     _session = GameSession.newGame(seed: DailyChallenge.seedForToday(now: now));
     _resetRunState(daily: true);
+    _queueActiveRunCheckpoint();
     _analytics.logEvent(AnalyticsEvent.gameStart, {'mode': 'daily'});
+    _queueContextualHint();
     _emit();
   }
-
 
   /// Revive after game over: pays [BoosterCosts.revive] coins to clear the
   /// board centre and keep the run going. Once per run; ads are never part of
   /// this — playing must never require watching a video.
   Future<bool> reviveWithCoins() async {
-    if (_reviveUsed || _storage.coins < BoosterCosts.revive) return false;
+    if (_isDaily || _reviveUsed || _storage.coins < BoosterCosts.revive) {
+      return false;
+    }
     await _storage.addCoins(-BoosterCosts.revive);
     _reviveUsed = true;
     _session.reviveClearCenter();
+    _queueActiveRunCheckpoint();
     _emit();
     return true;
   }
@@ -424,13 +471,14 @@ class GameController extends StateNotifier<GameSnapshot> {
   Future<bool> doubleCoinsWithAd() async {
     if (_coinsDoubled || _coinsEarnedThisRun <= 0) return false;
     final earned = await _ads.showRewarded();
-    _analytics
-        .logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'double'});
     if (earned) {
       final bonus = _coinsEarnedThisRun;
       await _storage.addCoins(bonus);
       _coinsEarnedThisRun += bonus;
       _coinsDoubled = true;
+      _analytics.logEvent(AnalyticsEvent.rewardedWatched, {
+        'placement': 'double',
+      });
       _emit();
     }
     return earned;
@@ -438,10 +486,14 @@ class GameController extends StateNotifier<GameSnapshot> {
 
   /// "Lucky Block" reward: watch a rewarded ad for a fresh set of pieces.
   Future<bool> luckyBlock() async {
+    if (_isDaily) return false;
     final earned = await _ads.showRewarded();
-    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'lucky'});
     if (earned) {
       _session.rerollTray();
+      _queueActiveRunCheckpoint();
+      _analytics.logEvent(AnalyticsEvent.rewardedWatched, {
+        'placement': 'lucky',
+      });
       _emit();
     }
     return earned;
@@ -530,16 +582,18 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
   bool get _starterActive => StarterOffer.isActive(
-        startMillis: _storage.starterOfferStart,
-        purchased: _storage.starterPurchased,
-        now: DateTime.now(),
-      );
+    startMillis: _storage.starterOfferStart,
+    purchased: _storage.starterPurchased,
+    now: DateTime.now(),
+  );
 
   int get _starterHoursLeft {
     final start = _storage.starterOfferStart;
     if (start == null || !_starterActive) return 0;
-    return StarterOffer.remaining(startMillis: start, now: DateTime.now())
-        .inHours;
+    return StarterOffer.remaining(
+      startMillis: start,
+      now: DateTime.now(),
+    ).inHours;
   }
 
   /// Marks the starter pack as purchased (coins + theme are delivered
@@ -564,8 +618,8 @@ class GameController extends StateNotifier<GameSnapshot> {
   /// Returns the payout, or null if the reward was not earned.
   Future<int?> openPiggyWithAd() async {
     final earned = await _ads.showRewarded();
-    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'piggy'});
     if (!earned) return null;
+    _analytics.logEvent(AnalyticsEvent.rewardedWatched, {'placement': 'piggy'});
     return openPiggy();
   }
 
@@ -590,7 +644,24 @@ class GameController extends StateNotifier<GameSnapshot> {
     _rewardsThisRun = const [];
     _achievementsThisRun = const [];
     _completedMissions = const [];
+    _contextualHint = null;
     _streak = _storage.streak;
+  }
+
+  void _queueActiveRunCheckpoint() {
+    final checkpoint =
+        !_isDaily && !_session.isGameOver && _session.placements > 0
+        ? _session.toCheckpoint()
+        : null;
+    _runPersistenceQueue = _runPersistenceQueue.catchError((_) {}).then((
+      _,
+    ) async {
+      if (checkpoint == null) {
+        await _storage.clearActiveRunCheckpoint();
+      } else {
+        await _storage.setActiveRunCheckpoint(checkpoint);
+      }
+    });
   }
 
   /// Current mission progress for the missions screen.
@@ -604,8 +675,11 @@ class GameController extends StateNotifier<GameSnapshot> {
   bool rotateTray(int slot) {
     final ok = _session.rotate(slot);
     if (ok) {
+      _contextualHint = null;
       _haptics.place();
       _audio.play(Sfx.place, pitch: 1.3);
+      _queueContextualHint(rotationUsed: true);
+      _queueActiveRunCheckpoint();
       _emit();
     }
     return ok;
@@ -615,6 +689,7 @@ class GameController extends StateNotifier<GameSnapshot> {
   void place(int slot, Cell origin) {
     final event = _session.place(slot, origin);
     if (event == null) return;
+    _contextualHint = null;
 
     _haptics.place();
     _audio.play(Sfx.place);
@@ -646,9 +721,14 @@ class GameController extends StateNotifier<GameSnapshot> {
 
     _advanceOnboarding();
 
+    _queueContextualHint(
+      comboActive: event.combo > 1,
+      feverActive: event.feverBurst,
+    );
     if (_session.isGameOver) {
       _finalizeRun();
     }
+    _queueActiveRunCheckpoint();
     _emit();
   }
 
@@ -659,6 +739,26 @@ class GameController extends StateNotifier<GameSnapshot> {
       _onboarding = false;
       _storage.setOnboardingDone(true);
     }
+  }
+
+  void _queueContextualHint({
+    bool comboActive = false,
+    bool feverActive = false,
+    bool rotationUsed = false,
+  }) {
+    if (_onboarding || _session.isGameOver || _contextualHint != null) return;
+    final hint = CoachHints.next(
+      signals: CoachHintSignals(
+        comboActive: comboActive,
+        feverActive: feverActive,
+        rotationUsed: rotationUsed,
+        boosterAffordable: !_isDaily && _storage.coins >= BoosterCosts.undo,
+      ),
+      seen: _storage.seenCoachHints,
+    );
+    if (hint == null) return;
+    _contextualHint = CoachHints.text(hint);
+    unawaited(_storage.markCoachHintSeen(hint));
   }
 
   /// Spends [cost] coins if affordable (e.g. unlocking a theme). Returns
@@ -700,18 +800,24 @@ class GameController extends StateNotifier<GameSnapshot> {
 
   /// Undo booster: reverts the last placement for [BoosterCosts.undo] coins.
   Future<bool> tryUndo() async {
-    if (!_session.canUndo || _storage.coins < BoosterCosts.undo) return false;
+    if (_isDaily || !_session.canUndo || _storage.coins < BoosterCosts.undo) {
+      return false;
+    }
     await _storage.addCoins(-BoosterCosts.undo);
     _session.undo();
+    _queueActiveRunCheckpoint();
     _emit();
     return true;
   }
 
   /// Swap booster: redraws the tray for [BoosterCosts.swap] coins.
   Future<bool> trySwapPieces() async {
-    if (_session.isGameOver || _storage.coins < BoosterCosts.swap) return false;
+    if (_isDaily || _session.isGameOver || _storage.coins < BoosterCosts.swap) {
+      return false;
+    }
     await _storage.addCoins(-BoosterCosts.swap);
     _session.rerollTray();
+    _queueActiveRunCheckpoint();
     _emit();
     return true;
   }
@@ -719,7 +825,9 @@ class GameController extends StateNotifier<GameSnapshot> {
   /// Bomb booster: clears the 3x3 block around [origin] for
   /// [BoosterCosts.bomb] coins.
   Future<bool> tryBomb(Cell origin) async {
-    if (_session.isGameOver || _storage.coins < BoosterCosts.bomb) return false;
+    if (_isDaily || _session.isGameOver || _storage.coins < BoosterCosts.bomb) {
+      return false;
+    }
     await _storage.addCoins(-BoosterCosts.bomb);
     final hit = _session.bombAt(origin);
     // Feed the hit cells into the clear-burst pipeline so the bomb visibly
@@ -728,6 +836,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _clearedCells = hit;
     _haptics.clear();
     _audio.play(Sfx.clear, pitch: 0.8);
+    _queueActiveRunCheckpoint();
     _emit();
     return true;
   }
@@ -738,6 +847,7 @@ class GameController extends StateNotifier<GameSnapshot> {
     _audio.play(Sfx.gameOver);
     if (_finalized) return;
     _finalized = true;
+    _queueActiveRunCheckpoint();
 
     _roundsThisLaunch += 1;
     _analytics.logEvent(AnalyticsEvent.roundComplete, {
@@ -839,11 +949,17 @@ class GameController extends StateNotifier<GameSnapshot> {
     // Total for the run = end-of-run bonuses + coins earned live during play
     // (the play coins were already added to the balance as they were earned).
     _coinsEarnedThisRun = earned + _playCoinsThisRun;
-    _isNewHighscore = await _storage.submitScore(_session.score);
+    // The Daily Challenge is a separate, fixed-seed competition. Its result
+    // must never alter the regular Endless best score.
+    if (_isDaily) {
+      _isNewHighscore = false;
+    } else {
+      _isNewHighscore = await _storage.submitScore(_session.score);
+    }
 
     // Always keep the shared leaderboard in sync with the player's best,
     // automatically and in the background — no button to tap.
-    autoUploadBestScore();
+    if (!_isDaily) autoUploadBestScore();
 
     // Achievements: evaluate against the now-updated aggregates.
     final life = _storage.lifetimeStats;
@@ -860,9 +976,10 @@ class GameController extends StateNotifier<GameSnapshot> {
     final already = _storage.unlockedAchievements;
     final fresh = Achievements.newlyUnlocked(progress, already);
     if (fresh.isNotEmpty) {
-      await _storage.setUnlockedAchievements(
-        {...already, for (final a in fresh) a.id},
-      );
+      await _storage.setUnlockedAchievements({
+        ...already,
+        for (final a in fresh) a.id,
+      });
       _achievementsThisRun = fresh;
       _audio.play(Sfx.levelUp, pitch: 1.25);
     }
@@ -887,6 +1004,7 @@ class GameController extends StateNotifier<GameSnapshot> {
       isDaily: _isDaily,
       streak: _streak,
       onboardingHint: _onboardingHint,
+      contextualHint: _contextualHint,
       clearEventId: _clearEventId,
       clearedCells: _clearedCells,
       supporter: _storage.supporter,
@@ -921,18 +1039,20 @@ class GameController extends StateNotifier<GameSnapshot> {
   }
 
   bool _streakRepairAvailable() => StreakRepair.isRepairable(
-        lastDateKey: _storage.lastDailyDate,
-        currentStreak: _storage.streak,
-        today: DateTime.now(),
-        lastRepairDateKey: _storage.lastStreakRepairDate,
-      );
+    lastDateKey: _storage.lastDailyDate,
+    currentStreak: _storage.streak,
+    today: DateTime.now(),
+    lastRepairDateKey: _storage.lastStreakRepairDate,
+  );
 
   Future<void> _applyStreakRepair() async {
     final now = DateTime.now();
     await _storage.setLastDailyDate(StreakRepair.repairedLastDateKey(now));
     await _storage.setLastStreakRepairDate(DailyChallenge.dateKey(now));
     _streak = _storage.streak;
-    _analytics.logEvent(AnalyticsEvent.dailyPlayed, {'action': 'streak_repair'});
+    _analytics.logEvent(AnalyticsEvent.dailyPlayed, {
+      'action': 'streak_repair',
+    });
     _emit();
   }
 
@@ -949,11 +1069,12 @@ class GameController extends StateNotifier<GameSnapshot> {
   Future<bool> repairStreakWithAd() async {
     if (!_streakRepairAvailable()) return false;
     final earned = await _ads.showRewarded();
-    _analytics.logEvent(
-      AnalyticsEvent.rewardedWatched,
-      {'placement': 'streak_repair'},
-    );
-    if (earned) await _applyStreakRepair();
+    if (earned) {
+      _analytics.logEvent(AnalyticsEvent.rewardedWatched, {
+        'placement': 'streak_repair',
+      });
+      await _applyStreakRepair();
+    }
     return earned;
   }
 }

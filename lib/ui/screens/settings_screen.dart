@@ -4,12 +4,14 @@ library;
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../state/game_controller.dart';
 import '../state/notifications_controller.dart';
 import '../state/settings_controller.dart';
 import '../theme.dart';
 import 'feedback_screen.dart';
+import 'how_to_play_screen.dart';
 import 'shop_screen.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -27,15 +29,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   int _footerTaps = 0;
   bool _adminUnlocked = false;
 
+  static final _privacyUri = Uri.parse(
+    'https://f6vp76ctbb-stack.github.io/mobile-game/privacy.html',
+  );
+  static final _imprintUri = Uri.parse(
+    'https://f6vp76ctbb-stack.github.io/mobile-game/impressum.html',
+  );
+
   void _onFooterTap() {
     if (!kDebugMode) return;
     if (_adminUnlocked) return;
     setState(() => _footerTaps += 1);
     if (_footerTaps >= _adminTapTarget) {
       setState(() => _adminUnlocked = true);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('🔧 Admin-Modus aktiviert')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('🔧 Admin-Modus aktiviert')));
     } else if (_footerTaps >= _adminTapTarget - 3) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -43,6 +52,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           content: Text(
             'Noch ${_adminTapTarget - _footerTaps}× tippen für Admin-Modus',
           ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _openLegal(Uri uri) async {
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Die Seite konnte nicht geöffnet werden.'),
         ),
       );
     }
@@ -63,6 +83,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       ),
       body: ListView(
         children: [
+          const _SectionLabel('Spiel'),
+          ListTile(
+            leading: const Icon(
+              Icons.help_outline_rounded,
+              color: GridColors.textPrimary,
+            ),
+            title: const Text('Spielanleitung', style: _tileStyle),
+            subtitle: const Text(
+              'Regeln, Combos, Fieber & Booster',
+              style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: GridColors.textMuted,
+            ),
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(builder: (_) => const HowToPlayScreen()),
+            ),
+          ),
           const _SectionLabel('Ton & Haptik'),
           SwitchListTile(
             title: const Text('Sound', style: _tileStyle),
@@ -92,8 +131,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             value: ref.watch(notificationsControllerProvider),
             activeThumbColor: GridColors.placed,
             onChanged: (want) async {
-              final notifier =
-                  ref.read(notificationsControllerProvider.notifier);
+              final notifier = ref.read(
+                notificationsControllerProvider.notifier,
+              );
               if (want) {
                 final ok = await notifier.enable();
                 if (!ok && context.mounted) {
@@ -116,15 +156,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             )
           else
             ListTile(
-              leading:
-                  const Icon(Icons.favorite_outline, color: GridColors.textPrimary),
+              leading: const Icon(
+                Icons.favorite_outline,
+                color: GridColors.textPrimary,
+              ),
               title: const Text('Unterstützer-Paket', style: _tileStyle),
               subtitle: const Text(
                 'Exklusives Theme & Skin + 1.500 Münzen',
                 style: TextStyle(color: GridColors.textMuted, fontSize: 13),
               ),
-              trailing: const Icon(Icons.chevron_right,
-                  color: GridColors.textMuted),
+              trailing: const Icon(
+                Icons.chevron_right,
+                color: GridColors.textMuted,
+              ),
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(builder: (_) => const ShopScreen()),
               ),
@@ -136,44 +180,81 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               await iap.restore();
               if (context.mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Käufe werden wiederhergestellt…')),
+                  const SnackBar(
+                    content: Text('Käufe werden wiederhergestellt…'),
+                  ),
                 );
               }
             },
           ),
           const _SectionLabel('Mithelfen'),
           ListTile(
-            leading: const Icon(Icons.feedback_outlined,
-                color: GridColors.textPrimary),
+            leading: const Icon(
+              Icons.feedback_outlined,
+              color: GridColors.textPrimary,
+            ),
             title: const Text('Feedback geben', style: _tileStyle),
             subtitle: const Text(
               'Ideen & Fehler melden (via GitHub)',
               style: TextStyle(color: GridColors.textMuted, fontSize: 13),
             ),
-            trailing:
-                const Icon(Icons.chevron_right, color: GridColors.textMuted),
+            trailing: const Icon(
+              Icons.chevron_right,
+              color: GridColors.textMuted,
+            ),
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute<void>(builder: (_) => const FeedbackScreen()),
             ),
           ),
           const _SectionLabel('Rechtliches'),
           ListTile(
-            leading: const Icon(Icons.privacy_tip_outlined,
-                color: GridColors.textPrimary),
-            title: const Text('Datenschutz', style: _tileStyle),
-            onTap: () => _showPrivacy(context),
+            leading: const Icon(
+              Icons.tune_rounded,
+              color: GridColors.textPrimary,
+            ),
+            title: const Text('Datenschutzeinstellungen', style: _tileStyle),
+            subtitle: const Text(
+              'Werbe-Einwilligung ansehen oder ändern',
+              style: TextStyle(color: GridColors.textMuted, fontSize: 13),
+            ),
+            onTap: () async {
+              final opened = await ref
+                  .read(adServiceProvider)
+                  .showPrivacyOptions();
+              if (!opened && context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'Für dieses Gerät sind keine Werbe-Optionen erforderlich.',
+                    ),
+                  ),
+                );
+              }
+            },
           ),
           ListTile(
-            leading: const Icon(Icons.info_outline,
-                color: GridColors.textPrimary),
+            leading: const Icon(
+              Icons.privacy_tip_outlined,
+              color: GridColors.textPrimary,
+            ),
+            title: const Text('Datenschutz', style: _tileStyle),
+            onTap: () => _openLegal(_privacyUri),
+          ),
+          ListTile(
+            leading: const Icon(
+              Icons.info_outline,
+              color: GridColors.textPrimary,
+            ),
             title: const Text('Impressum', style: _tileStyle),
-            onTap: () => _showImpressum(context),
+            onTap: () => _openLegal(_imprintUri),
           ),
           if (kDebugMode && _adminUnlocked) ...[
             const _SectionLabel('Admin (Test)'),
             ListTile(
-              leading: const Icon(Icons.paid_outlined,
-                  color: GridColors.textPrimary),
+              leading: const Icon(
+                Icons.paid_outlined,
+                color: GridColors.textPrimary,
+              ),
               title: Text('${snap.coins} Münzen', style: _tileStyle),
               subtitle: const Text(
                 'Nur zum Testen — nicht in Release-Screenshots zeigen',
@@ -193,8 +274,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ref.read(gameControllerProvider.notifier).grantCoins(10000),
             ),
             ListTile(
-              leading:
-                  const Icon(Icons.exposure_zero, color: GridColors.fever),
+              leading: const Icon(Icons.exposure_zero, color: GridColors.fever),
               title: const Text('Münzen auf 0 setzen', style: _tileStyle),
               onTap: () =>
                   ref.read(gameControllerProvider.notifier).setCoinsForTest(0),
@@ -215,51 +295,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  void _showPrivacy(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: GridColors.boardBackground,
-        title: const Text('Datenschutz', style: _tileStyle),
-        content: const Text(
-          'Qubble speichert deinen Fortschritt nur lokal auf dem Gerät — kein '
-          'Konto, kein eigener Server. Werbung (AdMob) und Analyse (Firebase) '
-          'nutzen Drittdienste; vor der ersten Anzeige läuft der DSGVO-'
-          'Einwilligungsdialog. Die vollständige Datenschutzerklärung wird vor '
-          'dem Launch verlinkt.',
-          style: TextStyle(color: GridColors.textMuted, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showImpressum(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: GridColors.boardBackground,
-        title: const Text('Impressum', style: _tileStyle),
-        content: const Text(
-          'Anbieterangaben gemäß § 5 DDG werden vor dem Launch hier eingetragen '
-          'und verlinkt.',
-          style: TextStyle(color: GridColors.textMuted, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
-          ),
         ],
       ),
     );

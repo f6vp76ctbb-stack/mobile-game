@@ -24,6 +24,7 @@ class IapProducts {
   /// One paid name change. The display name is otherwise fixed after
   /// onboarding — cosmetic only, never a gameplay advantage.
   static const rename = 'qubble_rename';
+  static const neonTheme = 'qubble_neon_theme';
 
   static const all = <String>{
     supporter,
@@ -32,6 +33,7 @@ class IapProducts {
     coinsL,
     starter,
     rename,
+    neonTheme,
   };
 
   /// Coins granted per fixed-amount consumable pack.
@@ -41,13 +43,7 @@ class IapProducts {
     coinsL: 6000,
   };
 
-  static const _consumables = <String>{
-    coinsS,
-    coinsM,
-    coinsL,
-    starter,
-    rename,
-  };
+  static const _consumables = <String>{coinsS, coinsM, coinsL, starter, rename};
 
   static bool isConsumable(String id) => _consumables.contains(id);
 }
@@ -70,9 +66,7 @@ class ShopProduct {
 abstract class IapService {
   /// Sets up the purchase stream. [onDeliver] is invoked for every purchased or
   /// restored product id and must apply the entitlement (idempotently).
-  Future<void> initialize(
-    FutureOr<void> Function(String productId) onDeliver,
-  );
+  Future<void> initialize(FutureOr<void> Function(String productId) onDeliver);
 
   bool get available;
   List<ShopProduct> get products;
@@ -90,31 +84,31 @@ class FakeIap implements IapService {
 
   @override
   List<ShopProduct> get products => const [
-        ShopProduct(
-          id: IapProducts.supporter,
-          title: 'Unterstützer-Paket',
-          price: '4,99 €',
-          consumable: false,
-        ),
-        ShopProduct(
-          id: IapProducts.coinsS,
-          title: '500 Münzen',
-          price: '0,99 €',
-          consumable: true,
-        ),
-        ShopProduct(
-          id: IapProducts.coinsM,
-          title: '2000 Münzen',
-          price: '2,99 €',
-          consumable: true,
-        ),
-        ShopProduct(
-          id: IapProducts.coinsL,
-          title: '6000 Münzen',
-          price: '7,99 €',
-          consumable: true,
-        ),
-      ];
+    ShopProduct(
+      id: IapProducts.supporter,
+      title: 'Unterstützer-Paket',
+      price: '4,99 €',
+      consumable: false,
+    ),
+    ShopProduct(
+      id: IapProducts.coinsS,
+      title: '500 Münzen',
+      price: '0,99 €',
+      consumable: true,
+    ),
+    ShopProduct(
+      id: IapProducts.coinsM,
+      title: '2000 Münzen',
+      price: '2,99 €',
+      consumable: true,
+    ),
+    ShopProduct(
+      id: IapProducts.coinsL,
+      title: '6000 Münzen',
+      price: '7,99 €',
+      consumable: true,
+    ),
+  ];
 
   @override
   Future<void> initialize(

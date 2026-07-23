@@ -63,6 +63,9 @@ bool _playOneMove(GameController c) {
 class _NoRewardAds implements AdService {
   @override
   Future<void> initialize() async {}
+
+  @override
+  Future<bool> showPrivacyOptions() async => false;
   @override
   Future<bool> showRewarded() async => false;
 }
@@ -176,7 +179,8 @@ void main() {
     Map<String, Object> repairablePrefs({int coins = 0}) {
       final today = DateTime.now();
       final twoDaysAgo = today.subtract(const Duration(days: 2));
-      final key = '${twoDaysAgo.year}-'
+      final key =
+          '${twoDaysAgo.year}-'
           '${twoDaysAgo.month.toString().padLeft(2, '0')}-'
           '${twoDaysAgo.day.toString().padLeft(2, '0')}';
       return {'lastDailyDate': key, 'streak': 4, 'coins': coins};
@@ -210,39 +214,40 @@ void main() {
   });
 
   group('piggy bank', () {
-    test('fills while playing and opening pays out + raises capacity', () async {
-      SharedPreferences.setMockInitialValues({'coins': 0});
-      final storage = await Storage.create();
-      final c = GameController(
-        storage,
-        Haptics(enabled: false),
-        SilentAudio(),
-        FakeAdService(),
-            NoopAnalytics(),
-      );
-      c.newGame(seed: 1);
-      _playToGameOver(c);
-      await Future<void>.delayed(const Duration(milliseconds: 20));
+    test(
+      'fills while playing and opening pays out + raises capacity',
+      () async {
+        SharedPreferences.setMockInitialValues({'coins': 0});
+        final storage = await Storage.create();
+        final c = GameController(
+          storage,
+          Haptics(enabled: false),
+          SilentAudio(),
+          FakeAdService(),
+          NoopAnalytics(),
+        );
+        c.newGame(seed: 1);
+        _playToGameOver(c);
+        await Future<void>.delayed(const Duration(milliseconds: 20));
 
-      final filled = storage.piggyBank.coins;
-      // A full greedy run clears lines, so the piggy has something in it.
-      expect(filled, greaterThan(0));
-      expect(c.state.piggyCoins, filled);
+        final filled = storage.piggyBank.coins;
+        // A full greedy run clears lines, so the piggy has something in it.
+        expect(filled, greaterThan(0));
+        expect(c.state.piggyCoins, filled);
 
-      final balanceBefore = c.state.coins;
-      final payout = await c.openPiggy();
-      expect(payout, filled);
-      expect(c.state.coins, balanceBefore + payout); // paid into balance
-      expect(c.state.piggyCoins, 0); // emptied
-      expect(c.state.piggyCapacity, greaterThan(500)); // capacity grew
-    });
+        final balanceBefore = c.state.coins;
+        final payout = await c.openPiggy();
+        expect(payout, filled);
+        expect(c.state.coins, balanceBefore + payout); // paid into balance
+        expect(c.state.piggyCoins, 0); // emptied
+        expect(c.state.piggyCapacity, greaterThan(500)); // capacity grew
+      },
+    );
 
     test('early open via rewarded video pays out when earned', () async {
-      final c = await _controller(prefs: {
-        'coins': 0,
-        'piggyCoins': 120,
-        'piggyCapacity': 500,
-      });
+      final c = await _controller(
+        prefs: {'coins': 0, 'piggyCoins': 120, 'piggyCapacity': 500},
+      );
       final payout = await c.openPiggyWithAd();
       expect(payout, 120);
       expect(c.state.coins, 120);
@@ -250,11 +255,10 @@ void main() {
     });
 
     test('early open pays nothing when the reward is not earned', () async {
-      final c = await _controller(ads: _NoRewardAds(), prefs: {
-        'coins': 0,
-        'piggyCoins': 120,
-        'piggyCapacity': 500,
-      });
+      final c = await _controller(
+        ads: _NoRewardAds(),
+        prefs: {'coins': 0, 'piggyCoins': 120, 'piggyCapacity': 500},
+      );
       final payout = await c.openPiggyWithAd();
       expect(payout, isNull);
       expect(c.state.coins, 0);
@@ -271,7 +275,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-            NoopAnalytics(),
+        NoopAnalytics(),
       );
       expect(c.state.starterOfferActive, isFalse);
 
@@ -295,7 +299,7 @@ void main() {
         Haptics(enabled: false),
         SilentAudio(),
         FakeAdService(),
-            NoopAnalytics(),
+        NoopAnalytics(),
       );
       c.newGame(seed: 1);
       _playToGameOver(c);
@@ -375,10 +379,7 @@ void main() {
     });
 
     test('does nothing without a player name', () async {
-      final (c, board) = await controllerWith(
-        succeed: true,
-        prefs: const {},
-      );
+      final (c, board) = await controllerWith(succeed: true, prefs: const {});
       c.newGame(seed: 1);
       _playToGameOver(c);
       await Future<void>.delayed(const Duration(milliseconds: 20));

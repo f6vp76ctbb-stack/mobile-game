@@ -57,8 +57,11 @@ void main() {
       for (var seed = 0; seed < 50; seed++) {
         final gen = PieceGenerator(seed: seed);
         final tray = gen.nextTray(board, 100); // late phase, no bonus
-        expect(tray.any(board.hasAnyPlacement), isTrue,
-            reason: 'seed $seed produced an all-unplaceable tray');
+        expect(
+          tray.any(board.hasAnyPlacement),
+          isTrue,
+          reason: 'seed $seed produced an all-unplaceable tray',
+        );
       }
     });
 
@@ -79,6 +82,38 @@ void main() {
       for (var i = 0; i < 15; i++) {
         expect(gen.nextTray(board, i).length, 3);
       }
+    });
+
+    test('can extend the fairness weighting through the first 20 moves', () {
+      final rows = List.filled(8, '########').toList();
+      rows[4] = '####.###';
+      final board = Board.fromAscii(rows);
+      final catalog = [
+        Piece('dot', const [Cell(0, 0)], 1),
+        Piece('domino', const [Cell(0, 0), Cell(0, 1)], 1),
+      ];
+      var extendedPlaceablePieces = 0;
+      var defaultPlaceablePieces = 0;
+
+      for (var seed = 0; seed < 100; seed++) {
+        final extended = PieceGenerator(
+          seed: seed,
+          catalog: catalog,
+          earlyPhaseMoves: 20,
+        );
+        final normal = PieceGenerator(seed: seed, catalog: catalog);
+        extendedPlaceablePieces += extended
+            .nextTray(board, 15)
+            .where(board.hasAnyPlacement)
+            .length;
+        defaultPlaceablePieces += normal
+            .nextTray(board, 15)
+            .where(board.hasAnyPlacement)
+            .length;
+      }
+
+      expect(PieceGenerator.defaultEarlyPhaseMoves, 10);
+      expect(extendedPlaceablePieces, greaterThan(defaultPlaceablePieces));
     });
   });
 }
