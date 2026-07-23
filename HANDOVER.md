@@ -167,6 +167,18 @@ finale Store-/Markenprüfung liegt beim Nutzer. Fallback: „Qubble Blocks".
   **Nur in Debug-Builds** (doppelt verriegelt: `kDebugMode` in der UI +
   `kReleaseMode`-No-op im Controller) — Spieler dürfen NIE Cheats bekommen.
   Ebenso: öffentlicher Web-Build nutzt `LockedIap` (keine Gratis-Käufe).
+- **Android-Release (.aab)**: `.github/workflows/build-release.yaml`
+  (manuell, „Run workflow"). Signing-Secrets als Repo-Secrets, .aab liegt in
+  den Run-Artifacts. **Gradle-9-Falle:** Das Flutter-3.44-Android-Template
+  pinnt Gradle 9.1 + AGP 9.0.1; Plugins müssen dazu passen. `google_mobile_ads`
+  daher auf **≥ 9.0.0** (5.x/6.x scheitern mit „unknown property 'all'" beim
+  Konfigurieren von `:google_mobile_ads`; Gradle-9-Support kam mit Plugin 7.0.0).
+  Zusätzlich braucht `flutter_local_notifications` **Core Library Desugaring**:
+  `isCoreLibraryDesugaringEnabled = true` + `coreLibraryDesugaring(...desugar_jdk_libs:2.1.4)`
+  in `android/app/build.gradle.kts` (sonst bricht `checkReleaseAarMetadata` ab).
+  Und `flutter_timezone` auf **4.x** (nicht 3.x: mischt Java 11 + Kotlin 1.8 →
+  AGP 9 bricht `compileReleaseKotlin` ab). Nicht auf 5.x gehen, solange
+  `getLocalTimezone()` als `String` genutzt wird (5.0.0 liefert `TimezoneInfo`).
 
 ## 6. Web/PWA-Besonderheiten (wichtig!)
 
@@ -238,8 +250,12 @@ können, damit das Spiel zum Release richtig gut wird."
   + verbindliche Specs (Anhang A/B/C)
 - `CLAUDE.md` — Arbeitsregeln (Test-first für `lib/game/`, analyze+test grün,
   deutsche Nutzertexte, CC0-Assets, Ad-Regeln)
+- `docs/LAUNCH.md` — **zentraler Launch-Fahrplan** (fasst Setup/Release/Listing
+  zusammen, Stand abgehakt, Play-Console-Schritte mit konkreten Antworten). Erste
+  Anlaufstelle für „was ist noch zu tun".
 - `docs/` — SETUP-ACCOUNTS, RELEASE, STORE-LISTING (ASO-Texte DE/EN),
   PRIVACY-POLICY, IMPRESSUM, NOTIFICATIONS, LOCAL-TESTING, DEV-ENVIRONMENT
+  (Detail-Nachschlagewerke; der aktuelle Stand steht in `LAUNCH.md`)
 - `FEEDBACK.md` / `leaderboard.json` — von Actions gepflegt
 - `.github/workflows/` — ci, deploy-web, feedback, leaderboard
 - `scripts/` — setup.sh, gen_music.py

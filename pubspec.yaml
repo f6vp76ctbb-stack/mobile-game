@@ -44,14 +44,19 @@ dependencies:
   # Sound effects (self-made WAV assets, see assets/CREDITS.md).
   audioplayers: ^6.1.0
 
-  # Monetization: AdMob (interstitial + rewarded, incl. UMP consent) and IAP.
-  google_mobile_ads: ^5.1.0
+  # Monetization: AdMob (rewarded only, incl. UMP consent) and IAP.
+  # Needs >=7.0.0 for Gradle 9 / AGP 9 compatibility (the Flutter 3.44 Android
+  # template pins Gradle 9.1 + AGP 9.0.1); 5.x/6.x fail to configure there.
+  google_mobile_ads: ^9.0.0
   in_app_purchase: ^3.2.0
 
   # Local (offline) notifications: daily reminder, streak warning, comeback.
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
-  flutter_timezone: ^3.0.1
+  # 4.x aligns the plugin's Kotlin/Java compile to Java 17, which AGP 9
+  # requires (3.x mixes Java 11 + Kotlin 1.8 and fails compileReleaseKotlin).
+  # Stay on 4.x: 5.0.0 changes getLocalTimezone() to return TimezoneInfo.
+  flutter_timezone: ^4.0.0
 
   # Opens a prefilled GitHub issue for in-app feedback / score submission.
   url_launcher: ^6.3.0

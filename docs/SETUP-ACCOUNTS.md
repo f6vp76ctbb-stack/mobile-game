@@ -1,5 +1,9 @@
 # Account- & Store-Setup (die 👤-Schritte)
 
+> 📍 **Aktueller Fahrplan steht in [`LAUNCH.md`](LAUNCH.md).** Konten, AdMob,
+> Firebase, Signing und `.aab`-Upload sind erledigt — diese Datei bleibt als
+> **Nachschlagewerk** (z. B. IAP-Preise, Firebase-Details, Steuerliches).
+
 Diese Schritte kann nur ein Mensch erledigen (Konten, Zahlungen, Uploads).
 Der Code ist bereits so gebaut, dass er mit **Test-IDs** sofort läuft — hier
 wird nur beschrieben, wie du die **echten** IDs/Configs einträgst.
