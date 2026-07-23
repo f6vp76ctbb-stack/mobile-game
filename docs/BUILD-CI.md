@@ -32,10 +32,17 @@ diese an (Name exakt so):
 4. Den Lauf öffnen → unten unter **„Artifacts"** → **`qubble-release-aab`**
    herunterladen → darin liegt `app-release.aab`
 
+5. Zusätzlich **`qubble-r8-mapping`** herunterladen → darin liegt
+   `mapping.txt`. Diese Datei gehört exakt zu diesem Build und muss zusammen
+   mit ihm archiviert werden.
+
 ## Diese Datei in die Play Console
 
 - Play Console → deine App → **Test** (z. B. Geschlossener Test) oder
   **Produktion** → **Neue Version erstellen** → `.aab` hochladen.
+- Bei der Version unter **Offenlegungsdateien** die zum selben Build gehörende
+  `mapping.txt` als R8-/ProGuard-Zuordnungsdatei hochladen. Niemals die
+  Zuordnungsdatei eines anderen Builds verwenden.
 - Beim ersten Upload fragt Google nach **Play App Signing** → **aktivieren**
   (empfohlen). Google verwaltet dann den finalen Signaturschlüssel; unser
   Keystore ist nur der Upload-Schlüssel.
