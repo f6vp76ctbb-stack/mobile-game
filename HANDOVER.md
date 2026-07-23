@@ -250,8 +250,12 @@ können, damit das Spiel zum Release richtig gut wird."
   + verbindliche Specs (Anhang A/B/C)
 - `CLAUDE.md` — Arbeitsregeln (Test-first für `lib/game/`, analyze+test grün,
   deutsche Nutzertexte, CC0-Assets, Ad-Regeln)
+- `docs/LAUNCH.md` — **zentraler Launch-Fahrplan** (fasst Setup/Release/Listing
+  zusammen, Stand abgehakt, Play-Console-Schritte mit konkreten Antworten). Erste
+  Anlaufstelle für „was ist noch zu tun".
 - `docs/` — SETUP-ACCOUNTS, RELEASE, STORE-LISTING (ASO-Texte DE/EN),
   PRIVACY-POLICY, IMPRESSUM, NOTIFICATIONS, LOCAL-TESTING, DEV-ENVIRONMENT
+  (Detail-Nachschlagewerke; der aktuelle Stand steht in `LAUNCH.md`)
 - `FEEDBACK.md` / `leaderboard.json` — von Actions gepflegt
 - `.github/workflows/` — ci, deploy-web, feedback, leaderboard
 - `scripts/` — setup.sh, gen_music.py

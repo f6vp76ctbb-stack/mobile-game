@@ -1,5 +1,10 @@
 # Release- & Build-Checkliste
 
+> 📍 **Aktueller Fahrplan steht in [`LAUNCH.md`](LAUNCH.md).** Dort ist der
+> Stand abgehakt und jeder Play-Console-Schritt mit konkreter Antwort erklärt.
+> Diese Datei hier ist nur noch **Detail-Nachschlagewerk** (Build-Befehle,
+> Signing, Countdown-Tabelle).
+
 Reihenfolge für einen sauberen (Soft-)Launch. 👤 = nur der Mensch kann es tun.
 Voraussetzung: die Konten-Schritte aus `docs/SETUP-ACCOUNTS.md` (inkl. der
 steuerlichen Punkte in Abschnitt 0).
