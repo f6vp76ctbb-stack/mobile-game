@@ -175,6 +175,6 @@ void main() {
     expect(find.text('Undo'), findsNothing);
     expect(find.text('Tausch'), findsNothing);
     expect(find.text('Bombe'), findsNothing);
-    expect(find.text('Drehen'), findsOneWidget);
+    expect(find.text('Drehen'), findsNothing);
   });
 }

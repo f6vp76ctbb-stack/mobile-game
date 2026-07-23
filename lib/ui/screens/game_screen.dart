@@ -217,7 +217,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                               ),
                             ),
                             const SizedBox(height: gap),
-                            if (!compactLayout)
+                            if (!compactLayout && !snap.isDaily)
                               _BoosterBar(
                                 snap: snap,
                                 bombMode: effectiveBombMode,
@@ -380,27 +380,6 @@ class _BoosterBar extends ConsumerWidget {
               },
             ),
           ],
-          // Rotation status: not a coin booster — tapping a tray piece
-          // rotates it; this chip shows the remaining charges.
-          _BoosterButton(
-            icon: Icons.rotate_right_rounded,
-            label: 'Drehen',
-            sub: snap.rotationFree ? 'frei' : '${snap.rotationCharges}×',
-            enabled:
-                !snap.gameOver &&
-                (snap.rotationFree || snap.rotationCharges > 0),
-            active: false,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  duration: Duration(seconds: 2),
-                  content: Text(
-                    'Tippe ein Teil in der Ablage, um es zu drehen',
-                  ),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
