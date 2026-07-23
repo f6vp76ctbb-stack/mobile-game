@@ -124,9 +124,6 @@ Texte **fertig** in `docs/STORE-LISTING.md` — nur kopieren:
 - **Screenshots** (min. 2, empfohlen bis 8, Portrait 1080×1920): ✅ vier Stück in
   `store-assets/` (Home, Gameplay, Themes, Missionen) — direkt hochladbar.
 
-> Hinweis: In der englischen Vollbeschreibung steht noch „WHY GRIDPOP?" (alter
-> Name). Vor dem Einfügen zu **Qubble** korrigieren — sag Bescheid, dann fixe ich
-> den Text im Repo.
 
 ---
 
@@ -192,7 +189,7 @@ bezahlte Dienste (~15–30 €, z. B. testerscommunity.com / primetestlab.com / 
   live-fähig. Erst danach mergen/veröffentlichen.
 - **F3 · Screenshots + Feature-Grafik:** ✅ in `store-assets/` (Feature-Grafik +
   4 Screenshots). Weitere Motive (Combo-Fieber, Bestenliste) bei Bedarf nachlegbar.
-- **F4 · Store-Text „GRIDPOP" → „Qubble"** in der EN-Vollbeschreibung fixen.
+- **F4 · Store-Text „GRIDPOP" → „Qubble"**: ✅ in DE- und EN-Vollbeschreibung korrigiert.
 - **F5 · Versionsnummer:** Vor jedem neuen Upload `version:` in `pubspec.yaml`
   erhöhen (der Teil nach `+` muss steigen).
 

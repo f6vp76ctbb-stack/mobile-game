@@ -52,7 +52,7 @@ Ziehe Blöcke auf das 8×8-Gitter, fülle Reihen und Spalten und lass sie mit
 einem befriedigenden Pop verschwinden. Einfach zu lernen, schwer zu meistern –
 genau richtig für zwischendurch und für lange Highscore-Jagden.
 
-WARUM GRIDPOP?
+WARUM QUBBLE?
 • Kinderleichter Einstieg, endlose Tiefe
 • Combo-Fieber: Verkettete Clears lassen den Bildschirm glühen und den
   Punkte-Multiplikator explodieren
@@ -80,7 +80,7 @@ Drag blocks onto the 8×8 grid, fill rows and columns, and watch them vanish
 with a satisfying pop. Easy to learn, hard to master — perfect for a quick
 break or a long high-score run.
 
-WHY GRIDPOP?
+WHY QUBBLE?
 • Pick-up-and-play simple, endlessly deep
 • Combo Fever: chained clears make the screen glow and your score multiplier
   explode
