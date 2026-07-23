@@ -159,8 +159,8 @@ const List<ThemeEntry> kThemeCatalog = [
   ),
   ThemeEntry(
     id: 'neon',
-    name: 'Neon (Premium)',
-    cost: -1,
+    name: 'Neon',
+    cost: 250,
     theme: GameTheme(
       background: Color(0xFF07070C),
       boardBackground: Color(0xFF12121C),

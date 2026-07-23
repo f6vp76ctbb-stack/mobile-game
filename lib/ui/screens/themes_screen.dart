@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../game/block_skin.dart';
-import '../../monetization/iap.dart';
 import '../state/game_controller.dart';
 import '../state/skin_controller.dart';
 import '../state/theme_controller.dart';
@@ -41,10 +40,6 @@ class ThemesScreen extends ConsumerWidget {
             owned: owned,
             active: active,
             onTap: () async {
-              if (!owned && entry.id == 'neon') {
-                await ref.read(iapServiceProvider).buy(IapProducts.neonTheme);
-                return;
-              }
               final ok = await ref
                   .read(themeControllerProvider.notifier)
                   .selectOrUnlock(entry);
@@ -121,7 +116,9 @@ class _ThemeTile extends StatelessWidget {
                       entry.cost >= 0)
                     Row(
                       children: [
-                        const CoinIcon(size: 14),
+                        entry.id == 'neon'
+                            ? const DiamondIcon(size: 14)
+                            : const CoinIcon(size: 14),
                         const SizedBox(width: 5),
                         Text(
                           '${entry.cost} zum Freischalten',
