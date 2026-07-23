@@ -120,8 +120,9 @@ Texte **fertig** in `docs/STORE-LISTING.md` — nur kopieren:
 - **Titel** (30 Z.): `Qubble – Block Puzzle`
 - **Kurzbeschreibung** (80 Z.) und **Vollbeschreibung** (DE, ~ 4000 Z.): aus dem Listing.
 - **App-Symbol** 512×512: ist gesetzt (im Projekt vorhanden).
-- **Feature-Grafik** 1024×500: **fehlt noch** — brauchst du (kann ich als Vorlage bauen, siehe F3).
-- **Screenshots** (min. 2, empfohlen 6, Portrait): **fehlen noch** → F3.
+- **Feature-Grafik** 1024×500: ✅ liegt in `store-assets/feature-graphic-1024x500.png`.
+- **Screenshots** (min. 2, empfohlen bis 8, Portrait 1080×1920): ✅ vier Stück in
+  `store-assets/` (Home, Gameplay, Themes, Missionen) — direkt hochladbar.
 
 > Hinweis: In der englischen Vollbeschreibung steht noch „WHY GRIDPOP?" (alter
 > Name). Vor dem Einfügen zu **Qubble** korrigieren — sag Bescheid, dann fixe ich
@@ -183,11 +184,14 @@ bezahlte Dienste (~15–30 €, z. B. testerscommunity.com / primetestlab.com / 
 - **F1 · UMP-Einwilligungsmeldung (AdMob):** In AdMob → *Datenschutz & Meldungen*
   eine GDPR-Meldung erstellen. Der Code ruft den Consent-Flow bereits automatisch
   auf — es fehlt nur das Anlegen der Meldung in der AdMob-Oberfläche (👤).
-- **F2 · Datenschutz + Impressum hosten:** Vorlagen in `docs/PRIVACY-POLICY.md` /
-  `docs/IMPRESSUM.md`. Ich kann sie als GitHub-Pages-Seite einrichten und dir die
-  fertigen URLs geben — sag „mach die Datenschutz-Seite", dann erledige ich das.
-- **F3 · Screenshots + Feature-Grafik:** Sobald du magst, nehme ich die 6 Screens
-  (Plan in `docs/STORE-LISTING.md`) auf und baue eine 1024×500-Feature-Grafik.
+- **F2 · Datenschutz + Impressum hosten:** ✅ Seiten gebaut (`web/privacy.html`,
+  `web/impressum.html`, Aurora-Look). Sie deployen mit der bestehenden Pages-Pipeline
+  automatisch → URLs `https://f6vp76ctbb-stack.github.io/mobile-game/privacy.html`
+  bzw. `.../impressum.html`. **Offen:** die `[[Platzhalter]]` (Name, Anschrift, E-Mail
+  fürs Impressum + Datenschutz) mit deinen echten Angaben füllen — dann sind sie
+  live-fähig. Erst danach mergen/veröffentlichen.
+- **F3 · Screenshots + Feature-Grafik:** ✅ in `store-assets/` (Feature-Grafik +
+  4 Screenshots). Weitere Motive (Combo-Fieber, Bestenliste) bei Bedarf nachlegbar.
 - **F4 · Store-Text „GRIDPOP" → „Qubble"** in der EN-Vollbeschreibung fixen.
 - **F5 · Versionsnummer:** Vor jedem neuen Upload `version:` in `pubspec.yaml`
   erhöhen (der Teil nach `+` muss steigen).
