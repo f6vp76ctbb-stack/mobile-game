@@ -56,6 +56,16 @@ jobs:
           storeFile=upload-keystore.jks
           EOF
 
+      - name: Print upload key fingerprint (temporary; public cert info)
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "=== FINGERPRINTS_START ==="
+          keytool -list -v -keystore android/app/upload-keystore.jks -storepass "$STORE_PASSWORD" -alias "$KEY_ALIAS" | grep -E "SHA1:|SHA256:" || true
+          echo "=== FINGERPRINTS_END ==="
+          exit 1
+
       - name: Write google-services.json (if provided)
         env:
           GSJ: ${{ secrets.GOOGLE_SERVICES_JSON }}
